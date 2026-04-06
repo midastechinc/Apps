@@ -1,0 +1,3607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Midas Tech — Lead Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue: #1d4ed8; --blue-light: #e8f0ff;
+      --green: #0f8a5f; --green-light: #ecfdf3;
+      --yellow: #b7791f; --yellow-light: #fff7e8;
+      --red: #c2413b; --red-light: #fff1f0;
+      --purple: #6d4df2; --purple-light: #f1edff;
+      --gray-50:#f5f1e8; --gray-100:#ebe4d6; --gray-200:#dbd0bd;
+      --gray-300:#c6b9a0; --gray-400:#9c8f76; --gray-500:#706552;
+      --gray-600:#4f4739; --gray-700:#342f27; --gray-800:#231f19; --gray-900:#181511;
+      --ink:#17130e; --ink-soft:#2a241c; --sand:#f7f1e6; --sand-deep:#efe4ce;
+      --gold:#c68a2f; --gold-soft:#f8e7be; --surface:#fffdf8; --surface-2:#f8f3ea;
+      --border: rgba(67, 50, 28, 0.12);
+      --shadow-sm: 0 12px 30px rgba(31, 24, 17, 0.08);
+      --shadow-md: 0 22px 50px rgba(31, 24, 17, 0.12);
+      --shadow-lg: 0 28px 80px rgba(16, 12, 8, 0.18);
+      --radius-sm: 10px;
+      --radius-md: 18px;
+      --radius-lg: 26px;
+    }
+    body {
+      font-family: "Segoe UI", "Inter", "Aptos", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(198,138,47,0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(29,78,216,0.14), transparent 24%),
+        linear-gradient(180deg, #f8f4eb 0%, #f2ecdf 52%, #efe6d7 100%);
+      color: var(--gray-800);
+      font-size: 14px;
+      min-height: 100vh;
+      line-height: 1.45;
+    }
+
+    /* ── Header ── */
+    header {
+      background:
+        linear-gradient(135deg, rgba(24,21,17,0.96), rgba(35,31,25,0.92)),
+        linear-gradient(90deg, rgba(198,138,47,0.18), transparent 45%);
+      color: white;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      min-height: 68px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.16);
+      backdrop-filter: blur(14px);
+    }
+    header h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #fff7ea;
+    }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.72);
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .user-badge strong { color: #fff7ea; font-weight: 600; }
+    .user-badge button {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.14);
+      color: #f4d59c;
+      padding: 5px 11px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .user-badge button:hover { border-color: rgba(255,255,255,0.28); color: white; }
+    .view-tabs {
+      display: flex;
+      gap: 6px;
+      padding: 5px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 999px;
+    }
+    .view-tab {
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: rgba(255,255,255,0.68);
+      transition: all 0.18s ease;
+      letter-spacing: 0.02em;
+    }
+    .view-tab:hover { background: rgba(255,255,255,0.08); color: white; }
+    .view-tab.active {
+      background: linear-gradient(135deg, var(--gold), #e2b35f);
+      color: var(--ink);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.35);
+    }
+
+    /* ── Metrics ── */
+    .metrics {
+      display: flex;
+      gap: 14px;
+      padding: 18px 24px 8px;
+      background: transparent;
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+    .metric-card {
+      flex: 1;
+      min-width: 108px;
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(250,245,236,0.92));
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+    .metric-card:hover {
+      border-color: rgba(29,78,216,0.28);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .metric-card.active-filter {
+      border-color: rgba(198,138,47,0.42);
+      background: linear-gradient(180deg, #fff4d8, #fefaf0);
+      box-shadow: 0 18px 42px rgba(198,138,47,0.18);
+    }
+    .metric-card .label {
+      font-size: 10px;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-weight: 700;
+    }
+    .metric-card .value {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--gray-900);
+      margin-top: 5px;
+      line-height: 1;
+    }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 24px 0;
+      padding: 14px;
+      background: rgba(255,253,248,0.88);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      backdrop-filter: blur(10px);
+      flex-wrap: wrap;
+    }
+    .toolbar input[type="text"] {
+      flex: 1;
+      min-width: 180px;
+      max-width: 280px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 13px;
+      outline: none;
+      font-family: inherit;
+      background: var(--surface);
+      color: var(--gray-800);
+    }
+    .toolbar input[type="text"]:focus {
+      border-color: rgba(29,78,216,0.42);
+      box-shadow: 0 0 0 4px rgba(29,78,216,0.10);
+    }
+    .toolbar select {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 12px;
+      background: var(--surface);
+      outline: none;
+      cursor: pointer;
+      font-family: inherit;
+      max-width: 160px;
+      color: var(--gray-700);
+    }
+    .toolbar select:focus {
+      border-color: rgba(29,78,216,0.42);
+      box-shadow: 0 0 0 4px rgba(29,78,216,0.10);
+    }
+    .spacer { flex: 1; }
+    .btn {
+      padding: 10px 15px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      white-space: nowrap;
+      font-family: inherit;
+      letter-spacing: 0.01em;
+    }
+    .btn:hover { opacity: 0.95; transform: translateY(-1px); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--blue), #3b82f6);
+      color: white;
+      box-shadow: 0 12px 24px rgba(29,78,216,0.22);
+    }
+    .btn-secondary {
+      background: linear-gradient(180deg, #fffdf9, #f5efe4);
+      color: var(--gray-800);
+      border: 1px solid var(--border);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
+    }
+    .btn-danger {
+      background: linear-gradient(180deg, #fff5f4, #ffe9e7);
+      color: var(--red);
+      border: 1px solid rgba(194,65,59,0.18);
+    }
+    .btn-sm { padding: 8px 11px; font-size: 12px; }
+    .btn-xs { padding: 6px 8px; font-size: 11px; }
+
+    /* ── Views ── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ════════════════════════════════════════
+       ADMIN TABLE VIEW
+    ════════════════════════════════════════ */
+    .table-wrap { padding: 16px 24px 40px; overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: rgba(255,253,248,0.94);
+      border-radius: 22px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-md);
+      font-size: 13px;
+      table-layout: fixed;
+      backdrop-filter: blur(12px);
+    }
+    th {
+      background: linear-gradient(180deg, #f8f1e2, #f4ead5);
+      padding: 12px 12px;
+      text-align: left;
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      position: relative;
+      user-select: none;
+      overflow: hidden;
+    }
+    td {
+      padding: 13px 12px;
+      border-bottom: 1px solid rgba(77,64,43,0.08);
+      vertical-align: middle;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      background: rgba(255,255,255,0.28);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,244,218,0.6); }
+
+    /* Column resize handle */
+    .col-resize {
+      position: absolute; right: 0; top: 0; bottom: 0; width: 5px;
+      cursor: col-resize; background: transparent;
+    }
+    .col-resize:hover, .col-resize.dragging { background: linear-gradient(180deg, var(--gold), #f1bf67); }
+
+    .td-name { font-weight: 700; color: var(--gray-900); }
+    .td-sub  { font-size: 11px; color: var(--gray-400); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; }
+    .td-muted { color: var(--gray-500); }
+    .status-badge {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+    .status-New        { background: #f5ecdc; color: var(--gray-600); border-color: rgba(112,101,82,0.14); }
+    .status-Contacted  { background: var(--blue-light); color: var(--blue); border-color: rgba(29,78,216,0.14); }
+    .status-Qualified  { background: var(--green-light); color: var(--green); border-color: rgba(15,138,95,0.16); }
+    .status-Proposal   { background: var(--yellow-light); color: var(--yellow); border-color: rgba(183,121,31,0.16); }
+    .status-Closed     { background: var(--green-light); color: var(--green); font-weight: 800; border-color: rgba(15,138,95,0.16); }
+    .status-Dead       { background: var(--red-light); color: var(--red); border-color: rgba(194,65,59,0.16); }
+    .status-select {
+      padding: 6px 9px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 11px;
+      background: var(--surface);
+      cursor: pointer;
+      font-family: inherit;
+      outline: none;
+      color: var(--gray-700);
+    }
+    .rep-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(180deg, #fbf7ef, #f3ecdf);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 5px 10px 5px 8px;
+      font-size: 11px;
+      color: var(--gray-600);
+      cursor: pointer;
+      transition: border-color 0.15s ease, transform 0.15s ease;
+      white-space: nowrap;
+    }
+    .rep-badge:hover { border-color: rgba(29,78,216,0.32); color: var(--blue); transform: translateY(-1px); }
+    .rep-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); display: inline-block; box-shadow: 0 0 0 3px rgba(198,138,47,0.12); }
+    .contact-count { font-weight: 600; color: var(--gray-700); text-align: center; }
+    .actions { display: flex; gap: 4px; align-items: center; }
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      background: linear-gradient(180deg, #fbf7ef, #f3ecdf);
+      border: 1px solid var(--border);
+      font-size: 11px;
+      cursor: pointer;
+      color: var(--gray-700);
+      font-weight: 700;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .icon-btn:hover { border-color: rgba(29,78,216,0.28); transform: translateY(-1px); }
+    .group-row td {
+      padding: 11px 14px;
+      background: linear-gradient(180deg, rgba(243,234,213,0.96), rgba(238,227,202,0.92));
+      border-bottom: 1px solid rgba(112,101,82,0.12);
+    }
+    .group-row:hover td { background: linear-gradient(180deg, rgba(243,234,213,0.96), rgba(238,227,202,0.92)); }
+    .group-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--gray-700);
+      font-weight: 700;
+    }
+    .group-label small {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.10em;
+      color: var(--gray-500);
+      font-weight: 800;
+    }
+    .group-main {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+    }
+    .state-row td { text-align: center; padding: 48px; color: var(--gray-400); white-space: normal; }
+    .state-row strong { display: block; font-size: 14px; color: var(--gray-600); margin-bottom: 4px; }
+    .limit-note td {
+      padding: 12px 14px;
+      background: rgba(232,240,255,0.72);
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: normal;
+      border-bottom: 1px solid rgba(29,78,216,0.12);
+    }
+
+    /* ════════════════════════════════════════
+       REP WORKSPACE VIEW
+    ════════════════════════════════════════ */
+    .workspace {
+      padding: 22px 24px 40px;
+      border-radius: 28px;
+    }
+    .workspace-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 14px;
+      padding: 6px 2px;
+    }
+    .workspace-title { font-size: 30px; font-weight: 800; color: var(--gray-900); letter-spacing: -0.03em; }
+    .workspace-sub { font-size: 13px; color: var(--gray-500); margin-top: 4px; }
+    .ws-stats { display: flex; gap: 10px; flex-wrap: wrap; }
+    .ws-stat {
+      text-align: center;
+      padding: 14px 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(248,243,234,0.9));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      min-width: 92px;
+      box-shadow: var(--shadow-sm);
+    }
+    .ws-stat .n { font-size: 24px; font-weight: 800; color: var(--gray-900); }
+    .ws-stat .l { font-size: 10px; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.10em; font-weight: 700; margin-top: 2px; }
+    .ws-stat.urgent .n { color: var(--red); }
+    .ws-stat.good   .n { color: var(--green); }
+
+    /* Lead cards */
+    .lead-queue { display: flex; flex-direction: column; gap: 12px; }
+    .lead-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(249,244,235,0.92));
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 18px 18px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+      box-shadow: var(--shadow-sm);
+    }
+    .lead-card:hover { border-color: rgba(29,78,216,0.26); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .lead-card.priority-high { border-left: 4px solid var(--red); }
+    .lead-card.priority-med  { border-left: 4px solid var(--yellow); }
+    .lead-card.priority-low  { border-left: 4px solid var(--green); }
+    .card-main { min-width: 0; }
+    .card-name { font-weight: 700; font-size: 15px; color: var(--gray-900); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .card-meta { font-size: 12px; color: var(--gray-500); margin-top: 6px; display: flex; gap: 12px; flex-wrap: wrap; }
+    .card-meta span { display: flex; align-items: center; gap: 4px; }
+    .card-contact-info { margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .card-contact-info a {
+      font-size: 12px;
+      color: var(--blue);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(232,240,255,0.75);
+      border: 1px solid rgba(29,78,216,0.10);
+    }
+    .card-contact-info a:hover { text-decoration: underline; }
+    .card-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; justify-content: center; flex-shrink: 0; }
+    .card-last { font-size: 11px; color: var(--gray-400); text-align: right; margin-top: 4px; }
+    .empty-workspace {
+      text-align: center;
+      padding: 72px 24px;
+      color: var(--gray-400);
+      background: rgba(255,253,248,0.8);
+      border: 1px dashed rgba(112,101,82,0.24);
+      border-radius: 24px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+    }
+    .empty-workspace .big { font-size: 40px; margin-bottom: 12px; }
+    .empty-workspace strong { display: block; font-size: 16px; color: var(--gray-600); margin-bottom: 6px; }
+
+    /* ── Modals ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(18,15,11,0.50); z-index: 1000; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(6px); }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: linear-gradient(180deg, rgba(255,253,248,0.98), rgba(249,243,233,0.96));
+      border-radius: 24px;
+      padding: 24px;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: var(--shadow-lg);
+      max-height: 90vh;
+      overflow-y: auto;
+      border: 1px solid rgba(255,255,255,0.35);
+    }
+    .modal-wide { max-width: 580px; }
+    .modal h2 { font-size: 20px; font-weight: 800; margin-bottom: 4px; color: var(--gray-900); letter-spacing: -0.02em; }
+    .modal-sub { font-size: 13px; color: var(--gray-500); margin-bottom: 18px; }
+    .form-group { margin-bottom: 13px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 700; color: var(--gray-600); margin-bottom: 6px; letter-spacing: 0.02em; }
+    .form-group select, .form-group input, .form-group textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      color: var(--gray-800);
+      background: var(--surface);
+    }
+    .form-group select:focus, .form-group input:focus, .form-group textarea:focus {
+      border-color: rgba(29,78,216,0.42);
+      box-shadow: 0 0 0 4px rgba(29,78,216,0.10);
+    }
+    .form-group textarea { resize: vertical; min-height: 75px; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* Detail view */
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+    .detail-field { padding: 11px 12px; background: rgba(255,255,255,0.64); border-radius: 14px; border: 1px solid var(--border); }
+    .detail-field.full { grid-column: 1 / -1; }
+    .df-label { font-size: 10px; color: var(--gray-400); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+    .df-value { font-size: 13px; color: var(--gray-800); word-break: normal; overflow-wrap: anywhere; }
+    .df-value a { color: var(--blue); text-decoration: none; cursor: pointer; }
+    .df-value a:hover { text-decoration: underline; }
+    .extras-heading { font-size: 10px; font-weight: 700; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.12em; margin: 14px 0 8px; grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 12px; }
+
+    /* Assign modal */
+    .rep-option { display: flex; align-items: center; gap: 10px; padding: 12px 13px; border: 1px solid var(--border); border-radius: 16px; cursor: pointer; transition: all 0.15s; margin-bottom: 8px; background: rgba(255,255,255,0.6); }
+    .rep-option:hover { border-color: rgba(29,78,216,0.28); background: rgba(232,240,255,0.66); }
+    .rep-option.selected { border-color: rgba(198,138,47,0.40); background: rgba(255,240,205,0.78); }
+    .rep-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--purple)); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+    .rep-name { font-weight: 500; font-size: 13px; }
+    .rep-count { font-size: 11px; color: var(--gray-400); margin-top: 1px; }
+    .user-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .user-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.64);
+    }
+    .user-row-main {
+      min-width: 0;
+    }
+    .user-row-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+    .user-row-sub {
+      font-size: 12px;
+      color: var(--gray-500);
+      margin-top: 2px;
+      overflow-wrap: anywhere;
+    }
+    .csv-mapping-list {
+      display: grid;
+      gap: 10px;
+      max-height: 58vh;
+      overflow: auto;
+      padding-right: 4px;
+    }
+    .csv-mapping-row {
+      display: grid;
+      grid-template-columns: minmax(170px, 1.1fr) minmax(230px, 1.6fr) minmax(180px, 1fr);
+      gap: 12px;
+      align-items: start;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.7);
+    }
+    .csv-mapping-header {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gray-900);
+      word-break: break-word;
+    }
+    .csv-mapping-samples {
+      font-size: 12px;
+      color: var(--gray-500);
+      display: grid;
+      gap: 4px;
+    }
+    .csv-mapping-samples code {
+      display: block;
+      padding: 5px 7px;
+      border-radius: 8px;
+      background: rgba(112,101,82,0.08);
+      color: var(--gray-700);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .csv-mapping-select select {
+      width: 100%;
+    }
+    .user-role-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 78px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      border: 1px solid transparent;
+    }
+    .user-role-admin {
+      background: var(--gold-soft);
+      color: #88580f;
+      border-color: rgba(198,138,47,0.18);
+    }
+    .user-role-rep {
+      background: var(--blue-light);
+      color: var(--blue);
+      border-color: rgba(29,78,216,0.14);
+    }
+
+    /* URL copy dialog */
+    .url-copy-box { display: flex; gap: 6px; margin-top: 10px; }
+    .url-copy-box input { flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; font-size: 12px; font-family: Consolas, monospace; background: rgba(255,255,255,0.82); color: var(--gray-700); }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--gray-900); color: white; padding: 12px 16px; border-radius: 16px; font-size: 13px; z-index: 9999; transform: translateY(20px); opacity: 0; transition: transform 0.22s, opacity 0.22s; pointer-events: none; max-width: 320px; box-shadow: var(--shadow-md); }
+    .toast.show    { transform: translateY(0); opacity: 1; }
+    .toast.success { background: var(--green); }
+    .toast.error   { background: var(--red); }
+
+    #csvInput { display: none; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(112,101,82,0.35); border-radius: 999px; }
+
+    @media (max-width: 900px) {
+      header {
+        padding: 14px 16px;
+        align-items: flex-start;
+      }
+      .header-right {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+      .metrics,
+      .table-wrap,
+      .workspace {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+      .toolbar {
+        margin-left: 16px;
+        margin-right: 16px;
+      }
+      .workspace-title {
+        font-size: 24px;
+      }
+      .lead-card {
+        grid-template-columns: 1fr;
+      }
+      .card-actions {
+        align-items: stretch;
+      }
+      .card-last {
+        text-align: left;
+      }
+      .form-row,
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      header {
+        min-height: auto;
+      }
+      header h1 {
+        font-size: 15px;
+      }
+      .view-tabs,
+      .user-badge {
+        width: 100%;
+        justify-content: center;
+      }
+      .metrics {
+        padding-top: 14px;
+      }
+      .metric-card {
+        min-width: 132px;
+      }
+      .toolbar input[type="text"],
+      .toolbar select,
+      .toolbar .btn {
+        width: 100%;
+        max-width: none;
+      }
+      .btn {
+        justify-content: center;
+      }
+      table {
+        font-size: 12px;
+      }
+      th, td {
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+      .modal {
+        padding: 20px;
+        border-radius: 20px;
+      }
+    }
+
+    /* ════════════════════════════════════════
+       LINKEDIN DASHBOARD
+    ════════════════════════════════════════ */
+    .li-wrap { padding: 16px 24px 48px; }
+
+    /* Admin Pull Control */
+    .li-admin-bar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 20px;
+      background: linear-gradient(135deg, #0a66c2 0%, #0057a3 100%);
+      border-radius: var(--radius-md);
+      margin-bottom: 18px;
+      box-shadow: 0 10px 28px rgba(10,102,194,0.28);
+      flex-wrap: wrap;
+    }
+    .li-admin-bar .li-admin-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.03em;
+      flex: 1;
+    }
+    .li-admin-bar .li-admin-sub {
+      font-size: 11px;
+      color: rgba(255,255,255,0.72);
+      margin-top: 2px;
+      font-weight: 400;
+    }
+    .btn-linkedin {
+      background: #fff;
+      color: #0a66c2;
+      font-weight: 800;
+      font-size: 13px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .btn-linkedin:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0,0,0,0.22); }
+    .btn-linkedin:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+    .btn-linkedin-ghost {
+      background: rgba(255,255,255,0.14);
+      color: #fff;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 9px 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.28);
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .btn-linkedin-ghost:hover { background: rgba(255,255,255,0.22); }
+    .li-pull-status {
+      font-size: 12px;
+      color: rgba(255,255,255,0.75);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .li-pull-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.38);
+      flex-shrink: 0;
+    }
+    .li-pull-dot.running {
+      background: #facc15;
+      animation: li-pulse 1s ease infinite;
+    }
+    .li-pull-dot.success { background: #4ade80; }
+    .li-pull-dot.error   { background: #f87171; }
+    @keyframes li-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* Stats bar */
+    .li-stats {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 18px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .li-stat {
+      flex: 1;
+      min-width: 100px;
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(250,245,236,0.92));
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      cursor: default;
+    }
+    .li-stat .li-stat-label {
+      font-size: 10px;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-weight: 700;
+    }
+    .li-stat .li-stat-value {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--gray-900);
+      margin-top: 4px;
+      line-height: 1;
+    }
+    .li-stat.highlight { border-color: rgba(10,102,194,0.28); background: linear-gradient(180deg,#e8f2ff,#f0f7ff); }
+    .li-stat.highlight .li-stat-value { color: #0a66c2; }
+
+    /* 3-column grid */
+    .li-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 900px) { .li-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 580px) { .li-grid { grid-template-columns: 1fr; } }
+
+    .li-col {
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(250,245,236,0.90));
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .li-col-header {
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,253,248,0.98), rgba(248,243,234,0.95));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .li-col-title {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--gray-700);
+    }
+    .li-col-count {
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(29,78,216,0.1);
+      color: #1d4ed8;
+      padding: 3px 9px;
+      border-radius: 999px;
+    }
+    .li-msg-tabs {
+      display: flex;
+      gap: 4px;
+    }
+    .li-msg-tab {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 9px;
+      border-radius: 999px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      color: var(--gray-500);
+      background: transparent;
+      transition: all 0.15s;
+    }
+    .li-msg-tab:hover { background: rgba(0,0,0,0.05); }
+    .li-msg-tab.active {
+      background: linear-gradient(135deg, #0a66c2, #1d84d8);
+      color: #fff;
+      border-color: transparent;
+    }
+    .li-col-body {
+      flex: 1;
+      overflow-y: auto;
+      max-height: 480px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* Cards */
+    .li-card {
+      padding: 11px 13px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+      position: relative;
+    }
+    .li-card:hover {
+      border-color: rgba(10,102,194,0.3);
+      box-shadow: 0 6px 16px rgba(10,102,194,0.1);
+      transform: translateY(-1px);
+    }
+    .li-card.unread { border-left: 3px solid #0a66c2; }
+    .li-card-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .li-card-title {
+      font-size: 11px;
+      color: var(--gray-500);
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .li-card-note {
+      font-size: 11.5px;
+      color: var(--gray-600);
+      background: var(--sand-deep);
+      border-radius: 7px;
+      padding: 6px 9px;
+      margin-bottom: 6px;
+      line-height: 1.45;
+      border-left: 2px solid var(--gold);
+    }
+    .li-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .li-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .li-badge-blue   { background: #e8f2ff; color: #0a66c2; }
+    .li-badge-green  { background: #ecfdf3; color: #0f8a5f; }
+    .li-badge-yellow { background: #fff7e8; color: #b7791f; }
+    .li-badge-red    { background: #fff1f0; color: #c2413b; }
+    .li-badge-gray   { background: #f3f4f6; color: #6b7280; }
+    .li-badge-unread { background: #0a66c2; color: #fff; }
+    .li-date {
+      font-size: 10px;
+      color: var(--gray-400);
+      white-space: nowrap;
+    }
+    .li-profile-link {
+      font-size: 10px;
+      color: #0a66c2;
+      text-decoration: none;
+      font-weight: 700;
+      padding: 3px 7px;
+      border: 1px solid rgba(10,102,194,0.28);
+      border-radius: 6px;
+      transition: background 0.15s;
+    }
+    .li-profile-link:hover { background: rgba(10,102,194,0.07); }
+    .li-empty {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--gray-400);
+      font-size: 12px;
+    }
+    .li-empty .li-empty-icon { font-size: 28px; margin-bottom: 8px; }
+    .li-loading {
+      text-align: center;
+      padding: 28px;
+      color: var(--gray-400);
+      font-size: 12px;
+    }
+    .li-spinner {
+      width: 20px; height: 20px;
+      border: 3px solid rgba(10,102,194,0.2);
+      border-top-color: #0a66c2;
+      border-radius: 50%;
+      animation: li-spin 0.7s linear infinite;
+      margin: 0 auto 10px;
+    }
+    @keyframes li-spin { to { transform: rotate(360deg); } }
+
+    /* Pull output log */
+    .li-pull-log {
+      margin-top: 16px;
+      background: #0d1117;
+      color: #c9d1d9;
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 12px;
+      line-height: 1.65;
+      max-height: 280px;
+      overflow-y: auto;
+      display: none;
+      border: 1px solid rgba(255,255,255,0.08);
+      white-space: pre-wrap;
+    }
+    .li-pull-log .log-success { color: #3fb950; }
+    .li-pull-log .log-error   { color: #f85149; }
+    .li-pull-log .log-info    { color: #58a6ff; }
+    .li-pull-log .log-dim     { color: #8b949e; }
+  </style>
+</head>
+<body>
+
+  <!-- ══ Header ══ -->
+  <header>
+    <h1>Midas Tech &mdash; Lead Tracker</h1>
+    <div class="header-right">
+      <div class="view-tabs">
+        <button class="view-tab active" onclick="switchView('admin')">All Leads</button>
+        <button class="view-tab" onclick="switchView('workspace')">My Workspace</button>
+        <button class="view-tab" id="linkedinTab" onclick="switchView('linkedin')">🔗 LinkedIn</button>
+      </div>
+      <div class="user-badge">
+        <strong id="userDisplay">—</strong>
+        <button id="adminUsersBtn" style="display:none" onclick="openAdminUsers()">Users</button>
+        <button onclick="changeUser()">Switch</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══ Metrics bar ══ -->
+  <div class="metrics" id="metricsBar">
+    <div class="metric-card" onclick="filterByStatus('')"    id="mc-total"><div class="label">Total</div><div class="value" id="metricTotal">—</div></div>
+    <div class="metric-card" onclick="filterByStatus('New')" id="mc-New"><div class="label">New</div><div class="value" id="metricNew">—</div></div>
+    <div class="metric-card" onclick="filterByStatus('Contacted')" id="mc-Contacted"><div class="label">Contacted</div><div class="value" id="metricContacted">—</div></div>
+    <div class="metric-card" onclick="filterByStatus('Qualified')" id="mc-Qualified"><div class="label">Qualified</div><div class="value" id="metricQualified">—</div></div>
+    <div class="metric-card" onclick="filterByStatus('Proposal')" id="mc-Proposal"><div class="label">Proposal</div><div class="value" id="metricProposal">—</div></div>
+    <div class="metric-card" onclick="filterByStatus('Closed')" id="mc-Closed"><div class="label">Closed</div><div class="value" id="metricClosed">—</div></div>
+  </div>
+
+  <!-- ══════════════════════════════
+       ADMIN VIEW
+  ══════════════════════════════ -->
+  <div class="view active" id="view-admin">
+    <div class="toolbar">
+      <input type="text" id="searchInput" placeholder="Search name, company, email…" oninput="applyFilters()">
+      <select id="filterStatus" onchange="applyFilters()">
+        <option value="">All Statuses</option>
+        <option>New</option><option>Contacted</option><option>Qualified</option>
+        <option>Proposal</option><option>Closed</option><option>Dead</option>
+      </select>
+      <select id="filterRep" onchange="applyFilters()"><option value="">All Reps</option></select>
+      <select id="filterCountry" onchange="applyFilters()"><option value="">All Countries</option></select>
+      <select id="filterTitle" onchange="applyFilters()"><option value="">All Titles</option></select>
+      <div class="spacer"></div>
+      <input type="file" id="csvInput" accept=".csv" onchange="handleCSV(event)">
+      <button class="btn btn-secondary" id="importCsvBtn" style="display:none" onclick="document.getElementById('csvInput').click()">Import CSV</button>
+      <button class="btn btn-secondary" id="importBatchesBtn" style="display:none" onclick="openImportBatches()">Delete Batch</button>
+      <button class="btn btn-primary"   onclick="openAddLead()">+ Add Lead</button>
+      <button class="btn btn-danger" id="clearAllBtn" style="display:none" onclick="clearAllLeads()">Clear All</button>
+    </div>
+
+    <div class="table-wrap">
+      <table id="leadsTable">
+        <thead>
+          <tr>
+            <th style="width:180px">Name<div class="col-resize"></div></th>
+            <th style="width:160px">Company<div class="col-resize"></div></th>
+            <th style="width:190px">Email<div class="col-resize"></div></th>
+            <th style="width:130px">Phone<div class="col-resize"></div></th>
+            <th style="width:120px">Status<div class="col-resize"></div></th>
+            <th style="width:130px">Company Assignment<div class="col-resize"></div></th>
+            <th style="width:70px; text-align:center">Contacts<div class="col-resize"></div></th>
+            <th style="width:110px">Last Contact<div class="col-resize"></div></th>
+            <th style="width:110px">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="leadTableBody">
+          <tr class="state-row"><td colspan="9">Connecting…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════
+       WORKSPACE VIEW
+  ══════════════════════════════ -->
+  <div class="view" id="view-workspace">
+    <div class="workspace">
+      <div class="workspace-header">
+        <div>
+          <div class="workspace-title" id="wsTitle">My Workspace</div>
+          <div class="workspace-sub" id="wsSub">Your assigned leads</div>
+        </div>
+        <div class="ws-stats">
+          <div class="ws-stat urgent"><div class="n" id="wsNeedsFollowup">0</div><div class="l">Follow-up</div></div>
+          <div class="ws-stat"><div class="n" id="wsTotal">0</div><div class="l">Assigned</div></div>
+          <div class="ws-stat good"><div class="n" id="wsContacted">0</div><div class="l">Contacted</div></div>
+          <div class="ws-stat good"><div class="n" id="wsClosed">0</div><div class="l">Closed</div></div>
+        </div>
+      </div>
+
+      <div class="toolbar" style="border-radius:8px; margin-bottom:14px; border:1px solid var(--gray-200);">
+        <input type="text" id="wsSearch" placeholder="Search my leads…" oninput="renderWorkspace()">
+        <select id="wsFilterStatus" onchange="renderWorkspace()">
+          <option value="">All Statuses</option>
+          <option>New</option><option>Contacted</option><option>Qualified</option>
+          <option>Proposal</option><option>Closed</option><option>Dead</option>
+        </select>
+        <select id="wsSort" onchange="renderWorkspace()">
+          <option value="priority">Priority (needs follow-up first)</option>
+          <option value="recent">Recently updated</option>
+          <option value="name">Name A–Z</option>
+          <option value="contacts">Most contacts</option>
+        </select>
+      </div>
+
+      <div class="lead-queue" id="leadQueue">
+        <div class="empty-workspace"><div class="big">📋</div><strong>No leads yet</strong><p>Leads assigned to you will appear here.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════
+       LINKEDIN VIEW
+  ══════════════════════════════ -->
+  <div class="view" id="view-linkedin">
+    <div class="li-wrap">
+
+      <!-- Admin-only pull control -->
+      <div class="li-admin-bar" id="liAdminBar" style="display:none">
+        <div style="flex:1;">
+      <div class="li-admin-label">🔗 LinkedIn Daily Pull</div>
+      <div class="li-admin-sub">This dashboard reads LinkedIn data from Supabase. Run the local scraper from the LeadTracker folder on your PC, then refresh here.</div>
+        </div>
+        <div class="li-pull-status" id="liPullStatus">
+          <div class="li-pull-dot" id="liPullDot"></div>
+          <span id="liPullStatusText">Ready</span>
+        </div>
+        <button class="btn-linkedin-ghost" onclick="loadLinkedInDashboard()">↻ Refresh Data</button>
+      </div>
+      <!-- Pull log output (admin only, shown during/after run) -->
+      <div class="li-pull-log" id="liPullLog"></div>
+
+      <!-- Stats bar -->
+      <div class="li-stats">
+        <div class="li-stat highlight">
+          <div class="li-stat-label">Pending Invites</div>
+          <div class="li-stat-value" id="liStatInvites">—</div>
+        </div>
+        <div class="li-stat">
+          <div class="li-stat-label">With Notes</div>
+          <div class="li-stat-value" id="liStatNotes">—</div>
+        </div>
+        <div class="li-stat">
+          <div class="li-stat-label">Replies Received</div>
+          <div class="li-stat-value" id="liStatReplies">—</div>
+        </div>
+        <div class="li-stat highlight">
+          <div class="li-stat-label">Unread Messages</div>
+          <div class="li-stat-value" id="liStatUnread">—</div>
+        </div>
+        <div class="li-stat">
+          <div class="li-stat-label">Sent Pending</div>
+          <div class="li-stat-value" id="liStatSent">—</div>
+        </div>
+        <div class="li-stat highlight">
+          <div class="li-stat-label">Accepted (5d)</div>
+          <div class="li-stat-value" id="liStatAccepted">—</div>
+        </div>
+        <div class="li-stat">
+          <div class="li-stat-label">Catch Up</div>
+          <div class="li-stat-value" id="liStatCatchUp">—</div>
+        </div>
+        <div class="li-stat" style="min-width:130px">
+          <div class="li-stat-label">Last Pulled</div>
+          <div class="li-stat-value" id="liStatLastPull" style="font-size:13px;font-weight:700;margin-top:6px;color:var(--gray-500);">—</div>
+        </div>
+      </div>
+
+      <!-- 5-column dashboard -->
+      <div class="li-grid">
+
+        <!-- Column 1: Received Invites -->
+        <div class="li-col">
+          <div class="li-col-header">
+            <div class="li-col-title">📥 Received Invites</div>
+            <span class="li-col-count" id="liCountInvites">0</span>
+          </div>
+          <div class="li-col-body" id="liColInvites">
+            <div class="li-loading"><div class="li-spinner"></div>Loading…</div>
+          </div>
+        </div>
+
+        <!-- Column 2: Messages & Replies -->
+        <div class="li-col">
+          <div class="li-col-header">
+            <div class="li-col-title">💬 Messages</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="li-msg-tabs">
+                <button class="li-msg-tab active" id="liMsgTabAll"    onclick="setMsgFilter('all')">All</button>
+                <button class="li-msg-tab"         id="liMsgTabUnread" onclick="setMsgFilter('unread')">Unread</button>
+                <button class="li-msg-tab"         id="liMsgTabIn"    onclick="setMsgFilter('inbound')">Inbound</button>
+              </div>
+              <span class="li-col-count" id="liCountMsgs">0</span>
+            </div>
+          </div>
+          <div class="li-col-body" id="liColMsgs">
+            <div class="li-loading"><div class="li-spinner"></div>Loading…</div>
+          </div>
+        </div>
+
+        <!-- Column 3: Sent Invites -->
+        <div class="li-col">
+          <div class="li-col-header">
+            <div class="li-col-title">📤 Sent (Pending)</div>
+            <span class="li-col-count" id="liCountSent">0</span>
+          </div>
+          <div class="li-col-body" id="liColSent">
+            <div class="li-loading"><div class="li-spinner"></div>Loading…</div>
+          </div>
+        </div>
+
+        <div class="li-col">
+          <div class="li-col-header">
+            <div class="li-col-title">✅ Accepted Invites</div>
+            <span class="li-col-count" id="liCountAccepted">0</span>
+          </div>
+          <div class="li-col-body" id="liColAccepted">
+            <div class="li-loading"><div class="li-spinner"></div>Loading…</div>
+          </div>
+        </div>
+
+        <div class="li-col">
+          <div class="li-col-header">
+            <div class="li-col-title">🧠 Catch Up</div>
+            <span class="li-col-count" id="liCountCatchUp">0</span>
+          </div>
+          <div class="li-col-body" id="liColCatchUp">
+            <div class="li-loading"><div class="li-spinner"></div>Loading…</div>
+          </div>
+        </div>
+
+      </div><!-- /li-grid -->
+    </div><!-- /li-wrap -->
+  </div>
+
+  <!-- ══ Log Activity Modal ══ -->
+  <div class="modal-overlay" id="activityModal">
+    <div class="modal">
+      <h2>Log Activity</h2>
+      <p class="modal-sub" id="activityModalSub"></p>
+      <div class="form-group">
+        <label>Type</label>
+        <select id="activityType">
+          <option>Call</option><option>Email</option><option>SMS</option>
+          <option>Meeting</option><option>LinkedIn</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="activityNotes" placeholder="What happened? What was discussed? Any next steps?"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Update Status</label>
+        <select id="activityStatusUpdate">
+          <option value="">No change</option>
+          <option>New</option><option>Contacted</option><option>Qualified</option>
+          <option>Proposal</option><option>Closed</option><option>Dead</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('activityModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitActivity()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Assign Lead Modal ══ -->
+  <div class="modal-overlay" id="assignModal">
+    <div class="modal">
+      <h2>Assign Lead</h2>
+      <p class="modal-sub" id="assignModalSub"></p>
+      <div id="repOptionsList"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('assignModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmAssign()">Assign</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Lead Detail Modal ══ -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal modal-wide">
+      <h2 id="detailName">Lead Details</h2>
+      <p class="modal-sub" id="detailSub"></p>
+      <div class="detail-grid" id="detailGrid"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('detailModal')">Close</button>
+        <button class="btn btn-secondary" id="detailEditBtn" onclick="openEditLead()">Edit Lead</button>
+        <button class="btn btn-primary" id="detailLogBtn">Log Activity</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Edit Lead Modal ══ -->
+  <div class="modal-overlay" id="editLeadModal">
+    <div class="modal modal-wide">
+      <h2>Edit Lead</h2>
+      <p class="modal-sub">Update lead information and save changes instantly.</p>
+      <div class="form-row">
+        <div class="form-group"><label>Full Name</label><input type="text" id="editLeadName"></div>
+        <div class="form-group"><label>Company</label><input type="text" id="editLeadCompany"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Email</label><input type="email" id="editLeadEmail"></div>
+        <div class="form-group"><label>Phone</label><input type="text" id="editLeadPhone"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Website</label><input type="text" id="editLeadWebsite"></div>
+        <div class="form-group"><label>LinkedIn</label><input type="text" id="editLeadLinkedin"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Title</label><input type="text" id="editLeadTitle"></div>
+        <div class="form-group"><label>Industry</label><input type="text" id="editLeadIndustry"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Status</label>
+          <select id="editLeadStatus">
+            <option>New</option><option>Contacted</option><option>Qualified</option>
+            <option>Proposal</option><option>Closed</option><option>Dead</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Assigned To</label><input type="text" id="editLeadAssignedTo"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Country</label><input type="text" id="editLeadCountry"></div>
+        <div class="form-group"><label>City</label><input type="text" id="editLeadCity"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>State / Province</label><input type="text" id="editLeadState"></div>
+        <div class="form-group"><label>Employees</label><input type="text" id="editLeadEmployeeRange"></div>
+      </div>
+      <div class="form-group">
+        <label>Address</label>
+        <textarea id="editLeadAddress" rows="2" style="width:100%;padding:10px 12px;border:1px solid var(--gray-200);border-radius:10px;font:inherit;resize:vertical;"></textarea>
+      </div>
+      <div id="editLeadExtraFields"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('editLeadModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveEditedLead()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ URL Copy Modal (for about:blank#blocked environments) ══ -->
+  <div class="modal-overlay" id="urlModal" data-backdrop-close="true">
+    <div class="modal">
+      <h2>Open Link</h2>
+      <p class="modal-sub">Click the link or copy it to your browser.</p>
+      <div class="url-copy-box">
+        <input type="text" id="urlDisplay" readonly onclick="this.select()">
+        <button class="btn btn-primary" onclick="copyUrl()">Copy</button>
+      </div>
+      <div style="margin-top:12px; text-align:center;">
+        <a id="urlDirectLink" href="#" style="font-size:13px; color:var(--blue);">Open in new tab ↗</a>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('urlModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Add Lead Modal ══ -->
+  <div class="modal-overlay" id="addLeadModal">
+    <div class="modal modal-wide">
+      <h2>Add Lead</h2>
+      <p class="modal-sub">Only name is required.</p>
+      <div class="form-row">
+        <div class="form-group"><label>Full Name *</label><input type="text" id="newName" placeholder="John Doe"></div>
+        <div class="form-group"><label>Company</label><input type="text" id="newCompany" placeholder="ABC Inc"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Email</label><input type="email" id="newEmail" placeholder="john@email.com"></div>
+        <div class="form-group"><label>Phone</label><input type="text" id="newPhone" placeholder="(416) 555-0000"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Website</label><input type="text" id="newWebsite" placeholder="https://"></div>
+        <div class="form-group"><label>LinkedIn URL</label><input type="text" id="newLinkedin" placeholder="https://linkedin.com/in/"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Title / Role</label><input type="text" id="newTitle" placeholder="CEO, Partner…"></div>
+        <div class="form-group"><label>Industry</label><input type="text" id="newIndustry" placeholder="Accounting, IT…"></div>
+      </div>
+      <div class="form-group"><label>Assigned To</label><input type="text" id="newAssigned" placeholder="Rep name"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('addLeadModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitAddLead()">Add Lead</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Admin Users Modal ══ -->
+  <div class="modal-overlay" id="adminUsersModal">
+    <div class="modal modal-wide">
+      <h2>User Management</h2>
+      <p class="modal-sub">Create app users and control which users have admin access.</p>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="adminNewUserName" placeholder="e.g. Ali Jaffar">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="adminNewUserEmail" placeholder="name@company.com">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="adminNewUserPassword" placeholder="Minimum 6 characters">
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <select id="adminNewUserRole">
+            <option value="rep">Rep</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions" style="margin-top:0; margin-bottom:16px;">
+        <button class="btn btn-primary" onclick="createManagedUser()">Create User</button>
+      </div>
+      <div id="adminUsersList"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('adminUsersModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Import Batches Modal ══ -->
+  <div class="modal-overlay" id="importBatchesModal">
+    <div class="modal modal-wide">
+      <h2>Imported Batches</h2>
+      <p class="modal-sub">Delete one CSV import batch without clearing the full lead database. Batch delete removes leads created by that import and clears the batch record.</p>
+      <div id="importBatchesList"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('importBatchesModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ CSV Mapping Modal ══ -->
+  <div class="modal-overlay" id="csvMappingModal">
+    <div class="modal modal-wide" style="max-width:860px;">
+      <h2>Map CSV Columns</h2>
+      <p class="modal-sub" id="csvMappingSub">Review the sample values and confirm where each CSV column should go.</p>
+      <div id="csvMappingList"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="cancelCsvMapping()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmCsvMapping()">Import CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ User Login Modal ══ -->
+  <div class="modal-overlay active" id="userModal">
+    <div class="modal">
+      <h2>Welcome to Lead Tracker</h2>
+      <p class="modal-sub">Sign in with your email and password to access the live lead database.</p>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="userEmailInput" placeholder="name@company.com" onkeydown="if(event.key==='Enter')loginUser()">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="userPasswordInput" placeholder="Enter your password" onkeydown="if(event.key==='Enter')loginUser()">
+      </div>
+      <p class="modal-sub" id="userModalError" style="display:none; margin-bottom:0; color:var(--red);"></p>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="loginUser()">Sign In</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ First Admin Bootstrap Modal ══ -->
+  <div class="modal-overlay" id="bootstrapAdminModal">
+    <div class="modal">
+      <h2>Set up the first admin</h2>
+      <p class="modal-sub" id="bootstrapAdminMessage">No admin account exists yet. You can claim admin access for this signed-in account to finish setup.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="dismissBootstrapAdmin()">Not now</button>
+        <button class="btn btn-primary" onclick="claimBootstrapAdmin()">Claim Admin Access</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Supabase (LinkedIn Dashboard) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- ════════════════════════════════════════════════════════
+       FIREBASE + APP LOGIC
+  ════════════════════════════════════════════════════════ -->
+  <script type="module">
+
+    const firebaseConfig = {
+      apiKey:            "AIzaSyB0xBLlmRvUFlBkh03IGQRCOUhCJELS7v8",
+      authDomain:        "midas-leads-a8b13.firebaseapp.com",
+      projectId:         "midas-leads-a8b13",
+      storageBucket:     "midas-leads-a8b13.firebasestorage.app",
+      messagingSenderId: "844446591167",
+      appId:             "1:844446591167:web:2e87b6d6ee6ad61776fe0a",
+      measurementId:     "G-8JDE6YMT86"
+    };
+
+    import { initializeApp }
+      from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import {
+      getFirestore, collection, addDoc, updateDoc, doc, getDoc, getDocs, setDoc,
+      onSnapshot, writeBatch, serverTimestamp, increment, query, orderBy, where, limit, runTransaction
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import {
+      getAuth, onAuthStateChanged, signInWithEmailAndPassword,
+      signOut, setPersistence, browserLocalPersistence
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+    const auth = getAuth(app);
+
+    let allLeads      = {};
+    let currentLeadId = null;
+    let currentUser   = "";
+    let assignTarget  = null;
+    let selectedRep   = null;
+    let activeView    = "admin";
+    let bulkImportInProgress = false;
+    let pendingCsvImport = null;
+    let currentUserProfile = null;
+    let currentUserId = "";
+    let usersCache = {};
+    let importBatchesCache = {};
+    let unsubscribeLeads = null;
+    let unsubscribeUsers = null;
+    let unsubscribeImportBatches = null;
+    let bootstrapAdminDismissed = false;
+
+    // ── CLOSE MODAL (defined early so initUser can call it) ────────
+    function closeModal(id) { document.getElementById(id)?.classList.remove("active"); }
+    window.closeModal = closeModal;
+
+    // ── USER / AUTH ────────────────────────────────────────────────
+    function setUserModalError(message = "") {
+      const el = document.getElementById("userModalError");
+      if (!el) return;
+      el.textContent = message;
+      el.style.display = message ? "block" : "none";
+    }
+    function formatAuthError(error) {
+      const code = error?.code || "";
+      if (window.location.protocol === "file:" &&
+          (code === "auth/network-request-failed" || code === "auth/operation-not-supported-in-this-environment")) {
+        return "This app is being opened directly from a file. Run it from a local web server or add the hosting domain in Firebase Authorized Domains before signing in.";
+      }
+      if (code === "auth/invalid-credential" || code === "auth/invalid-login-credentials") {
+        return "Email or password is incorrect.";
+      }
+      if (code === "auth/user-disabled") {
+        return "This account has been disabled.";
+      }
+      if (code === "auth/too-many-requests") {
+        return "Too many login attempts. Wait a moment and try again.";
+      }
+      if (code === "auth/network-request-failed") {
+        return "Could not reach Firebase. Check your internet connection and browser privacy settings.";
+      }
+      return error?.message || "Could not sign in.";
+    }
+    function isAdminUser() { return currentUserProfile?.role === "admin"; }
+    function getAssignedRepName(lead) { return String(lead?.assignedTo || "").trim(); }
+    function isLeadVisibleToCurrentUser(lead) {
+      if (!lead) return false;
+      if (isAdminUser()) return true;
+      const assignedTo = getAssignedRepName(lead);
+      return !assignedTo || assignedTo === currentUser;
+    }
+    function getVisibleLeads() {
+      return Object.values(allLeads).filter(isLeadVisibleToCurrentUser);
+    }
+    function canCurrentUserManageLeadAssignment(lead) {
+      if (!lead) return false;
+      if (isAdminUser()) return true;
+      const assignedTo = getAssignedRepName(lead);
+      return !assignedTo || assignedTo === currentUser;
+    }
+    function getLeadEditableExtraKeys(lead) {
+      if (!lead) return [];
+      const coreKeys = new Set([
+        "id","name","company","email","phone","website","linkedin","industry","title","status","assignedTo",
+        "contactCount","lastContacted","createdAt","updatedAt","source","country","city","employeeRange",
+        "address","state","importBatchId","importFileName","importedBy","importedAt","adminGrantedAt",
+        "adminGrantedBy","createdBy","createdByName","autoCreated"
+      ]);
+      return Object.keys(lead).filter(key =>
+        !coreKeys.has(key) &&
+        !shouldHideDetailField(key)
+      ).sort((a,b) => a.localeCompare(b));
+    }
+    function setInputValue(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.value = value ?? "";
+    }
+    function getBootstrapAdminRef() { return doc(db, "appMeta", "adminBootstrap"); }
+    async function createAuthUserAccount(email, password) {
+      const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          returnSecureToken: false
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        const code = data?.error?.message || "";
+        if (code === "EMAIL_EXISTS") throw new Error("That email is already in use.");
+        if (code === "WEAK_PASSWORD : Password should be at least 6 characters") {
+          throw new Error("Password must be at least 6 characters.");
+        }
+        throw new Error(code || "Failed to create auth user.");
+      }
+      return data;
+    }
+    function setBootstrapAdminMessage(message = "") {
+      const el = document.getElementById("bootstrapAdminMessage");
+      if (el) el.textContent = message;
+    }
+    function openBootstrapAdminModal(message = "") {
+      if (message) setBootstrapAdminMessage(message);
+      document.getElementById("bootstrapAdminModal")?.classList.add("active");
+    }
+    function closeBootstrapAdminModal() {
+      document.getElementById("bootstrapAdminModal")?.classList.remove("active");
+    }
+    async function refreshBootstrapAdminState(firebaseUser) {
+      if (!firebaseUser || isAdminUser() || bootstrapAdminDismissed) {
+        closeBootstrapAdminModal();
+        return;
+      }
+      try {
+        const [adminSnapshot, bootstrapSnapshot] = await Promise.all([
+          getDocs(query(collection(db, "users"), where("role", "==", "admin"), limit(1))),
+          getDoc(getBootstrapAdminRef())
+        ]);
+        const hasAdmin = !adminSnapshot.empty;
+        const bootstrapData = bootstrapSnapshot.exists() ? bootstrapSnapshot.data() : null;
+        const lockedByAnotherUser = bootstrapData?.claimedBy && bootstrapData.claimedBy !== firebaseUser.uid;
+        if (!hasAdmin && !lockedByAnotherUser) {
+          const label = currentUserProfile?.email || firebaseUser.email || "this account";
+          openBootstrapAdminModal(`No admin account exists yet. You can claim admin access for ${label} to finish setup.`);
+        } else {
+          closeBootstrapAdminModal();
+        }
+      } catch (e) {
+        console.error("refreshBootstrapAdminState error:", e);
+      }
+    }
+    function inferNameFromEmail(email = "") {
+      const localPart = String(email).split("@")[0] || "User";
+      return localPart
+        .replace(/[._-]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .replace(/\b\w/g, ch => ch.toUpperCase()) || "User";
+    }
+    function applyUserDisplay() {
+      document.getElementById("userDisplay").textContent = currentUser || "—";
+      const assignEl = document.getElementById("newAssigned");
+      if (assignEl) assignEl.value = currentUser;
+      const wsTitleEl = document.getElementById("wsTitle");
+      if (wsTitleEl) wsTitleEl.textContent = `${currentUser}'s Workspace`;
+      const clearBtn = document.getElementById("clearAllBtn");
+      const adminBtn = document.getElementById("adminUsersBtn");
+      const importBtn = document.getElementById("importCsvBtn");
+      const importBatchesBtn = document.getElementById("importBatchesBtn");
+      if (clearBtn) clearBtn.style.display = isAdminUser() ? "inline-flex" : "none";
+      if (adminBtn) adminBtn.style.display = isAdminUser() ? "inline-flex" : "none";
+      if (importBtn) importBtn.style.display = isAdminUser() ? "inline-flex" : "none";
+      if (importBatchesBtn) importBatchesBtn.style.display = isAdminUser() ? "inline-flex" : "none";
+      // Update LinkedIn admin bar visibility on auth change
+      const liBar = document.getElementById("liAdminBar");
+      if (liBar) liBar.style.display = isAdminUser() ? "flex" : "none";
+    }
+    async function loadCurrentUserProfile(firebaseUser) {
+      currentUserId = firebaseUser?.uid || "";
+      currentUserProfile = null;
+      currentUser = "";
+      if (!firebaseUser) return;
+      const userRef = doc(db, "users", firebaseUser.uid);
+      let snap = await getDoc(userRef);
+      if (!snap.exists()) {
+        const email = (firebaseUser.email || "").trim().toLowerCase();
+        const fallbackProfile = {
+          name: firebaseUser.displayName || inferNameFromEmail(email),
+          email,
+          role: "rep",
+          createdAt: serverTimestamp(),
+          autoCreated: true
+        };
+        await setDoc(userRef, fallbackProfile);
+        snap = await getDoc(userRef);
+      }
+      currentUserProfile = { id: snap.id, ...snap.data() };
+      currentUser = currentUserProfile.name || firebaseUser.email || "User";
+    }
+    function bindLeadListener() {
+      if (unsubscribeLeads) unsubscribeLeads();
+      unsubscribeLeads = onSnapshot(
+        query(collection(db,"leads"), orderBy("createdAt","desc")),
+        snapshot => {
+          snapshot.docChanges().forEach(ch => {
+            const d = { id: ch.doc.id, ...ch.doc.data() };
+            if (ch.type === "added" || ch.type === "modified") allLeads[d.id] = d;
+            if (ch.type === "removed") delete allLeads[d.id];
+          });
+          if (!bulkImportInProgress) refreshLeadViews();
+        },
+        err => {
+          console.error(err);
+          document.getElementById("leadTableBody").innerHTML =
+            `<tr class="state-row"><td colspan="9"><strong>Could not connect</strong><p>Check Firebase config and Firestore rules.</p></td></tr>`;
+        }
+      );
+    }
+    function bindUsersListener() {
+      if (unsubscribeUsers) unsubscribeUsers();
+      unsubscribeUsers = onSnapshot(
+        query(collection(db, "users"), orderBy("name")),
+        snapshot => {
+          usersCache = {};
+          snapshot.forEach(docSnap => { usersCache[docSnap.id] = { id: docSnap.id, ...docSnap.data() }; });
+          if (document.getElementById("adminUsersModal")?.classList.contains("active")) renderAdminUsersList();
+        },
+        err => console.error("Users listener error:", err)
+      );
+    }
+    function bindImportBatchesListener() {
+      if (unsubscribeImportBatches) unsubscribeImportBatches();
+      unsubscribeImportBatches = onSnapshot(
+        query(collection(db, "importBatches"), orderBy("createdAt", "desc")),
+        snapshot => {
+          importBatchesCache = {};
+          snapshot.forEach(docSnap => { importBatchesCache[docSnap.id] = { id: docSnap.id, ...docSnap.data() }; });
+          if (document.getElementById("importBatchesModal")?.classList.contains("active")) renderImportBatchesList();
+        },
+        err => console.error("Import batches listener error:", err)
+      );
+    }
+    window.loginUser = async function () {
+      try {
+        const email = document.getElementById("userEmailInput").value.trim().toLowerCase();
+        const password = document.getElementById("userPasswordInput").value;
+        if (!email || !password) return setUserModalError("Enter your email and password.");
+        document.getElementById("userEmailInput").value = email;
+        setUserModalError("");
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch(e) {
+        console.error("loginUser error:", e);
+        setUserModalError(formatAuthError(e));
+      }
+    };
+    window.changeUser = function () {
+      document.getElementById("userPasswordInput").value = "";
+      document.getElementById("userEmailInput").value = currentUserProfile?.email || auth.currentUser?.email || "";
+      setUserModalError("");
+      document.getElementById("userModal").classList.add("active");
+      setTimeout(() => document.getElementById("userEmailInput").focus(), 100);
+    };
+    window.logoutUser = async function () {
+      try { await signOut(auth); } catch (e) { console.error("logoutUser error:", e); }
+    };
+    window.dismissBootstrapAdmin = function () {
+      bootstrapAdminDismissed = true;
+      closeBootstrapAdminModal();
+    };
+    window.claimBootstrapAdmin = async function () {
+      if (!auth.currentUser || !currentUserId) return showToast("Sign in first","error");
+      try {
+        const user = auth.currentUser;
+        const userRef = doc(db, "users", currentUserId);
+        await runTransaction(db, async tx => {
+          const bootstrapRef = getBootstrapAdminRef();
+          const [bootstrapSnap, userSnap] = await Promise.all([
+            tx.get(bootstrapRef),
+            tx.get(userRef)
+          ]);
+          const bootstrapData = bootstrapSnap.exists() ? bootstrapSnap.data() : null;
+          if (bootstrapData?.claimedBy && bootstrapData.claimedBy !== user.uid) {
+            throw new Error("First admin access has already been claimed by another account.");
+          }
+          tx.set(bootstrapRef, {
+            claimedBy: user.uid,
+            email: (user.email || "").trim().toLowerCase(),
+            createdAt: serverTimestamp()
+          }, { merge: true });
+          tx.set(userRef, {
+            ...(userSnap.exists() ? {} : {
+              name: user.displayName || inferNameFromEmail(user.email || ""),
+              email: (user.email || "").trim().toLowerCase(),
+              createdAt: serverTimestamp(),
+              autoCreated: true
+            }),
+            role: "admin",
+            adminGrantedAt: serverTimestamp(),
+            adminGrantedBy: "bootstrap"
+          }, { merge: true });
+        });
+        currentUserProfile = {
+          ...(currentUserProfile || {}),
+          id: currentUserId,
+          name: currentUserProfile?.name || user.displayName || inferNameFromEmail(user.email || ""),
+          email: currentUserProfile?.email || (user.email || "").trim().toLowerCase(),
+          role: "admin",
+          adminGrantedBy: "bootstrap"
+        };
+        currentUser = currentUserProfile.name || user.email || "User";
+        bootstrapAdminDismissed = false;
+        applyUserDisplay();
+        bindUsersListener();
+        closeBootstrapAdminModal();
+        showToast("Admin access granted","success");
+      } catch (e) {
+        console.error("claimBootstrapAdmin error:", e);
+        showToast(e?.message || "Could not grant admin access","error");
+        await refreshBootstrapAdminState(auth.currentUser);
+      }
+    };
+    window.openAdminUsers = function () {
+      if (!isAdminUser()) return showToast("Admin access only","error");
+      ["adminNewUserName","adminNewUserEmail","adminNewUserPassword"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+      });
+      document.getElementById("adminNewUserRole").value = "rep";
+      renderAdminUsersList();
+      document.getElementById("adminUsersModal").classList.add("active");
+    };
+    window.openImportBatches = function () {
+      if (!isAdminUser()) return showToast("Admin access only","error");
+      renderImportBatchesList();
+      document.getElementById("importBatchesModal").classList.add("active");
+    };
+    function renderAdminUsersList() {
+      const wrap = document.getElementById("adminUsersList");
+      if (!wrap) return;
+      const users = Object.values(usersCache).sort((a,b) => (a.name || a.email || "").localeCompare(b.name || b.email || ""));
+      if (!users.length) {
+        wrap.innerHTML = `<div class="empty-workspace" style="padding:32px 20px;"><strong>No users yet</strong><p>Create the first rep or admin above.</p></div>`;
+        return;
+      }
+      wrap.innerHTML = `<div class="user-list">${users.map(u => `
+        <div class="user-row">
+          <div class="user-row-main">
+            <div class="user-row-name">${esc(u.name || "Unnamed User")}</div>
+            <div class="user-row-sub">${esc(u.email || "")}</div>
+          </div>
+          <span class="user-role-badge ${u.role === "admin" ? "user-role-admin" : "user-role-rep"}">${esc(u.role || "rep")}</span>
+        </div>
+      `).join("")}</div>`;
+    }
+    function renderImportBatchesList() {
+      const wrap = document.getElementById("importBatchesList");
+      if (!wrap) return;
+      const batches = Object.values(importBatchesCache).sort((a,b) => {
+        const aSec = a.createdAt?.seconds || 0;
+        const bSec = b.createdAt?.seconds || 0;
+        return bSec - aSec;
+      });
+      if (!batches.length) {
+        wrap.innerHTML = `<div class="empty-workspace" style="padding:32px 20px;"><strong>No import batches yet</strong><p>Each CSV upload will appear here so admins can delete one batch at a time.</p></div>`;
+        return;
+      }
+      wrap.innerHTML = `<div class="user-list">${batches.map(batch => {
+        const addedCount = Number(batch.addedCount || 0);
+        const updatedCount = Number(batch.updatedCount || 0);
+        const stamp = batch.createdAt?.toDate ? fmtDate(batch.createdAt.toDate()) : "Just now";
+        return `
+        <div class="user-row">
+          <div class="user-row-main">
+            <div class="user-row-name">${esc(batch.fileName || "CSV Import")}</div>
+            <div class="user-row-sub">${esc(`${addedCount} added, ${updatedCount} updated • ${stamp}`)}</div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="deleteImportBatch('${esc(batch.id)}')">Delete Batch</button>
+        </div>`;
+      }).join("")}</div>`;
+    }
+    window.deleteImportBatch = async function (batchId) {
+      if (!isAdminUser()) return showToast("Admin access only","error");
+      try {
+        const batchMeta = importBatchesCache[batchId];
+        if (!batchMeta) return showToast("Import batch not found","error");
+        const label = batchMeta.fileName || "this import batch";
+        const toDeleteSnapshot = await getDocs(query(collection(db, "leads"), where("importBatchId", "==", batchId)));
+        const leadIds = toDeleteSnapshot.docs.map(docSnap => docSnap.id);
+        if (!confirm(`Delete ${leadIds.length} leads from ${label}? This cannot be undone.`)) return;
+        showToast("Deleting batch…");
+        const CHUNK = 400;
+        for (let i = 0; i < leadIds.length; i += CHUNK) {
+          const batch = writeBatch(db);
+          leadIds.slice(i, i + CHUNK).forEach(id => batch.delete(doc(db, "leads", id)));
+          await batch.commit();
+        }
+        const metaBatch = writeBatch(db);
+        metaBatch.delete(doc(db, "importBatches", batchId));
+        await metaBatch.commit();
+        showToast(`${label} deleted`,"success");
+      } catch (e) {
+        console.error("deleteImportBatch error:", e);
+        showToast("Failed to delete batch","error");
+      }
+    };
+    window.createManagedUser = async function () {
+      if (!isAdminUser()) return showToast("Admin access only","error");
+      const name = document.getElementById("adminNewUserName").value.trim();
+      const email = document.getElementById("adminNewUserEmail").value.trim().toLowerCase();
+      const password = document.getElementById("adminNewUserPassword").value;
+      const role = document.getElementById("adminNewUserRole").value;
+      if (!name || !email || !password) return showToast("Name, email, and password are required","error");
+      if (password.length < 6) return showToast("Password must be at least 6 characters","error");
+      try {
+        const createdUser = await createAuthUserAccount(email, password);
+        await setDoc(doc(db, "users", createdUser.localId), {
+          name, email, role,
+          createdAt: serverTimestamp(),
+          createdBy: currentUserId
+        });
+        showToast(`User created: ${name}`,"success");
+        ["adminNewUserName","adminNewUserEmail","adminNewUserPassword"].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.value = "";
+        });
+        document.getElementById("adminNewUserRole").value = "rep";
+      } catch (e) {
+        console.error("createManagedUser error:", e);
+        showToast(e?.message || "Failed to create user","error");
+      }
+    };
+    try {
+      await setPersistence(auth, browserLocalPersistence);
+    } catch (e) {
+      console.warn("auth persistence setup failed:", e);
+    }
+
+    onAuthStateChanged(auth, async firebaseUser => {
+      try {
+        if (!firebaseUser) {
+          bootstrapAdminDismissed = false;
+          currentUserProfile = null;
+          currentUserId = "";
+          currentUser = "";
+          allLeads = {};
+          usersCache = {};
+          importBatchesCache = {};
+          if (unsubscribeLeads) { unsubscribeLeads(); unsubscribeLeads = null; }
+          if (unsubscribeUsers) { unsubscribeUsers(); unsubscribeUsers = null; }
+          if (unsubscribeImportBatches) { unsubscribeImportBatches(); unsubscribeImportBatches = null; }
+          applyUserDisplay();
+          document.getElementById("leadTableBody").innerHTML =
+            `<tr class="state-row"><td colspan="9"><strong>Sign in required</strong><p>Use your email and password to access leads.</p></td></tr>`;
+          document.getElementById("leadQueue").innerHTML =
+            `<div class="empty-workspace"><div class="big">🔐</div><strong>Sign in to view your workspace</strong><p>Your assigned leads will appear here after login.</p></div>`;
+          closeBootstrapAdminModal();
+          closeModal("importBatchesModal");
+          document.getElementById("userModal").classList.add("active");
+          return;
+        }
+        await loadCurrentUserProfile(firebaseUser);
+        applyUserDisplay();
+        closeModal("userModal");
+        bindLeadListener();
+        if (isAdminUser()) {
+          bindUsersListener();
+          bindImportBatchesListener();
+        } else {
+          if (unsubscribeUsers) { unsubscribeUsers(); unsubscribeUsers = null; }
+          if (unsubscribeImportBatches) { unsubscribeImportBatches(); unsubscribeImportBatches = null; }
+          usersCache = {};
+          importBatchesCache = {};
+          closeModal("importBatchesModal");
+        }
+        await refreshBootstrapAdminState(firebaseUser);
+      } catch (e) {
+        console.error("auth init error:", e);
+        if (e?.message === "No user profile found. Ask an admin to create your account.") {
+          try { await signOut(auth); } catch (signOutError) { console.error("profile cleanup signOut error:", signOutError); }
+        }
+        setUserModalError(formatAuthError(e));
+        closeBootstrapAdminModal();
+        closeModal("importBatchesModal");
+        document.getElementById("userModal").classList.add("active");
+      }
+    });
+
+    // ── VIEW SWITCH ────────────────────────────────────────────────
+    window.switchView = function (v) {
+      activeView = v;
+      document.querySelectorAll(".view").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".view-tab").forEach(el => el.classList.remove("active"));
+      document.getElementById(`view-${v}`).classList.add("active");
+      const tabIndex = v === "admin" ? 0 : v === "workspace" ? 1 : 2;
+      document.querySelectorAll(".view-tab")[tabIndex].classList.add("active");
+      if (v === "workspace") renderWorkspace();
+      if (v === "linkedin") loadLinkedInDashboard();
+    };
+
+    function refreshLeadViews() {
+      applyFilters();
+      updateMetrics();
+      updateFilterDropdowns();
+      if (activeView === "workspace") renderWorkspace();
+    }
+
+    // ── METRICS ────────────────────────────────────────────────────
+    function updateMetrics() {
+      const leads = getVisibleLeads();
+      const n = s => leads.filter(l => l.status === s).length;
+      document.getElementById("metricTotal").textContent     = leads.length;
+      document.getElementById("metricNew").textContent       = n("New");
+      document.getElementById("metricContacted").textContent = n("Contacted");
+      document.getElementById("metricQualified").textContent = n("Qualified");
+      document.getElementById("metricProposal").textContent  = n("Proposal");
+      document.getElementById("metricClosed").textContent    = n("Closed");
+    }
+
+    window.filterByStatus = function(s) {
+      document.getElementById("filterStatus").value = s;
+      document.querySelectorAll(".metric-card").forEach(c => c.classList.remove("active-filter"));
+      const id = s ? `mc-${s}` : "mc-total";
+      document.getElementById(id)?.classList.add("active-filter");
+      applyFilters();
+    };
+
+    function updateFilterDropdowns() {
+      const leads = getVisibleLeads();
+      const setOpts = (id, values, label) => {
+        const sel = document.getElementById(id), cur = sel.value;
+        sel.innerHTML = `<option value="">${label}</option>` +
+          values.map(v => `<option${v===cur?" selected":""}>${esc(v)}</option>`).join("");
+      };
+      setOpts("filterRep",     [...new Set(leads.map(l=>l.assignedTo).filter(Boolean))].sort(), "All Reps");
+      setOpts("filterCountry", [...new Set(leads.map(l=>l.country).filter(Boolean))].sort(),    "All Countries");
+      setOpts("filterTitle",   [...new Set(leads.map(l=>l.title||l.industry).filter(Boolean))].sort(), "All Titles");
+    }
+
+    // ── ADMIN TABLE FILTERS ────────────────────────────────────────
+    window.applyFilters = function () {
+      const search  = document.getElementById("searchInput").value.toLowerCase();
+      const status  = document.getElementById("filterStatus").value;
+      const rep     = document.getElementById("filterRep").value;
+      const country = document.getElementById("filterCountry").value;
+      const title   = document.getElementById("filterTitle").value;
+      const leads   = getVisibleLeads().filter(l => {
+        const email = cleanEmail(l.email);
+        return (
+          (!search  || (l.name||"").toLowerCase().includes(search) ||
+                       (l.company||"").toLowerCase().includes(search) ||
+                       email.toLowerCase().includes(search) ||
+                       (l.title||"").toLowerCase().includes(search)) &&
+          (!status  || l.status === status) &&
+          (!rep     || l.assignedTo === rep) &&
+          (!country || (l.country||"") === country) &&
+          (!title   || (l.title||l.industry||"").includes(title))
+        );
+      });
+      renderTable(leads);
+    };
+
+    // ── RENDER TABLE ───────────────────────────────────────────────
+    function renderTable(leads) {
+      const tbody = document.getElementById("leadTableBody");
+      if (!leads.length) {
+        tbody.innerHTML = `<tr class="state-row"><td colspan="9"><strong>No leads found</strong><p>Import a CSV or click + Add Lead.</p></td></tr>`;
+        return;
+      }
+      const MAX_TABLE_ROWS = 1200;
+      const limitedLeads = leads.slice(0, MAX_TABLE_ROWS);
+      const groups = new Map();
+      limitedLeads.forEach(l => {
+        const companyName = (l.company || "").trim() || "No Company";
+        const groupKey = getCompanyGroupKey(companyName);
+        if (!groups.has(groupKey)) groups.set(groupKey, { companyName, groupKey, leads: [] });
+        groups.get(groupKey).leads.push(l);
+      });
+
+      const renderLeadRow = l => {
+        const email = cleanEmail(l.email);
+        const phone = cleanPhone(l.phone);
+        const lastC = l.lastContacted?.toDate ? fmtDate(l.lastContacted.toDate()) : "—";
+        const statusOpts = ["New","Contacted","Qualified","Proposal","Closed","Dead"]
+          .map(s => `<option${l.status===s?" selected":""}>${s}</option>`).join("");
+        const webBtn = l.website  ? `<button class="icon-btn" onclick="openUrl('${esc(l.website)}')"  title="Website">🌐</button>` : "";
+        const liBtn  = l.linkedin ? `<button class="icon-btn" onclick="openUrl('${esc(l.linkedin)}')" title="LinkedIn">in</button>` : "";
+        return `<tr>
+          <td title="${esc(l.name||'')}">
+            <div class="td-name"><a href="#" onclick="openDetail('${l.id}');return false;" style="color:inherit;text-decoration:none">${esc(l.name||"—")}</a></div>
+            ${(l.title||l.industry)?`<div class="td-sub">${esc(l.title||l.industry)}</div>`:""}
+          </td>
+          <td class="td-muted" title="${esc(l.company||'')}">${esc(l.company||"—")}</td>
+          <td title="${email}">${email?`<a href="mailto:${esc(email)}" style="color:var(--blue);text-decoration:none;">${esc(email)}</a>`:"—"}</td>
+          <td class="td-muted">${phone?`<a href="tel:${esc(phone)}" style="color:inherit;text-decoration:none">${esc(phone)}</a>`:"—"}</td>
+          <td><select class="status-select" onchange="updateStatus('${l.id}',this.value)">${statusOpts}</select></td>
+          <td class="td-muted">Company level</td>
+          <td class="contact-count">${l.contactCount||0}</td>
+          <td class="td-muted">${lastC}</td>
+          <td><div class="actions">
+            ${webBtn}${liBtn}
+            <button class="icon-btn" onclick="openActivity('${l.id}')" title="Log activity">📝</button>
+            <button class="icon-btn" onclick="openDetail('${l.id}')"  title="View details">👁</button>
+          </div></td>
+        </tr>`;
+      };
+
+      const rowsHtml = Array.from(groups.values()).map(group => `
+        <tr class="group-row">
+          <td colspan="9">
+            <div class="group-label">
+              <div class="group-main">
+                <span>${esc(group.companyName)}</span>
+                <small>${group.leads.length} lead${group.leads.length!==1?"s":""}</small>
+              </div>
+              <span class="rep-badge" onclick="openAssignCompany('${esc(group.groupKey)}')" title="Assign this company">
+                <span class="rep-dot"></span>${esc(getCompanyAssignmentLabel(group.leads))}
+              </span>
+            </div>
+          </td>
+        </tr>
+        ${group.leads.map(renderLeadRow).join("")}
+      `).join("");
+      const limitNotice = leads.length > MAX_TABLE_ROWS
+        ? `<tr class="limit-note"><td colspan="9">Showing first ${MAX_TABLE_ROWS.toLocaleString()} of ${leads.length.toLocaleString()} filtered leads. Narrow the search or filters to see more.</td></tr>`
+        : "";
+      tbody.innerHTML = limitNotice + rowsHtml;
+    }
+
+    // ── WORKSPACE VIEW ─────────────────────────────────────────────
+    window.renderWorkspace = function () {
+      const me      = currentUser;
+      const search  = (document.getElementById("wsSearch")?.value||"").toLowerCase();
+      const status  = document.getElementById("wsFilterStatus")?.value || "";
+      const sort    = document.getElementById("wsSort")?.value || "priority";
+
+      const myLeads = getVisibleLeads().filter(l =>
+        l.assignedTo === me &&
+        (!status || l.status === status) &&
+        (!search || (l.name||"").toLowerCase().includes(search) ||
+                    (l.company||"").toLowerCase().includes(search))
+      );
+
+      // Stats
+      document.getElementById("wsTitle").textContent = `${me}'s Workspace`;
+      document.getElementById("wsSub").textContent   = `${myLeads.length} lead${myLeads.length!==1?"s":""} assigned to you`;
+      document.getElementById("wsTotal").textContent     = myLeads.length;
+      document.getElementById("wsContacted").textContent = myLeads.filter(l=>l.contactCount>0).length;
+      document.getElementById("wsClosed").textContent    = myLeads.filter(l=>l.status==="Closed").length;
+      const needsFollowup = myLeads.filter(l => {
+        if (l.status === "Closed" || l.status === "Dead") return false;
+        if (!l.lastContacted) return true;
+        const d = l.lastContacted.toDate ? l.lastContacted.toDate() : new Date(l.lastContacted);
+        return (Date.now() - d.getTime()) > 3 * 24 * 60 * 60 * 1000; // 3+ days
+      }).length;
+      document.getElementById("wsNeedsFollowup").textContent = needsFollowup;
+
+      // Sort
+      const priorityScore = l => {
+        if (l.status === "Closed" || l.status === "Dead") return 999;
+        if (!l.lastContacted) return 0;
+        const d = l.lastContacted.toDate ? l.lastContacted.toDate() : new Date(l.lastContacted);
+        return -(Date.now() - d.getTime());
+      };
+      if (sort === "priority") myLeads.sort((a,b) => priorityScore(a) - priorityScore(b));
+      else if (sort === "recent") myLeads.sort((a,b) => (b.updatedAt?.seconds||0) - (a.updatedAt?.seconds||0));
+      else if (sort === "name")   myLeads.sort((a,b) => (a.name||"").localeCompare(b.name||""));
+      else if (sort === "contacts") myLeads.sort((a,b) => (b.contactCount||0) - (a.contactCount||0));
+
+      const queue = document.getElementById("leadQueue");
+      if (!myLeads.length) {
+        queue.innerHTML = `<div class="empty-workspace"><div class="big">✅</div><strong>${me ? "No leads assigned to you" : "Set your name to see your leads"}</strong><p>${me ? "Leads assigned to you will appear here." : "Click Switch in the top right."}</p></div>`;
+        return;
+      }
+
+      queue.innerHTML = myLeads.map(l => {
+        const email = cleanEmail(l.email);
+        const phone = cleanPhone(l.phone);
+        const lastC = l.lastContacted?.toDate ? fmtDate(l.lastContacted.toDate()) : null;
+
+        // Priority class
+        let priority = "low";
+        if (l.status !== "Closed" && l.status !== "Dead") {
+          if (!l.lastContacted) priority = "high";
+          else {
+            const d = l.lastContacted.toDate ? l.lastContacted.toDate() : new Date(l.lastContacted);
+            const days = (Date.now() - d.getTime()) / 86400000;
+            if (days > 5) priority = "high";
+            else if (days > 2) priority = "med";
+          }
+        }
+
+        const statusCls = `status-${(l.status||"New").replace(/\s/g,"")}`;
+
+        return `<div class="lead-card priority-${priority}">
+          <div class="card-main">
+            <div class="card-name">
+              <span>${esc(l.name||"—")}</span>
+              <span class="status-badge ${statusCls}">${esc(l.status||"New")}</span>
+              ${l.contactCount ? `<span style="font-size:11px;color:var(--gray-400);font-weight:400">${l.contactCount} contact${l.contactCount!==1?"s":""}</span>` : ""}
+            </div>
+            <div class="card-meta">
+              ${l.company ? `<span>🏢 ${esc(l.company)}</span>` : ""}
+              ${(l.title||l.industry) ? `<span>💼 ${esc(l.title||l.industry)}</span>` : ""}
+              ${l.country ? `<span>📍 ${esc(l.country)}</span>` : ""}
+            </div>
+            <div class="card-contact-info">
+              ${email ? `<a href="mailto:${esc(email)}">✉️ ${esc(email)}</a>` : ""}
+              ${phone ? `<a href="tel:${esc(phone)}">📞 ${esc(phone)}</a>` : ""}
+              ${l.linkedin ? `<a href="#" onclick="openUrl('${esc(l.linkedin)}');return false;">🔗 LinkedIn</a>` : ""}
+              ${l.website  ? `<a href="#" onclick="openUrl('${esc(l.website)}');return false;">🌐 Website</a>` : ""}
+            </div>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-primary btn-sm"   onclick="openActivity('${l.id}')">Log Activity</button>
+            <button class="btn btn-secondary btn-sm" onclick="openDetail('${l.id}')">View Details</button>
+            <div class="card-last">${lastC ? `Last: ${lastC}` : "<span style='color:var(--red);font-weight:600'>Never contacted</span>"}</div>
+          </div>
+        </div>`;
+      }).join("");
+    };
+
+    // ── ASSIGN COMPANY ─────────────────────────────────────────────
+    window.openAssignCompany = function (groupKey) {
+      const companyLeads = getCompanyLeads(groupKey).filter(isLeadVisibleToCurrentUser);
+      if (!companyLeads.length) return;
+      if (!companyLeads.every(canCurrentUserManageLeadAssignment)) {
+        return showToast("You can only claim unassigned leads or unassign your own leads","error");
+      }
+      assignTarget = {
+        type: "company",
+        groupKey,
+        leadIds: companyLeads.map(l => l.id),
+        companyName: companyLeads[0]?.company?.trim() || "No Company"
+      };
+      selectedRep = getCompanyAssignedRep(companyLeads);
+      document.getElementById("assignModalSub").textContent =
+        `${assignTarget.companyName} — ${companyLeads.length} lead${companyLeads.length!==1?"s":""}`;
+
+      if (!isAdminUser()) {
+        const repChoices = [
+          { value: currentUser, label: currentUser || "Myself", count: Object.values(allLeads).filter(l => l.assignedTo === currentUser).length, color: "#2563eb" },
+          { value: "__UNASSIGNED__", label: "Unassigned", count: Object.values(allLeads).filter(l => !getAssignedRepName(l)).length, color: "#6b7280" }
+        ];
+        document.getElementById("repOptionsList").innerHTML = repChoices.map(choice => {
+          const initials = choice.label === "Unassigned" ? "UA" : choice.label.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
+          return `<div class="rep-option${choice.value===selectedRep?" selected":""}" onclick="selectRep(this,'${esc(choice.value)}')">
+            <div class="rep-avatar" style="background:${choice.color}">${esc(initials)}</div>
+            <div><div class="rep-name">${esc(choice.label)}</div><div class="rep-count">${choice.count} lead${choice.count!==1?"s":""}</div></div>
+          </div>`;
+        }).join("");
+        document.getElementById("assignModal").classList.add("active");
+        return;
+      }
+
+      const reps = [...new Set(Object.values(allLeads).map(l=>l.assignedTo).filter(Boolean))].sort();
+      if (currentUser && !reps.includes(currentUser)) reps.unshift(currentUser);
+
+      const colors = ["#2563eb","#16a34a","#d97706","#7c3aed","#dc2626","#0891b2"];
+      document.getElementById("repOptionsList").innerHTML = reps.map((r,i) => {
+        const initials = r.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
+        const count    = Object.values(allLeads).filter(l=>l.assignedTo===r).length;
+        const color    = colors[i % colors.length];
+        return `<div class="rep-option${r===selectedRep?" selected":""}" onclick="selectRep(this,'${esc(r)}')">
+          <div class="rep-avatar" style="background:${color}">${esc(initials)}</div>
+          <div><div class="rep-name">${esc(r)}</div><div class="rep-count">${count} lead${count!==1?"s":""}</div></div>
+        </div>`;
+      }).join("") + `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--gray-100)">
+        <input type="text" id="newRepName" placeholder="Add new rep name…" style="width:100%;padding:7px 10px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:inherit;outline:none"
+          onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--gray-200)'"
+          onkeydown="if(event.key==='Enter'){selectRep(null,this.value.trim());this.value=''}">
+      </div>`;
+      document.getElementById("assignModal").classList.add("active");
+    };
+
+    window.selectRep = function (el, name) {
+      if (name === undefined || name === null || name === "") return;
+      selectedRep = name;
+      document.querySelectorAll(".rep-option").forEach(o => o.classList.remove("selected"));
+      if (el) el.classList.add("selected");
+    };
+
+    window.confirmAssign = async function () {
+      if (!assignTarget || !selectedRep) return showToast("Select a rep first","error");
+      try {
+        if (assignTarget.type === "company") {
+          const nextAssignedTo = selectedRep === "__UNASSIGNED__" ? "" : selectedRep;
+          const batch = writeBatch(db);
+          assignTarget.leadIds.forEach(id => {
+            batch.update(doc(db,"leads",id), {
+              assignedTo: nextAssignedTo, updatedAt: serverTimestamp()
+            });
+          });
+          await batch.commit();
+          const actionLabel = nextAssignedTo ? `assigned to ${nextAssignedTo}` : "unassigned";
+          showToast(`${assignTarget.companyName} ${actionLabel}`,"success");
+        }
+        closeModal("assignModal");
+      } catch(e) { console.error(e); showToast("Failed to assign","error"); }
+    };
+
+    // ── UPDATE STATUS ──────────────────────────────────────────────
+    window.updateStatus = async function (id, status) {
+      if (!canCurrentUserManageLeadAssignment(allLeads[id])) return showToast("This lead is assigned to another rep","error");
+      try { await updateDoc(doc(db,"leads",id), { status, updatedAt: serverTimestamp() }); }
+      catch(e) { console.error(e); showToast("Failed","error"); }
+    };
+
+    // ── LOG ACTIVITY ───────────────────────────────────────────────
+    window.openActivity = function (id) {
+      currentLeadId = id;
+      const l = allLeads[id];
+      if (!isLeadVisibleToCurrentUser(l)) return showToast("This lead is assigned to another rep","error");
+      document.getElementById("activityModalSub").textContent =
+        l ? `${l.name||""}${l.company?" — "+l.company:""}` : "";
+      document.getElementById("activityNotes").value        = "";
+      document.getElementById("activityType").value         = "Call";
+      document.getElementById("activityStatusUpdate").value = "";
+      document.getElementById("activityModal").classList.add("active");
+      setTimeout(()=>document.getElementById("activityNotes").focus(), 100);
+    };
+    window.submitActivity = async function () {
+      if (!currentLeadId) return;
+      const type  = document.getElementById("activityType").value;
+      const notes = document.getElementById("activityNotes").value.trim();
+      const newSt = document.getElementById("activityStatusUpdate").value;
+      try {
+        await addDoc(collection(db,"activities"), {
+          leadId: currentLeadId, type, notes, user: currentUser, date: serverTimestamp()
+        });
+        const upd = { contactCount: increment(1), lastContacted: serverTimestamp(), updatedAt: serverTimestamp() };
+        if (newSt) upd.status = newSt;
+        await updateDoc(doc(db,"leads",currentLeadId), upd);
+        showToast("Activity saved","success");
+        closeModal("activityModal");
+      } catch(e) { console.error(e); showToast("Failed","error"); }
+    };
+
+    // ── DETAIL VIEW ────────────────────────────────────────────────
+    window.openDetail = function (id) {
+      const l = allLeads[id];
+      if (!l) return;
+      if (!isLeadVisibleToCurrentUser(l)) return showToast("This lead is assigned to another rep","error");
+      currentLeadId = id;
+      document.getElementById("detailName").textContent = l.name || "Lead Details";
+      document.getElementById("detailSub").textContent  = [l.title, l.company].filter(Boolean).join(" — ");
+      document.getElementById("detailLogBtn").onclick   = ()=>{ closeModal("detailModal"); openActivity(id); };
+      document.getElementById("detailEditBtn").style.display = "inline-flex";
+
+      const email = cleanEmail(l.email);
+      const phone = cleanPhone(l.phone);
+
+      const core = [
+        { label:"Email",         value:email,    display: formatDetailValue(email), href:`mailto:${email}` },
+        { label:"Phone",         value:phone,    display: formatDetailValue(phone), href:`tel:${phone}` },
+        { label:"Company",       value:l.company, display: formatDetailValue(l.company) },
+        { label:"Title",         value:l.title||l.industry, display: formatDetailValue(l.title||l.industry) },
+        { label:"Status",        value:l.status, display: formatDetailValue(l.status) },
+        { label:"Assigned To",   value:l.assignedTo, display: formatDetailValue(l.assignedTo) },
+        { label:"Contacts Made", value:l.contactCount||0, display: formatDetailValue(l.contactCount||0) },
+        { label:"Last Contacted",value:l.lastContacted?.toDate ? fmtDate(l.lastContacted.toDate()) : "—", display:l.lastContacted?.toDate ? fmtDate(l.lastContacted.toDate()) : "—" },
+        { label:"Website",       value:l.website,  display: formatDetailValue(l.website),  onclick:l.website  ? `openUrl('${esc(l.website)}')` : null },
+        { label:"LinkedIn",      value:l.linkedin, display: formatDetailValue(l.linkedin), onclick:l.linkedin ? `openUrl('${esc(l.linkedin)}')` : null },
+        { label:"Country",       value:l.country, display: formatDetailValue(l.country) },
+        { label:"City",          value:l.city, display: formatDetailValue(l.city) },
+        { label:"Employees",     value:l.employeeRange, display: formatDetailValue(l.employeeRange) },
+      ].filter(f => f.value);
+
+      const SKIP = new Set(["id","name","company","email","phone","website","linkedin",
+        "industry","title","status","assignedTo","contactCount","lastContacted",
+        "createdAt","updatedAt","source","country","city","employeeRange","address","state"]);
+      const extras = Object.entries(l).filter(([k,v]) =>
+        !SKIP.has(k) && !shouldHideDetailField(k) && v !== null && v !== undefined && v !== "");
+
+      let html = core.map(f => {
+        let inner;
+        if (f.onclick) inner = `<a href="#" onclick="${f.onclick};return false">${esc(String(f.display ?? f.value))}</a>`;
+        else if (f.href && f.value) inner = `<a href="${esc(f.href)}">${esc(String(f.display ?? f.value))}</a>`;
+        else inner = esc(String(f.display ?? f.value));
+        return `<div class="detail-field"><div class="df-label">${esc(f.label)}</div><div class="df-value">${inner}</div></div>`;
+      }).join("");
+
+      if (extras.length) {
+        html += `<div class="extras-heading">Additional CSV Data</div>`;
+        html += extras.map(([k,v]) => {
+          const pretty  = formatDetailValue(v);
+          const display = esc(pretty);
+          const isUrl   = !!extractUrl(v);
+          const inner   = isUrl
+            ? `<a href="#" onclick="openUrl('${esc(v)}');return false">${display}</a>`
+            : display;
+          return `<div class="detail-field"><div class="df-label">${esc(formatFieldLabel(k))}</div><div class="df-value">${inner}</div></div>`;
+        }).join("");
+      }
+
+      document.getElementById("detailGrid").innerHTML = html;
+      document.getElementById("detailModal").classList.add("active");
+    };
+    window.openEditLead = function () {
+      const lead = allLeads[currentLeadId];
+      if (!lead) return;
+      if (!isLeadVisibleToCurrentUser(lead)) return showToast("This lead is assigned to another rep","error");
+      setInputValue("editLeadName", lead.name);
+      setInputValue("editLeadCompany", lead.company);
+      setInputValue("editLeadEmail", cleanEmail(lead.email));
+      setInputValue("editLeadPhone", cleanPhone(lead.phone));
+      setInputValue("editLeadWebsite", lead.website);
+      setInputValue("editLeadLinkedin", lead.linkedin);
+      setInputValue("editLeadTitle", lead.title);
+      setInputValue("editLeadIndustry", lead.industry);
+      setInputValue("editLeadStatus", lead.status || "New");
+      setInputValue("editLeadAssignedTo", lead.assignedTo);
+      setInputValue("editLeadCountry", lead.country);
+      setInputValue("editLeadCity", lead.city);
+      setInputValue("editLeadState", lead.state);
+      setInputValue("editLeadEmployeeRange", lead.employeeRange);
+      setInputValue("editLeadAddress", lead.address);
+
+      const assignedInput = document.getElementById("editLeadAssignedTo");
+      if (assignedInput) {
+        assignedInput.readOnly = !isAdminUser();
+        assignedInput.placeholder = isAdminUser() ? "Rep name or blank for unassigned" : `Only blank or ${currentUser}`;
+      }
+
+      const extraKeys = getLeadEditableExtraKeys(lead);
+      const extraWrap = document.getElementById("editLeadExtraFields");
+      extraWrap.innerHTML = extraKeys.length ? `
+        <div class="extras-heading" style="margin-top:8px;">Additional CSV Data</div>
+        ${extraKeys.map(key => `
+          <div class="form-group">
+            <label>${esc(formatFieldLabel(key))}</label>
+            <textarea data-extra-key="${esc(key)}" rows="2" style="width:100%;padding:10px 12px;border:1px solid var(--gray-200);border-radius:10px;font:inherit;resize:vertical;">${esc(String(lead[key] ?? ""))}</textarea>
+          </div>
+        `).join("")}
+      ` : "";
+
+      closeModal("detailModal");
+      document.getElementById("editLeadModal").classList.add("active");
+    };
+    window.saveEditedLead = async function () {
+      const lead = allLeads[currentLeadId];
+      if (!lead) return showToast("Lead not found","error");
+      if (!isLeadVisibleToCurrentUser(lead)) return showToast("This lead is assigned to another rep","error");
+
+      const assignedToRaw = (document.getElementById("editLeadAssignedTo").value || "").trim();
+      if (!isAdminUser() && assignedToRaw && assignedToRaw !== currentUser) {
+        return showToast("Reps can only keep the lead assigned to themselves or leave it unassigned","error");
+      }
+
+      const updates = {
+        name: document.getElementById("editLeadName").value.trim(),
+        company: document.getElementById("editLeadCompany").value.trim(),
+        email: cleanEmail(document.getElementById("editLeadEmail").value),
+        phone: cleanPhone(document.getElementById("editLeadPhone").value),
+        website: document.getElementById("editLeadWebsite").value.trim(),
+        linkedin: document.getElementById("editLeadLinkedin").value.trim(),
+        title: document.getElementById("editLeadTitle").value.trim(),
+        industry: document.getElementById("editLeadIndustry").value.trim(),
+        status: document.getElementById("editLeadStatus").value,
+        assignedTo: assignedToRaw,
+        country: document.getElementById("editLeadCountry").value.trim(),
+        city: document.getElementById("editLeadCity").value.trim(),
+        state: document.getElementById("editLeadState").value.trim(),
+        employeeRange: document.getElementById("editLeadEmployeeRange").value.trim(),
+        address: document.getElementById("editLeadAddress").value.trim(),
+        updatedAt: serverTimestamp()
+      };
+      document.querySelectorAll("#editLeadExtraFields [data-extra-key]").forEach(el => {
+        const key = el.getAttribute("data-extra-key");
+        if (key) updates[key] = el.value.trim();
+      });
+
+      if (!updates.name) return showToast("Name is required","error");
+      try {
+        await updateDoc(doc(db, "leads", currentLeadId), updates);
+        closeModal("editLeadModal");
+        showToast("Lead updated","success");
+        openDetail(currentLeadId);
+      } catch (e) {
+        console.error("saveEditedLead error:", e);
+        showToast("Failed to save lead changes","error");
+      }
+    };
+
+    // ── ADD LEAD ───────────────────────────────────────────────────
+    window.openAddLead = function () {
+      ["newName","newCompany","newEmail","newPhone","newWebsite","newLinkedin","newTitle","newIndustry"].forEach(id =>
+        document.getElementById(id).value = "");
+      document.getElementById("newAssigned").value = currentUser;
+      document.getElementById("addLeadModal").classList.add("active");
+      setTimeout(()=>document.getElementById("newName").focus(), 100);
+    };
+    window.submitAddLead = async function () {
+      const name = document.getElementById("newName").value.trim();
+      if (!name) return showToast("Name is required","error");
+      try {
+        await addDoc(collection(db,"leads"), {
+          name, company: document.getElementById("newCompany").value.trim(),
+          email:      document.getElementById("newEmail").value.trim().toLowerCase(),
+          phone:      document.getElementById("newPhone").value.trim(),
+          website:    document.getElementById("newWebsite").value.trim(),
+          linkedin:   document.getElementById("newLinkedin").value.trim(),
+          title:      document.getElementById("newTitle").value.trim(),
+          industry:   document.getElementById("newIndustry").value.trim(),
+          assignedTo: document.getElementById("newAssigned").value.trim() || currentUser,
+          status:"New", contactCount:0, lastContacted:null,
+          createdAt:serverTimestamp(), updatedAt:serverTimestamp(), source:"manual"
+        });
+        showToast("Lead added","success"); closeModal("addLeadModal");
+      } catch(e) { console.error(e); showToast("Failed","error"); }
+    };
+
+    // ── CLEAR ALL ──────────────────────────────────────────────────
+    window.clearAllLeads = async function () {
+      if (!isAdminUser()) return showToast("Admin access only","error");
+      const ids = Object.keys(allLeads);
+      const importBatchIds = Object.keys(importBatchesCache);
+      if (!ids.length && !importBatchIds.length) return showToast("Nothing to clear","");
+      if (!confirm(`Delete all ${ids.length} leads and ${importBatchIds.length} import batch record${importBatchIds.length!==1?"s":""}? This cannot be undone.`)) return;
+      showToast("Deleting…");
+      const CHUNK = 500;
+      for (let i = 0; i < ids.length; i += CHUNK) {
+        const batch = writeBatch(db);
+        ids.slice(i,i+CHUNK).forEach(id => batch.delete(doc(db,"leads",id)));
+        await batch.commit();
+      }
+      for (let i = 0; i < importBatchIds.length; i += CHUNK) {
+        const batch = writeBatch(db);
+        importBatchIds.slice(i,i+CHUNK).forEach(id => batch.delete(doc(db,"importBatches",id)));
+        await batch.commit();
+      }
+      showToast("All leads cleared","success");
+    };
+
+    // ── SMART CSV IMPORT ───────────────────────────────────────────
+    const SKIP_COLS_SET = new Set([
+      "objectid","fid","gid","pin","x","y","lat","lon","longitude","latitude",
+      "modified","updatemethod","manufacturer","canheadoffice",
+      "headofficeprovincestate","headofficecountry","yrcurrentloc",
+      "secnaicsdesc","naicscode","naicsdescr","measurementid","appid",
+      "charea","bldgno","unitno","streetno","postalcode","businessid",
+      "phoneext","biafullname","bianame","rownum","rownumber","row",
+      "index","recordid","entryid","id"
+    ]);
+
+    function shouldSkip(h) { return SKIP_COLS_SET.has(h.toLowerCase().replace(/[\s_\-]+/g,"")); }
+
+    const FIELD_ALIASES = {
+      email: ["email","mail","workemail","businessemail","professionalemail","contactemail"],
+      phone: ["phone","mobile","cell","tel","telephone","directdial","directphone","workphone","businessphone","contactnumber"],
+      linkedin: ["linkedin","linkedinurl","profileurl","liprofile","linkedinprofile","personlinkedin","contactlinkedin"],
+      website: ["website","webaddress","url","web","homepage","domain","companywebsite","site","companyurl"],
+      name: ["fullname","name","contactname","personname","leadname","prospectname","full name"],
+      firstName: ["firstname","givenname","first","forename"],
+      lastName: ["lastname","surname","familyname","last"],
+      company: ["company","companyname","business","businessname","organization","organisation","org","employer","firm","agency","account","client","accountname","parentname"],
+      title: ["title","jobtitle","jobrole","position","role","designation"],
+      industry: ["industry","sector","category","businesstype","businessdesc","activitydesc","naicstitle"],
+      city: ["city","municipality","district","community","town"],
+      country: ["country","nation"],
+      state: ["state","province","region","territory"],
+      address: ["address","fulladdress","streetaddress","streetname","street","mailingaddress"],
+      employeeRange: ["employee","employees","emprange","headcount","companysize","employeerange","staffsize"],
+      assignedTo: ["assignedto","assigned","salesrep","rep","owner","agent","accountowner"]
+    };
+    const FIXED_IMPORT_FIELDS = [
+      { value: "__ignore__", label: "Ignore this column" },
+      { value: "name", label: "Full Name" },
+      { value: "firstName", label: "First Name" },
+      { value: "lastName", label: "Last Name" },
+      { value: "company", label: "Company" },
+      { value: "email", label: "Email" },
+      { value: "phone", label: "Phone" },
+      { value: "website", label: "Website" },
+      { value: "linkedin", label: "LinkedIn" },
+      { value: "title", label: "Title" },
+      { value: "industry", label: "Industry" },
+      { value: "address", label: "Address" },
+      { value: "city", label: "City" },
+      { value: "state", label: "State / Province" },
+      { value: "country", label: "Country" },
+      { value: "employeeRange", label: "Employees" },
+      { value: "assignedTo", label: "Assigned To" },
+      { value: "__extra__", label: "Keep as extra field" }
+    ];
+    const CONTENT_DRIVEN_FIELDS = new Set(["email","phone","linkedin","website"]);
+    const CSV_MAPPING_PRESETS_KEY = "leadtracker.csvMappingPresets.v1";
+
+    function normalizeHeader(h) {
+      return String(h || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    }
+    function compactHeader(h) {
+      return normalizeHeader(h).replace(/\s+/g, "");
+    }
+    function headerTokens(h) {
+      return normalizeHeader(h).split(" ").filter(Boolean);
+    }
+    function looksLikeEmail(val) {
+      const s = cleanEmail(val);
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+    }
+    function looksLikeDateTimeString(val) {
+      const s = String(val || "").trim();
+      if (!s) return false;
+      if (/^\d{4}-\d{2}-\d{2}t\d{2}:\d{2}:\d{2}(?:\.\d+)?z$/i.test(s)) return true;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return true;
+      return /\d{4}-\d{2}-\d{2}/.test(s) && /[t:]/i.test(s);
+    }
+    function looksLikePhone(val) {
+      if (looksLikeDateTimeString(val)) return false;
+      const raw = String(val || "").trim();
+      const compact = cleanPhone(val).replace(/[^\d+]/g, "");
+      if (!compact || compact.length < 7 || compact.length > 15) return false;
+      if (!/\d/.test(compact)) return false;
+      if (/[A-Za-z]/.test(raw.replace(/^ext\b/i, ""))) return false;
+      if (!/[+\d(]/.test(raw)) return false;
+      return true;
+    }
+    function looksLikeLinkedIn(val) {
+      const s = extractUrl(val).toLowerCase();
+      return s.includes("linkedin.com/");
+    }
+    function looksLikeWebsite(val) {
+      const s = extractUrl(val).toLowerCase();
+      return !!s && /(\.[a-z]{2,})(\/|$)/i.test(s) && !s.includes("linkedin.com/");
+    }
+    function looksLikePersonName(val) {
+      const s = String(val || "").trim();
+      return /^[a-z ,.'-]{4,}$/i.test(s) && s.split(/\s+/).length >= 2 && s.split(/\s+/).length <= 5;
+    }
+    function looksLikeSingleNamePart(val) {
+      const s = String(val || "").trim();
+      return /^[a-z ,.'-]{2,}$/i.test(s) && s.split(/\s+/).length === 1;
+    }
+    function looksLikeCompany(val) {
+      const s = String(val || "").trim();
+      return /^[\w&.,'()\- ]{2,}$/.test(s) && !looksLikeEmail(s) && !looksLikePhone(s) && !looksLikeLinkedIn(s);
+    }
+    function looksLikeJobTitle(val) {
+      const s = String(val || "").trim().toLowerCase();
+      return /(manager|director|owner|founder|partner|president|vp|vice president|chief|cfo|ceo|cto|coo|accountant|engineer|specialist|consultant|assistant|coordinator|lead|head|principal)/.test(s);
+    }
+    function columnMatchRatio(samples, predicate) {
+      if (!samples.length) return 0;
+      return samples.filter(predicate).length / samples.length;
+    }
+    function detectField(rawHeader, sampleValues = []) {
+      const compact = compactHeader(rawHeader);
+      const tokens = headerTokens(rawHeader);
+      const joined = tokens.join("");
+      const candidates = Object.keys(FIELD_ALIASES);
+      const scores = {};
+
+      for (const field of candidates) {
+        let score = 0;
+        for (const alias of FIELD_ALIASES[field]) {
+          const aliasCompact = compactHeader(alias);
+          const aliasTokens = headerTokens(alias);
+          if (compact === aliasCompact) score += 20;
+          else if (compact.includes(aliasCompact) || aliasCompact.includes(compact)) score += 10;
+          else if (aliasTokens.every(t => tokens.includes(t))) score += 8;
+          else if (tokens.some(t => aliasTokens.includes(t))) score += 3;
+        }
+        scores[field] = score;
+      }
+
+      const samples = sampleValues.map(v => String(v || "").trim()).filter(Boolean).slice(0, 25);
+      const emailRatio = columnMatchRatio(samples, looksLikeEmail);
+      const phoneRatio = columnMatchRatio(samples, looksLikePhone);
+      const linkedInRatio = columnMatchRatio(samples, looksLikeLinkedIn);
+      const websiteRatio = columnMatchRatio(samples, looksLikeWebsite);
+      const personNameRatio = columnMatchRatio(samples, looksLikePersonName);
+      const singleNameRatio = columnMatchRatio(samples, looksLikeSingleNamePart);
+      const companyRatio = columnMatchRatio(samples, looksLikeCompany);
+      const titleRatio = columnMatchRatio(samples, looksLikeJobTitle);
+
+      scores.email += emailRatio * 24;
+      scores.phone += phoneRatio * 20;
+      scores.linkedin += linkedInRatio * 24;
+      scores.website += websiteRatio * 18;
+      if (scores.name > 0) scores.name += personNameRatio * 6;
+      if (scores.firstName > 0) scores.firstName += singleNameRatio * 4;
+      if (scores.lastName > 0) scores.lastName += singleNameRatio * 4;
+      if (scores.company > 0) scores.company += companyRatio * 4;
+      if (scores.title > 0) scores.title += titleRatio * 6;
+
+      if (joined.includes("company") && joined.includes("linkedin")) scores.website -= 4, scores.linkedin -= 2, scores.company += 1;
+      if (joined.includes("first") && joined.includes("name")) scores.name -= 8;
+      if (joined.includes("last") && joined.includes("name")) scores.name -= 8;
+      if (joined.includes("address")) scores.website -= 8;
+      if (joined === "url" && linkedInRatio > 0.5) scores.linkedin += 8;
+      if (joined === "url" && websiteRatio > 0.5) scores.website += 8;
+
+      const best = candidates.reduce((max, field) => scores[field] > scores[max] ? field : max, candidates[0]);
+      const threshold = CONTENT_DRIVEN_FIELDS.has(best) ? 8 : 10;
+      return scores[best] >= threshold ? best : null;
+    }
+    function getCsvHeaderSignature(headers = []) {
+      return headers.map(h => compactHeader(h)).join("|");
+    }
+    function loadCsvMappingPresets() {
+      try { return JSON.parse(localStorage.getItem(CSV_MAPPING_PRESETS_KEY) || "{}"); }
+      catch { return {}; }
+    }
+    function saveCsvMappingPreset(signature, mapping) {
+      if (!signature) return;
+      const presets = loadCsvMappingPresets();
+      presets[signature] = mapping;
+      try { localStorage.setItem(CSV_MAPPING_PRESETS_KEY, JSON.stringify(presets)); }
+      catch (e) { console.warn("Could not save CSV mapping preset:", e); }
+    }
+    function validateCsvMapping(columns = []) {
+      const used = new Map();
+      for (const col of columns) {
+        const field = col.field;
+        if (!field || field === "__ignore__" || field === "__extra__") continue;
+        if (used.has(field)) {
+          const firstHeader = used.get(field);
+          const fieldLabel = FIXED_IMPORT_FIELDS.find(option => option.value === field)?.label || field;
+          throw new Error(`"${fieldLabel}" is mapped more than once (${firstHeader} and ${col.raw}).`);
+        }
+        used.set(field, col.raw || "Unnamed column");
+      }
+      if (!used.has("name") && !used.has("email") && !(used.has("firstName") && used.has("lastName"))) {
+        throw new Error("Map at least Full Name, Email, or both First Name and Last Name before importing.");
+      }
+    }
+    function renderCsvMappingModal() {
+      const wrap = document.getElementById("csvMappingList");
+      if (!wrap || !pendingCsvImport) return;
+      document.getElementById("csvMappingSub").textContent =
+        `${pendingCsvImport.fileName} — review the suggested field mapping and sample values before importing.`;
+      wrap.innerHTML = `<div class="csv-mapping-list">${pendingCsvImport.columns.map((col, idx) => `
+        <div class="csv-mapping-row">
+          <div>
+            <div class="csv-mapping-header">${esc(col.raw || `Column ${idx + 1}`)}</div>
+            <div class="user-row-sub">CSV column</div>
+          </div>
+          <div class="csv-mapping-samples">
+            ${(col.samples.length ? col.samples : ["No sample values"]).map(sample => `<code>${esc(sample)}</code>`).join("")}
+          </div>
+          <div class="csv-mapping-select">
+            <select id="csvMap_${idx}">
+              ${FIXED_IMPORT_FIELDS.map(option => `
+                <option value="${esc(option.value)}"${option.value === col.field ? " selected" : ""}>${esc(option.label)}</option>
+              `).join("")}
+            </select>
+          </div>
+        </div>
+      `).join("")}</div>`;
+      document.getElementById("csvMappingModal").classList.add("active");
+    }
+    function buildLeadsFromMapping(dataRows, columns) {
+      return dataRows.map(row => {
+        const lead = {
+          status: "New",
+          contactCount: 0,
+          lastContacted: null,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          source: "csv"
+        };
+        let _first = "", _last = "";
+        columns.forEach(col => {
+          if (col.field === "__ignore__") return;
+          const val = (row[col.idx] || "").trim();
+          if (!val) return;
+          switch (col.field) {
+            case "name":          if (!lead.name) lead.name = val; break;
+            case "firstName":     if (!_first) _first = val; break;
+            case "lastName":      if (!_last) _last = val; break;
+            case "company":       if (!lead.company) lead.company = val; break;
+            case "email":         if (!lead.email) lead.email = cleanEmail(val); break;
+            case "phone":         if (!lead.phone) lead.phone = cleanPhone(val); break;
+            case "website":       if (!lead.website) lead.website = val; break;
+            case "linkedin":      if (!lead.linkedin) lead.linkedin = val; break;
+            case "title":         if (!lead.title) lead.title = val; break;
+            case "industry":      if (!lead.industry) lead.industry = val; break;
+            case "address":       if (!lead.address) lead.address = val; break;
+            case "city":          if (!lead.city) lead.city = val; break;
+            case "country":       if (!lead.country) lead.country = val; break;
+            case "state":         if (!lead.state) lead.state = val; break;
+            case "employeeRange": if (!lead.employeeRange) lead.employeeRange = val; break;
+            case "assignedTo":    if (!lead.assignedTo) lead.assignedTo = val; break;
+            case "__extra__":     if (!(col.raw in lead)) lead[col.raw] = val; break;
+          }
+        });
+        if (!lead.name && (_first || _last)) lead.name = `${_first} ${_last}`.trim();
+        if (!lead.company) lead.company = lead.name || "";
+        return lead;
+      }).filter(l => l.name || l.email);
+    }
+    async function runCsvImport({ fileName, leads }) {
+      if (!leads.length) return showToast("No rows with name or email after mapping","error");
+      const emailIdx = {}, nameIdx = {};
+      Object.values(allLeads).forEach(l => {
+        if (l.email) emailIdx[norm(l.email)] = l.id;
+        if (l.name)  nameIdx[norm(l.name)]   = l.id;
+      });
+
+      const toAdd = [], toUpdate = [];
+      const NEVER_OW = new Set(["status","contactCount","lastContacted","createdAt","assignedTo","source"]);
+      leads.forEach(lead => {
+        const existId = (lead.email && emailIdx[norm(lead.email)]) ||
+                        (lead.name  && nameIdx[norm(lead.name)])   || null;
+        if (existId) {
+          if (existId === "__p__") return;
+          const existing = allLeads[existId];
+          if (!existing) return;
+          const updates = {};
+          Object.entries(lead).forEach(([k, v]) => {
+            if (NEVER_OW.has(k) || !v) return;
+            if (!existing[k]) updates[k] = v;
+          });
+          if (Object.keys(updates).length) {
+            updates.updatedAt = serverTimestamp();
+            toUpdate.push({ id: existId, fields: updates });
+          }
+        } else {
+          toAdd.push(lead);
+          if (lead.email) emailIdx[norm(lead.email)] = "__p__";
+          if (lead.name)  nameIdx[norm(lead.name)]   = "__p__";
+        }
+      });
+
+      showToast(`Importing ${toAdd.length} new, ${toUpdate.length} updates…`);
+      const CHUNK = 100;
+      const totalOps = toAdd.length + toUpdate.length;
+      if (!totalOps) return showToast("No changes — all leads already exist","success");
+      let completedOps = 0;
+      const importBatchRef = doc(collection(db, "importBatches"));
+      const importBatchId = importBatchRef.id;
+      const importFileName = fileName || "CSV Import";
+
+      bulkImportInProgress = true;
+      try {
+        await setDoc(importBatchRef, {
+          fileName: importFileName,
+          addedCount: toAdd.length,
+          updatedCount: toUpdate.length,
+          createdAt: serverTimestamp(),
+          createdBy: currentUserId,
+          createdByName: currentUser || ""
+        });
+        for (let i = 0; i < toAdd.length; i += CHUNK) {
+          const b = writeBatch(db);
+          const batchItems = toAdd.slice(i, i + CHUNK);
+          batchItems.forEach(l => b.set(doc(collection(db, "leads")), {
+            ...l,
+            importBatchId,
+            importFileName,
+            importedBy: currentUser || "",
+            importedAt: serverTimestamp()
+          }));
+          await b.commit();
+          completedOps += batchItems.length;
+          showToast(`Importing… ${completedOps}/${totalOps}`,"");
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+        for (let i = 0; i < toUpdate.length; i += CHUNK) {
+          const b = writeBatch(db);
+          const batchItems = toUpdate.slice(i, i + CHUNK);
+          batchItems.forEach(({id,fields}) => b.update(doc(db,"leads",id),fields));
+          await b.commit();
+          completedOps += batchItems.length;
+          showToast(`Importing… ${completedOps}/${totalOps}`,"");
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+      } finally {
+        bulkImportInProgress = false;
+        refreshLeadViews();
+      }
+
+      const parts = [];
+      if (toAdd.length)    parts.push(`${toAdd.length} added`);
+      if (toUpdate.length) parts.push(`${toUpdate.length} updated`);
+      if (!parts.length)   parts.push("No changes — all leads already exist");
+      showToast(parts.join(", "),"success");
+    }
+    window.confirmCsvMapping = async function () {
+      if (!pendingCsvImport) return showToast("No CSV is waiting to be imported","error");
+      pendingCsvImport.columns.forEach((col, idx) => {
+        const sel = document.getElementById(`csvMap_${idx}`);
+        col.field = sel ? sel.value : "__ignore__";
+      });
+      try {
+        validateCsvMapping(pendingCsvImport.columns);
+      } catch (e) {
+        return showToast(e?.message || "Fix the CSV mapping before importing","error");
+      }
+      const mappingPreset = {};
+      pendingCsvImport.columns.forEach(col => { mappingPreset[col.raw] = col.field; });
+      saveCsvMappingPreset(pendingCsvImport.signature, mappingPreset);
+      closeModal("csvMappingModal");
+      const leads = buildLeadsFromMapping(pendingCsvImport.dataRows, pendingCsvImport.columns);
+      const fileName = pendingCsvImport.fileName;
+      pendingCsvImport = null;
+      try {
+        await runCsvImport({ fileName, leads });
+      } catch (e) {
+        console.error("CSV import failed:", e);
+        showToast(`Import failed${e?.message ? `: ${e.message}` : ""}`,"error");
+      }
+    };
+    window.cancelCsvMapping = function () {
+      pendingCsvImport = null;
+      closeModal("csvMappingModal");
+    };
+
+    window.handleCSV = async function (event) {
+      if (!isAdminUser()) return showToast("Admin access only","error");
+      if (bulkImportInProgress) return showToast("An import is already running","error");
+      const file = event.target.files[0];
+      if (!file) return;
+      event.target.value = "";
+      let text;
+      try { text = await file.text(); } catch { return showToast("Could not read file","error"); }
+      if (text.charCodeAt(0)===0xFEFF) text = text.slice(1);
+      try {
+        const rows = parseCSV(text);
+        if (rows.length < 2) return showToast("CSV appears empty","error");
+
+        const dataRows = rows.slice(1).filter(r => r.some(c=>c.trim()));
+        const rawHeaders = rows[0].map(h => h.trim());
+        const signature = getCsvHeaderSignature(rawHeaders);
+        const savedPreset = loadCsvMappingPresets()[signature] || {};
+        const columns = rawHeaders.map((h,i) => ({
+          idx: i,
+          raw: h,
+          samples: dataRows.map(r => String(r[i] || "").trim()).filter(Boolean).slice(0, 3),
+          field: savedPreset[h] || (shouldSkip(h) ? "__ignore__" : (detectField(h, dataRows.map(r => r[i])) || "__extra__"))
+        }));
+        pendingCsvImport = {
+          fileName: file.name || "CSV Import",
+          signature,
+          rawHeaders,
+          dataRows,
+          columns
+        };
+        renderCsvMappingModal();
+      } catch (e) {
+        pendingCsvImport = null;
+        console.error("CSV import prep failed:", e);
+        showToast(`Could not prepare CSV mapping${e?.message ? `: ${e.message}` : ""}`,"error");
+      }
+    };
+
+    function parseCSV(text) {
+      const rows = [];
+      let row = [];
+      let cell = "";
+      let inQ = false;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (ch === '"') {
+          if (inQ && text[i + 1] === '"') {
+            cell += '"';
+            i++;
+          } else {
+            inQ = !inQ;
+          }
+          continue;
+        }
+        if (ch === "," && !inQ) {
+          row.push(cell);
+          cell = "";
+          continue;
+        }
+        if ((ch === "\n" || ch === "\r") && !inQ) {
+          if (ch === "\r" && text[i + 1] === "\n") i++;
+          row.push(cell);
+          const hasValue = row.some(value => String(value || "").trim());
+          if (hasValue) rows.push(row);
+          row = [];
+          cell = "";
+          continue;
+        }
+        cell += ch;
+      }
+      row.push(cell);
+      if (row.some(value => String(value || "").trim())) rows.push(row);
+      return rows;
+    }
+
+    // ── URL OPEN (copy fallback for local file:// restrictions) ───
+    window.openUrl = function (rawUrl) {
+      const url = ensureHttp(rawUrl);
+      // Open the destination URL directly to avoid blank tabs in local/file-hosted sessions.
+      try {
+        const w = window.open(url, "_blank", "noopener,noreferrer");
+        if (w) return;
+      } catch {}
+      // Fallback: show copy dialog
+      document.getElementById("urlDisplay").value          = url;
+      document.getElementById("urlDirectLink").href        = url;
+      document.getElementById("urlDirectLink").textContent = url.length > 50 ? url.slice(0,50)+"…" : url;
+      document.getElementById("urlModal").classList.add("active");
+    };
+    window.copyUrl = function () {
+      const inp = document.getElementById("urlDisplay");
+      inp.select();
+      try { navigator.clipboard.writeText(inp.value).then(()=>showToast("URL copied","success")); }
+      catch { document.execCommand("copy"); showToast("URL copied","success"); }
+    };
+
+    // ── COLUMN RESIZE ──────────────────────────────────────────────
+    (function initColResize() {
+      let dragging = null, startX = 0, startW = 0;
+      document.addEventListener("mousedown", e => {
+        if (!e.target.classList.contains("col-resize")) return;
+        const th = e.target.parentElement;
+        dragging = th; startX = e.clientX; startW = th.offsetWidth;
+        e.target.classList.add("dragging");
+        document.body.style.cursor = "col-resize";
+        document.body.style.userSelect = "none";
+        e.preventDefault();
+      });
+      document.addEventListener("mousemove", e => {
+        if (!dragging) return;
+        const newW = Math.max(60, startW + (e.clientX - startX));
+        dragging.style.width = newW + "px";
+      });
+      document.addEventListener("mouseup", () => {
+        if (!dragging) return;
+        dragging.querySelector(".col-resize")?.classList.remove("dragging");
+        dragging = null;
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+      });
+    })();
+
+    // ── MODAL HELPERS ──────────────────────────────────────────────
+    // closeModal defined earlier
+    document.querySelectorAll(".modal-overlay").forEach(o => {
+      o.addEventListener("click", e => {
+        if (e.target !== o) return;
+        if (o.id === "userModal") return;
+        if (o.dataset.backdropClose === "true") o.classList.remove("active");
+      });
+    });
+
+    // ── CLEAN EMAIL / PHONE (JSON arrays from Apollo/Vibe etc.) ───
+    function cleanEmail(val) {
+      if (!val) return "";
+      const s = String(val).trim();
+      if (!s.startsWith("[")&&!s.startsWith("{")) return s;
+      try {
+        const list = [].concat(JSON.parse(s));
+        const pick = list.find(e=>e.type==="current_professional") ||
+                     list.find(e=>e.type&&!e.type.includes("personal")) || list[0];
+        return (pick?.address||"").toLowerCase();
+      } catch { return s; }
+    }
+    function cleanPhone(val) {
+      if (!val) return "";
+      const s = String(val).trim();
+      if (looksLikeDateTimeString(s)) return "";
+      if (!s.startsWith("[")&&!s.startsWith("{")) return s;
+      try {
+        const list = [].concat(JSON.parse(s));
+        const extracted = list[0]?.phone_number||list[0]?.number||list[0]?.value||"";
+        return looksLikeDateTimeString(extracted) ? "" : extracted;
+      } catch { return s; }
+    }
+    function titleCaseWord(word) {
+      return word ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : "";
+    }
+    function getCompanyGroupKey(companyName) {
+      return norm((companyName || "").trim()) || "__no_company__";
+    }
+    function getCompanyLeads(groupKey) {
+      return Object.values(allLeads).filter(l => getCompanyGroupKey(l.company || "") === groupKey);
+    }
+    function getCompanyAssignedRep(leads) {
+      const reps = [...new Set(leads.map(l => (l.assignedTo || "").trim()).filter(Boolean))];
+      if (reps.length === 1) return reps[0];
+      return "";
+    }
+    function getCompanyAssignmentLabel(leads) {
+      const reps = [...new Set(leads.map(l => (l.assignedTo || "").trim()).filter(Boolean))];
+      if (!reps.length) return "Unassigned";
+      if (reps.length === 1) return reps[0];
+      return "Mixed";
+    }
+    function shouldHideDetailField(key) {
+      const normalized = String(key || "").toLowerCase().replace(/[\s_\-]+/g, "");
+      return normalized === "prospectid";
+    }
+    function formatFieldLabel(key) {
+      const raw = String(key || "").trim();
+      const normalized = raw.toLowerCase().replace(/[\s_\-]+/g, "");
+      const labelMap = {
+        prospectcompanylinkedin: "LinkedIn Company Page",
+        createdat: "Created Date"
+      };
+      if (labelMap[normalized]) return labelMap[normalized];
+      return raw
+        .replace(/[_\-]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+    function formatDetailValue(val) {
+      if (val === null || val === undefined || val === "") return "";
+      if (val?.toDate) return fmtDate(val.toDate());
+      if (typeof val === "number" || typeof val === "boolean") return String(val);
+
+      const asUrl = extractUrl(val);
+      const raw = String(val).trim();
+      if (/^\d{4}-\d{2}-\d{2}t\d{2}:\d{2}:\d{2}/i.test(raw)) return raw.slice(0, 10);
+
+      const formatPrimitive = item => {
+        if (item === null || item === undefined || item === "") return "";
+        const str = String(item).trim();
+        if (!str) return "";
+        const itemUrl = extractUrl(str);
+        if (itemUrl) return itemUrl.replace(/^https?:\/\//i, "");
+        if (/^[a-z][a-z0-9_\-\s]+$/i.test(str) && !/\s{2,}/.test(str)) {
+          return str.split(/\s+/).map(titleCaseWord).join(" ");
+        }
+        return str;
+      };
+
+      if (raw.startsWith("[") || raw.startsWith("{")) {
+        try {
+          const parsed = JSON.parse(raw);
+          const list = Array.isArray(parsed) ? parsed : [parsed];
+          const mapped = list.map(item => {
+            if (item && typeof item === "object") {
+              for (const key of ["label", "name", "title", "value", "url", "href", "linkedin", "website"]) {
+                if (item[key]) return formatPrimitive(item[key]);
+              }
+              return "";
+            }
+            return formatPrimitive(item);
+          }).filter(Boolean);
+          if (mapped.length) {
+            const unique = [...new Set(mapped)];
+            return unique.length > 2 ? `${unique.slice(0, 2).join(", ")} +${unique.length - 2} more` : unique.join(", ");
+          }
+        } catch {}
+      }
+
+      if (asUrl) return asUrl.replace(/^https?:\/\//i, "");
+      return formatPrimitive(raw);
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  LINKEDIN DASHBOARD — Supabase-powered
+    // ════════════════════════════════════════════════════════════
+
+    // ── CONFIG ── Fill these in with your actual keys ──────────
+    const LI_CONFIG = {
+      supabaseUrl:  "https://uguhoxqucfdzfwrgdilq.supabase.co",
+      supabaseKey:  "sb_publishable_ITHWKSxBSr2igZR9pidElw_ZygVNQMn"
+    };
+
+    let liSupabase     = null;
+    let liInvitesData  = [];
+    let liMsgsData     = [];
+    let liSentData     = [];
+    let liAcceptedData = [];
+    let liCatchUpData  = [];
+    let liMsgFilter    = "all";   // "all" | "unread" | "inbound"
+    let liLoaded       = false;
+
+    function getLiClient() {
+      if (!liSupabase && window.supabase) {
+        liSupabase = window.supabase.createClient(LI_CONFIG.supabaseUrl, LI_CONFIG.supabaseKey);
+      }
+      return liSupabase;
+    }
+
+    // ── Show admin bar only for admins ─────────────────────────
+    function liUpdateAdminBar() {
+      const bar = document.getElementById("liAdminBar");
+      if (bar) bar.style.display = isAdminUser() ? "flex" : "none";
+    }
+
+    // ── Load / Refresh dashboard data from Supabase ────────────
+    window.loadLinkedInDashboard = async function() {
+      liUpdateAdminBar();
+      setLiLoading(true);
+
+      const db2 = getLiClient();
+      if (!db2) {
+        liSetError("Supabase client not available. Check that the CDN script loaded.");
+        return;
+      }
+      if (LI_CONFIG.supabaseKey === "YOUR_SUPABASE_ANON_KEY") {
+        liSetError("Please add your Supabase anon key to LI_CONFIG.supabaseKey in the script.");
+        return;
+      }
+
+      try {
+        const [r1, r2, r3, r4, r5] = await Promise.all([
+          db2.from("linkedin_received_invites").select("*").order("pulled_at", { ascending: false }).limit(200),
+          db2.from("linkedin_message_replies").select("*").order("pulled_at", { ascending: false }).limit(200),
+          db2.from("linkedin_sent_invites").select("*").order("pulled_at", { ascending: false }).limit(200),
+          db2.from("linkedin_accepted_invites").select("*").order("connected_on_date", { ascending: false, nullsFirst: false }).limit(200),
+          db2.from("linkedin_catch_up").select("*").order("pulled_at", { ascending: false }).limit(200)
+        ]);
+        if (r1.error) throw r1.error;
+        if (r2.error) throw r2.error;
+        if (r3.error) throw r3.error;
+        if (r4.error) throw r4.error;
+        if (r5.error) throw r5.error;
+
+        liInvitesData = r1.data || [];
+        liMsgsData    = r2.data || [];
+        liSentData    = r3.data || [];
+        liAcceptedData = r4.data || [];
+        liCatchUpData  = r5.data || [];
+        liLoaded      = true;
+
+        liRenderStats();
+        liRenderInvites();
+        liRenderMsgs();
+        liRenderSent();
+        liRenderAccepted();
+        liRenderCatchUp();
+      } catch (err) {
+        liSetError("Failed to load LinkedIn data: " + (err.message || err));
+      }
+    };
+
+    function setLiLoading(loading) {
+      const cols = ["liColInvites", "liColMsgs", "liColSent", "liColAccepted", "liColCatchUp"];
+      if (loading && !liLoaded) {
+        cols.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.innerHTML = `<div class="li-loading"><div class="li-spinner"></div>Loading…</div>`;
+        });
+      }
+    }
+
+    function liSetError(msg) {
+      const cols = ["liColInvites", "liColMsgs", "liColSent", "liColAccepted", "liColCatchUp"];
+      cols.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = `<div class="li-empty"><div class="li-empty-icon">⚠️</div>${liEsc(msg)}</div>`;
+      });
+    }
+
+    function liGetLatestPulledAtMs() {
+      const allRows = [...liInvitesData, ...liMsgsData, ...liSentData, ...liAcceptedData, ...liCatchUpData];
+      const latest = allRows.reduce((max, row) => {
+        const t = row && row.pulled_at ? new Date(row.pulled_at).getTime() : 0;
+        return t > max ? t : max;
+      }, 0);
+      return latest || 0;
+    }
+
+    // ── Stats bar ──────────────────────────────────────────────
+    function liRenderStats() {
+      const invitesPending = liInvitesData.filter(r => (r.status||"pending")==="pending").length;
+      const withNotes      = liInvitesData.filter(r => r.note && r.note.trim()).length;
+      const replies        = liMsgsData.filter(r => r.direction === "inbound").length;
+      const unread         = liMsgsData.filter(r => r.is_unread).length;
+      const sentPending    = liSentData.filter(r => (r.status||"pending")==="pending").length;
+      const acceptedRecent = liAcceptedData.filter(r => liWithinDays(r.connected_on_date || r.connected_on, 5)).length;
+      const catchUpCount   = liCatchUpData.length;
+
+      document.getElementById("liStatInvites").textContent = invitesPending;
+      document.getElementById("liStatNotes").textContent   = withNotes;
+      document.getElementById("liStatReplies").textContent = replies;
+      document.getElementById("liStatUnread").textContent  = unread;
+      document.getElementById("liStatSent").textContent    = sentPending;
+      document.getElementById("liStatAccepted").textContent = acceptedRecent;
+      document.getElementById("liStatCatchUp").textContent  = catchUpCount;
+
+      // Last pulled timestamp (from whichever table has the freshest row)
+      const allRows = [...liInvitesData, ...liMsgsData, ...liSentData, ...liAcceptedData, ...liCatchUpData];
+      const latest  = allRows.reduce((max, r) => {
+        const t = r.pulled_at ? new Date(r.pulled_at) : null;
+        return t && (!max || t > max) ? t : max;
+      }, null);
+      const lastEl = document.getElementById("liStatLastPull");
+      if (lastEl) lastEl.textContent = latest ? liRelTime(latest) : "Never";
+    }
+
+    // ── Column 1: Received Invites ─────────────────────────────
+    function liRenderInvites() {
+      const col   = document.getElementById("liColInvites");
+      const count = document.getElementById("liCountInvites");
+      const pending = liInvitesData.filter(r => (r.status||"pending")==="pending");
+      if (count) count.textContent = pending.length;
+      if (!col) return;
+
+      if (!pending.length) {
+        col.innerHTML = `<div class="li-empty"><div class="li-empty-icon">🎉</div>No pending invites</div>`;
+        return;
+      }
+
+      col.innerHTML = pending.map(r => {
+        const note = r.note ? `<div class="li-card-note">"${liEsc(r.note)}"</div>` : "";
+        const mutual = r.mutual_connections ? `<span class="li-badge li-badge-gray">${liEsc(r.mutual_connections)} mutual</span>` : "";
+        const link = r.profile_url ? `<a class="li-profile-link" href="${liEsc(r.profile_url)}" target="_blank" rel="noopener">View Profile →</a>` : "";
+        const date = r.sent_at ? `<span class="li-date">${liFormatInviteTime(r.sent_at)}</span>` : "";
+        return `
+          <div class="li-card">
+            <div class="li-card-name">${liEsc(r.name||"Unknown")}</div>
+            <div class="li-card-title">${liEsc(r.title||"")}</div>
+            ${note}
+            <div class="li-card-footer">
+              <div style="display:flex;gap:5px;flex-wrap:wrap">
+                <span class="li-badge li-badge-blue">Pending</span>
+                ${mutual}
+              </div>
+              <div style="display:flex;gap:6px;align-items:center">${date}${link}</div>
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    // ── Column 2: Messages & Replies ───────────────────────────
+    window.setMsgFilter = function(f) {
+      liMsgFilter = f;
+      document.querySelectorAll(".li-msg-tab").forEach(t => t.classList.remove("active"));
+      const tabId = f === "all" ? "liMsgTabAll" : f === "unread" ? "liMsgTabUnread" : "liMsgTabIn";
+      const tabEl = document.getElementById(tabId);
+      if (tabEl) tabEl.classList.add("active");
+      liRenderMsgs();
+    };
+
+    function liRenderMsgs() {
+      const col   = document.getElementById("liColMsgs");
+      const count = document.getElementById("liCountMsgs");
+
+      let filtered = liMsgsData;
+      if (liMsgFilter === "unread")   filtered = filtered.filter(r => r.is_unread);
+      if (liMsgFilter === "inbound")  filtered = filtered.filter(r => r.direction === "inbound");
+
+      if (count) count.textContent = filtered.length;
+      if (!col) return;
+
+      if (!filtered.length) {
+        col.innerHTML = `<div class="li-empty"><div class="li-empty-icon">💬</div>No messages</div>`;
+        return;
+      }
+
+      col.innerHTML = filtered.map(r => {
+        const isUnread = r.is_unread;
+        const dirBadge = r.direction === "inbound"
+          ? `<span class="li-badge li-badge-green">Inbound</span>`
+          : `<span class="li-badge li-badge-gray">Outbound</span>`;
+        const unreadBadge = isUnread ? `<span class="li-badge li-badge-unread">Unread</span>` : "";
+        const preview = r.last_message ? `<div class="li-card-note">${liEsc(r.last_message.slice(0,140))}${r.last_message.length > 140 ? "…" : ""}</div>` : "";
+        const link = r.thread_url ? `<a class="li-profile-link" href="${liEsc(r.thread_url)}" target="_blank" rel="noopener">Open Thread →</a>` : "";
+        const date = r.message_date ? `<span class="li-date">${liRelTime(new Date(r.message_date))}</span>` : "";
+        return `
+          <div class="li-card ${isUnread ? "unread" : ""}">
+            <div class="li-card-name">${liEsc(r.name||"Unknown")}${isUnread ? " 🔵" : ""}</div>
+            <div class="li-card-title">${liEsc(r.title||"")}</div>
+            ${preview}
+            <div class="li-card-footer">
+              <div style="display:flex;gap:5px;flex-wrap:wrap">${dirBadge}${unreadBadge}</div>
+              <div style="display:flex;gap:6px;align-items:center">${date}${link}</div>
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    // ── Column 3: Sent Invites ─────────────────────────────────
+    function liRenderSent() {
+      const col   = document.getElementById("liColSent");
+      const count = document.getElementById("liCountSent");
+      const pending = liSentData.filter(r => (r.status||"pending")==="pending");
+      if (count) count.textContent = pending.length;
+      if (!col) return;
+
+      if (!pending.length) {
+        col.innerHTML = `<div class="li-empty"><div class="li-empty-icon">📤</div>No pending sent invites</div>`;
+        return;
+      }
+
+      col.innerHTML = pending.map(r => {
+        const link = r.profile_url ? `<a class="li-profile-link" href="${liEsc(r.profile_url)}" target="_blank" rel="noopener">View Profile →</a>` : "";
+        const date = r.sent_at ? `<span class="li-date">${liFormatInviteTime(r.sent_at)}</span>` : "";
+        return `
+          <div class="li-card">
+            <div class="li-card-name">${liEsc(r.name||"Unknown")}</div>
+            <div class="li-card-title">${liEsc(r.title||"")}</div>
+            <div class="li-card-footer">
+              <span class="li-badge li-badge-yellow">Awaiting Response</span>
+              <div style="display:flex;gap:6px;align-items:center">${date}${link}</div>
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    function liRenderAccepted() {
+      const col = document.getElementById("liColAccepted");
+      const count = document.getElementById("liCountAccepted");
+      const accepted = liAcceptedData
+        .filter(r => liWithinDays(r.connected_on_date || r.connected_on, 5))
+        .sort((a, b) => liDateValue(b.connected_on_date || b.connected_on) - liDateValue(a.connected_on_date || a.connected_on));
+      if (count) count.textContent = accepted.length;
+      if (!col) return;
+
+      if (!accepted.length) {
+        col.innerHTML = `<div class="li-empty"><div class="li-empty-icon">✅</div>No accepted invites in the last 5 days</div>`;
+        return;
+      }
+
+      col.innerHTML = accepted.map(r => {
+        const link = r.profile_url ? `<a class="li-profile-link" href="${liEsc(r.profile_url)}" target="_blank" rel="noopener">View Profile →</a>` : "";
+        return `
+          <div class="li-card">
+            <div class="li-card-name">${liEsc(r.name||"Unknown")}</div>
+            <div class="li-card-title">${liEsc(r.title||"")}</div>
+            <div class="li-card-footer">
+              <span class="li-badge li-badge-green">${liEsc(r.connected_on || "Recently added")}</span>
+              <div style="display:flex;gap:6px;align-items:center">${link}</div>
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    function liRenderCatchUp() {
+      const col = document.getElementById("liColCatchUp");
+      const count = document.getElementById("liCountCatchUp");
+      if (count) count.textContent = liCatchUpData.length;
+      if (!col) return;
+
+      if (!liCatchUpData.length) {
+        col.innerHTML = `<div class="li-empty"><div class="li-empty-icon">🧠</div>No Catch Up items</div>`;
+        return;
+      }
+
+      col.innerHTML = liCatchUpData.map(r => {
+        const typeBadge = `<span class="li-badge li-badge-blue">${liEsc((r.catch_up_type || "all").replace(/_/g, " "))}</span>`;
+        const action = r.action_text ? `<div class="li-card-note">${liEsc(r.action_text)}</div>` : "";
+        const link = r.profile_url ? `<a class="li-profile-link" href="${liEsc(r.profile_url)}" target="_blank" rel="noopener">Open in LinkedIn →</a>` : "";
+        const meta = [];
+        if (r.reaction_count) meta.push(`${r.reaction_count} reactions`);
+        if (r.comment_count) meta.push(`${r.comment_count} comments`);
+        return `
+          <div class="li-card">
+            <div class="li-card-name">${liEsc(r.name||"Unknown")}</div>
+            <div class="li-card-title">${liEsc(r.title||"")}</div>
+            <div class="li-card-note">${liEsc(r.event_text || "")}</div>
+            ${action}
+            <div class="li-card-footer">
+              <div style="display:flex;gap:5px;flex-wrap:wrap">${typeBadge}${meta.length ? `<span class="li-badge li-badge-gray">${liEsc(meta.join(" · "))}</span>` : ""}</div>
+              <div style="display:flex;gap:6px;align-items:center">${link}</div>
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    // ── Helpers ────────────────────────────────────────────────
+    function liLog(el, msg, cls = "") {
+      const line = document.createElement("div");
+      if (cls) line.className = `log-${cls}`;
+      line.textContent = msg;
+      el.appendChild(line);
+      el.scrollTop = el.scrollHeight;
+    }
+    function liEsc(s) {
+      return String(s || "")
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+    }
+    function liRelTime(d) {
+      if (!d || isNaN(d)) return "";
+      const diff = Date.now() - d.getTime();
+      const mins  = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days  = Math.floor(diff / 86400000);
+      if (mins  < 1)   return "just now";
+      if (mins  < 60)  return `${mins}m ago`;
+      if (hours < 24)  return `${hours}h ago`;
+      if (days  < 7)   return `${days}d ago`;
+      return d.toLocaleDateString("en-CA",{month:"short",day:"numeric"});
+    }
+    function liDateValue(v) {
+      if (!v) return 0;
+      const d = new Date(v);
+      if (!Number.isNaN(d.getTime())) return d.getTime();
+      const m = String(v).match(/Connected on (.+)$/i);
+      if (m) {
+        const d2 = new Date(m[1]);
+        if (!Number.isNaN(d2.getTime())) return d2.getTime();
+      }
+      return 0;
+    }
+    function liWithinDays(v, days) {
+      const t = liDateValue(v);
+      if (!t) return false;
+      return (Date.now() - t) <= days * 86400000;
+    }
+    function liFormatInviteTime(value) {
+      const raw = String(value || "").trim();
+      if (!raw) return "";
+      const parsed = new Date(raw);
+      return Number.isNaN(parsed.getTime()) ? liEsc(raw) : liRelTime(parsed);
+    }
+
+    // Hook into auth state so admin bar shows/hides correctly
+    const _origApplyUserDisplay = typeof applyUserDisplay === "function" ? applyUserDisplay : null;
+    // Called after user profile loads — update LinkedIn admin bar visibility
+    function liOnAuthChange() { if (activeView === "linkedin") liUpdateAdminBar(); }
+
+    // ── TOAST ──────────────────────────────────────────────────────
+    window.showToast = function (msg, type="") {
+      const t = document.getElementById("toast");
+      t.textContent=msg; t.className=`toast show ${type}`;
+      setTimeout(()=>t.className="toast", 3500);
+    };
+
+    // ── UTILS ──────────────────────────────────────────────────────
+    function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+    function fmtDate(d) { return d.toLocaleDateString("en-CA",{month:"short",day:"numeric",year:"numeric"}); }
+    function extractUrl(val) {
+      if (!val) return "";
+      const raw = String(val).trim();
+
+      const pickFromParsed = parsed => {
+        if (Array.isArray(parsed)) {
+          for (const item of parsed) {
+            const found = pickFromParsed(item);
+            if (found) return found;
+          }
+          return "";
+        }
+        if (parsed && typeof parsed === "object") {
+          for (const key of ["url", "href", "linkedin", "website", "value"]) {
+            if (parsed[key]) {
+              const found = pickFromParsed(parsed[key]);
+              if (found) return found;
+            }
+          }
+          return "";
+        }
+        const s = String(parsed || "").trim();
+        const match = s.match(/https?:\/\/[^\s",\]}]+/i);
+        return match ? match[0] : s;
+      };
+
+      if (raw.startsWith("[") || raw.startsWith("{")) {
+        try {
+          const parsed = JSON.parse(raw);
+          const found = pickFromParsed(parsed);
+          if (found) return found;
+        } catch {}
+      }
+
+      const directMatch = raw.match(/https?:\/\/[^\s",\]}]+/i);
+      if (directMatch) return directMatch[0];
+
+      return raw.split(/[,\n]/)[0].trim();
+    }
+    function ensureHttp(u) {
+      const value = extractUrl(u);
+      if (!value) return "";
+      return /^https?:\/\//i.test(value) ? value : "https://" + value.replace(/^\/+/, "");
+    }
+    function norm(s) { return String(s).toLowerCase().replace(/[^a-z0-9]/g,""); }
+
+  </script>
+</body>
+</html>

@@ -1,718 +1,874 @@
-window.MIDAS_APPS_DATA = {
-  "apps": [
-    {
-      "name": "Search Tool",
-      "category": "Web App",
-      "description": "Local file search engine with OCR support. The web UI can launch from the dashboard, and the local server can be started from a batch file when needed.",
-      "status": "Active",
-      "lastUpdated": "2026-04-06",
-      "notes": [
-        "Best experience comes from starting the local server first.",
-        "Source is currently tracked inside the Apps repository."
-      ],
-      "apis": [
-        {
-          "name": "File System Access API",
-          "type": "Browser API",
-          "cost": "Free",
-          "url": "https://developer.mozilla.org/en-US/docs/Web/API/File_System_API"
-        },
-        {
-          "name": "Google Fonts API",
-          "type": "Web Service",
-          "cost": "Free",
-          "url": "https://developers.google.com/fonts"
-        }
-      ],
-      "databases": [],
-      "links": [
-        {
-          "label": "Launch",
-          "url": "applications/web-apps/Search Tool/index.html",
-          "type": "app"
-        },
-        {
-          "label": "Start Locally",
-          "url": "applications/web-apps/Search Tool/launch.bat",
-          "type": "start"
-        },
-        {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/Apps",
-          "type": "github"
-        }
-      ]
-    },
-    {
-      "name": "Midas Portfolio",
-      "category": "Web App",
-      "description": "Investment dashboard and portfolio tracker for Midas Tech with a deployed GitHub Pages front end and Supabase backend.",
-      "status": "Active",
-      "lastUpdated": "2026-04-06",
-      "notes": [
-        "Primary live deployment verified on Vercel.",
-        "GitHub repository verified."
-      ],
-      "apis": [
-        {
-          "name": "Supabase API",
-          "type": "Backend as a Service",
-          "cost": "$25/month (Pro plan)",
-          "url": "https://supabase.com/"
-        },
-        {
-          "name": "Google Fonts API",
-          "type": "Web Service",
-          "cost": "Free",
-          "url": "https://developers.google.com/fonts"
-        }
-      ],
-      "databases": [
-        {
-          "name": "Supabase PostgreSQL",
-          "type": "Cloud",
-          "cost": "Included in Supabase Pro",
-          "url": "https://supabase.com/database"
-        }
-      ],
-      "links": [
-        {
-          "label": "Launch",
-          "url": "https://midastechinc.github.io/portfolio/",
-          "type": "app"
-        },
-        {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/portfolio",
-          "type": "github"
-        }
-      ]
-    },
-    {
-      "name": "Studio B Post Designer",
-      "category": "Web App",
-      "description": "Luxury Instagram post designer for Studio B with a live GitHub Pages deployment and dedicated source repository.",
-      "status": "Active",
-      "lastUpdated": "2026-04-06",
-      "notes": [
-        "Live deployment verified on GitHub Pages.",
-        "Standalone GitHub repository verified."
-      ],
-      "apis": [
-        {
-          "name": "Google Fonts API",
-          "type": "Web Service",
-          "cost": "Free",
-          "url": "https://developers.google.com/fonts"
-        }
-      ],
-      "databases": [],
-      "links": [
-        {
-          "label": "Launch",
-          "url": "https://studiob-home-post-studio.vercel.app/",
-          "type": "app"
-        },
-        {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/studiob-home-post-studio",
-          "type": "github"
-        }
-      ]
-    },
-    {
-      "name": "PDF Sign Here Stamp",
-      "category": "Web App",
-      "description": "Professional PDF signing tool with auto-placement of signature stamps. The current dashboard links point at the repo-hosted app copy and the dedicated source repo.",
-      "status": "Active",
-      "lastUpdated": "2026-04-06",
-      "notes": [
-        "Repo-hosted launch path verified locally.",
-        "Standalone GitHub repository verified."
-      ],
-      "apis": [],
-      "databases": [],
-      "links": [
-        {
-          "label": "Launch",
-          "url": "applications/web-apps/Signhere-Stamp-Project/PDF-Signhere-Stamp/index.html",
-          "type": "app"
-        },
-        {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/PDF-Signhere-Stamp",
-          "type": "github"
-        }
-      ]
-    },
-    {
-      "name": "StudioB Issue Tracker",
-      "category": "Desktop App",
-      "description": "Desktop-based issue and case tracking system with user authentication and a packaged Windows executable.",
-      "status": "Active",
-      "lastUpdated": "2026-04-06",
-      "notes": [
-        "Installer executable verified locally.",
-        "Standalone GitHub repo is missing, so source currently points to the Apps repository folder."
-      ],
-      "apis": [],
-      "databases": [
-        {
-          "name": "SQLite",
-          "type": "Local",
-          "cost": "Free",
-          "url": "https://www.sqlite.org/index.html"
-        }
-      ],
-      "links": [
-        {
-          "label": "Start Locally",
-          "url": "applications/desktop-apps/Issue Tracker/RUN.bat",
-          "type": "start"
-        },
-        {
-          "label": "Download",
-          "url": "applications/desktop-apps/Issue Tracker/dist/StudioB_IssueTracker.exe",
-          "type": "download"
-        },
-        {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/Apps",
-          "type": "github"
-        }
-      ]
-    },
-    {
-      "name": "Midas Payroll Desktop",
-      "category": "Desktop App",
-      "description": "Ontario payroll processing and compliance desktop application with installer packaging, local persistence, and update flow support.",
-      "status": "Active",
-      "lastUpdated": "2026-04-06",
-      "notes": [
-        "Installer executable verified locally.",
-        "Standalone GitHub repository verified."
-      ],
-      "apis": [],
-      "databases": [
-        {
-          "name": "SQLite",
-          "type": "Local",
-          "cost": "Free",
-          "url": "https://www.sqlite.org/index.html"
-        }
-      ],
-      "links": [
-        {
-          "label": "Start Locally",
-          "url": "applications/desktop-apps/Payroll Project/Start Payroll Desktop.bat",
-          "type": "start"
-        },
-        {
-          "label": "Download",
-          "url": "https://github.com/midastechinc/Cursor/releases/download/v0.1.17/Midas.Payroll-Setup-0.1.17.exe",
-          "type": "download"
-        },
-        {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/Cursor",
-          "type": "github"
-        }
-      ]
-    },
-    {
-      "name": "Midas Tech Gallery",
-      "category": "Mobile App",
-      "description": "Photo gallery app for Android built with Capacitor. The source is currently stored inside the Apps repository under the Codex Project folder.",
-      "status": "Development",
-      "lastUpdated": "2026-04-06",
-      "notes": [
-        "Standalone GitHub repository is missing.",
-        "Source currently lives under the Apps repository."
-      ],
-      "apis": [
-        {
-          "name": "Capacitor Camera API",
-          "type": "Native Bridge",
-          "cost": "Free",
-          "url": "https://capacitorjs.com/docs/apis/camera"
-        },
-        {
-          "name": "Capacitor Filesystem API",
-          "type": "Native Bridge",
-          "cost": "Free",
-          "url": "https://capacitorjs.com/docs/apis/filesystem"
-        }
-      ],
-      "databases": [],
-      "links": [
-        {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/Apps",
-          "type": "github"
-        }
-      ]
-    },
-    {
-      "name": "Lead Tracker",
-      "category": "Web App",
-      "description": "LinkedIn lead scraping workflow with a live dashboard UI, local automation batch files, and Supabase-backed storage.",
-      "status": "Active",
-      "lastUpdated": "2026-04-06",
-      "notes": [
-        "Live deployment verified on GitHub Pages.",
-        "Standalone GitHub repo is missing, so source currently points to the Apps repository folder."
-      ],
-      "apis": [
-        {
-          "name": "Supabase API",
-          "type": "Backend as a Service",
-          "cost": "$25/month (Pro plan)",
-          "url": "https://supabase.com/"
-        }
-      ],
-      "databases": [
-        {
-          "name": "SQLite",
-          "type": "Local",
-          "cost": "Free",
-          "url": "https://www.sqlite.org/index.html"
-        },
-        {
-          "name": "Supabase PostgreSQL",
-          "type": "Cloud",
-          "cost": "Included in Supabase Pro",
-          "url": "https://supabase.com/database"
-        }
-      ],
-      "links": [
-        {
-          "label": "Launch",
-          "url": "https://midastechinc.github.io/Leads/",
-          "type": "app"
-        },
-        {
-          "label": "Bootstrap Session",
-          "url": "applications/web-apps/LeadTracker/Bootstrap LinkedIn Session.bat",
-          "type": "start"
-        },
-        {
-          "label": "Run Pull",
-          "url": "applications/web-apps/LeadTracker/Run LinkedIn Pull.bat",
-          "type": "start"
-        },
-        {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/Apps",
-          "type": "github"
-        }
-      ]
-    },
-    {
-      "name": "ScanSnap Daily Processor",
-      "category": "Scripts",
-      "description": "Automated daily processor for ScanSnap document handling. Current source is only partially synced locally, so the dashboard exposes the repo folder and a source download package.",
-      "status": "Active",
-      "lastUpdated": "2026-04-06",
-      "notes": [
-        "Standalone GitHub repo is missing.",
-        "Local source package is limited to currently synced files."
-      ],
-      "apis": [
-        {
-          "name": "Power Automate API",
-          "type": "Microsoft 365",
-          "cost": "Included in M365 Business",
-          "url": "https://learn.microsoft.com/en-us/power-automate/"
-        }
-      ],
-      "databases": [],
-      "links": [
-        {
-          "label": "Download Repo",
-          "url": "https://github.com/midastechinc/Apps/archive/refs/heads/main.zip",
-          "type": "download"
-        },
-        {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/Apps",
-          "type": "github"
-        }
-      ]
-    },
-    {
-      "name": "Computer Audit",
-      "category": "Scripts",
-      "description": "PowerShell audit script for collecting detailed workstation information, hardware details, software footprint, network settings, and security posture checks.",
-      "status": "Active",
-      "lastUpdated": "2026-04-04",
-      "notes": [
-        "Best run locally with PowerShell on the target Windows machine.",
-        "Separate card replaces the old bundled script archive."
-      ],
-      "apis": [],
-      "databases": [],
-      "links": [
-        {
-          "label": "Start Locally",
-          "url": "applications/scripts/Codex Project/ComputerAudit.ps1",
-          "type": "start"
-        },
-        {
-          "label": "Download Script",
-          "url": "applications/scripts/Codex Project/ComputerAudit.ps1",
-          "type": "download"
-        },
-        {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Codex%20Project/ComputerAudit.ps1",
-          "type": "github"
-        }
-      ]
-    },
-    {
-      "name": "Build Migration Sheet",
-      "category": "Scripts",
-      "description": "Generates migration reporting output for the application inventory, including spreadsheet-ready CSV files and migration summaries.",
-      "status": "Active",
-      "lastUpdated": "2026-03-22",
-      "notes": [
-        "Designed for local PowerShell execution.",
-        "Useful when updating the migration-report output in the Codex Project folder."
-      ],
-      "apis": [],
-      "databases": [],
-      "links": [
-        {
-          "label": "Start Locally",
-          "url": "applications/scripts/Codex Project/build-migration-sheet.ps1",
-          "type": "start"
-        },
-        {
-          "label": "Download Script",
-          "url": "applications/scripts/Codex Project/build-migration-sheet.ps1",
-          "type": "download"
-        },
-        {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Codex%20Project/build-migration-sheet.ps1",
-          "type": "github"
-        }
-      ]
-    },
-    {
-      "name": "Check Compromise Indicators",
-      "category": "Scripts",
-      "description": "Security-focused PowerShell script that checks for compromise indicators and produces incident report output for follow-up analysis.",
-      "status": "Active",
-      "lastUpdated": "2026-03-23",
-      "notes": [
-        "Intended for local security review workflows.",
-        "Incident report output is generated outside the dashboard card itself."
-      ],
-      "apis": [],
-      "databases": [],
-      "links": [
-        {
-          "label": "Start Locally",
-          "url": "applications/scripts/Codex Project/Check-CompromiseIndicators.ps1",
-          "type": "start"
-        },
-        {
-          "label": "Download Script",
-          "url": "applications/scripts/Codex Project/Check-CompromiseIndicators.ps1",
-          "type": "download"
-        },
-        {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Codex%20Project/Check-CompromiseIndicators.ps1",
-          "type": "github"
-        }
-      ]
-    },
-    {
-      "name": "Generate ScanSnap Power Automate Doc",
-      "category": "Scripts",
-      "description": "Builds PowerShell-generated documentation for the ScanSnap and Power Automate setup process.",
-      "status": "Active",
-      "lastUpdated": "2026-03-23",
-      "notes": [
-        "Paired with generated documentation outputs in the same project folder.",
-        "Best used when refreshing setup documentation."
-      ],
-      "apis": [
-        {
-          "name": "Power Automate API",
-          "type": "Microsoft 365",
-          "cost": "Included in M365 Business",
-          "url": "https://learn.microsoft.com/en-us/power-automate/"
-        }
-      ],
-      "databases": [],
-      "links": [
-        {
-          "label": "Start Locally",
-          "url": "applications/scripts/Codex Project/generate_scansnap_power_automate_doc.ps1",
-          "type": "start"
-        },
-        {
-          "label": "Download Script",
-          "url": "applications/scripts/Codex Project/generate_scansnap_power_automate_doc.ps1",
-          "type": "download"
-        },
-        {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Codex%20Project/generate_scansnap_power_automate_doc.ps1",
-          "type": "github"
-        }
-      ]
-    },
-    {
-      "name": "Generate ScanSnap Search Addendum",
-      "category": "Scripts",
-      "description": "Creates the ScanSnap search system addendum and related documentation updates from PowerShell.",
-      "status": "Active",
-      "lastUpdated": "2026-03-23",
-      "notes": [
-        "Documentation-oriented script for the ScanSnap search workflow.",
-        "Separate card replaces the old shared script bundle."
-      ],
-      "apis": [
-        {
-          "name": "Power Automate API",
-          "type": "Microsoft 365",
-          "cost": "Included in M365 Business",
-          "url": "https://learn.microsoft.com/en-us/power-automate/"
-        }
-      ],
-      "databases": [],
-      "links": [
-        {
-          "label": "Start Locally",
-          "url": "applications/scripts/Codex Project/generate_scansnap_search_addendum.ps1",
-          "type": "start"
-        },
-        {
-          "label": "Download Script",
-          "url": "applications/scripts/Codex Project/generate_scansnap_search_addendum.ps1",
-          "type": "download"
-        },
-        {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Codex%20Project/generate_scansnap_search_addendum.ps1",
-          "type": "github"
-        }
-      ]
-    },
-    {
-      "name": "Run Midas Signature Workflow",
-      "category": "Scripts",
-      "description": "Lightweight PowerShell launcher for the Midas email signature workflow.",
-      "status": "Active",
-      "lastUpdated": "2026-03-19",
-      "notes": [
-        "Best used on a Windows workstation with Outlook installed.",
-        "Kept separate so it can be launched directly from the dashboard."
-      ],
-      "apis": [],
-      "databases": [],
-      "links": [
-        {
-          "label": "Start Locally",
-          "url": "applications/scripts/Codex Project/Run-MidasSignatureWorkflow.ps1",
-          "type": "start"
-        },
-        {
-          "label": "Download Script",
-          "url": "applications/scripts/Codex Project/Run-MidasSignatureWorkflow.ps1",
-          "type": "download"
-        },
-        {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Codex%20Project/Run-MidasSignatureWorkflow.ps1",
-          "type": "github"
-        }
-      ]
-    },
-    {
-      "name": "Set Midas Outlook Signature",
-      "category": "Scripts",
-      "description": "Configures the Midas Outlook signature setup locally through PowerShell automation.",
-      "status": "Active",
-      "lastUpdated": "2026-03-19",
-      "notes": [
-        "Focused on local Outlook configuration tasks.",
-        "Works best as a directly runnable local script card."
-      ],
-      "apis": [],
-      "databases": [],
-      "links": [
-        {
-          "label": "Start Locally",
-          "url": "applications/scripts/Codex Project/Set-MidasOutlookSignature.ps1",
-          "type": "start"
-        },
-        {
-          "label": "Download Script",
-          "url": "applications/scripts/Codex Project/Set-MidasOutlookSignature.ps1",
-          "type": "download"
-        },
-        {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Codex%20Project/Set-MidasOutlookSignature.ps1",
-          "type": "github"
-        }
-      ]
-    },
-    {
-      "name": "Set Outlook Signature All Classic Versions",
-      "category": "Scripts",
-      "description": "PowerShell helper for applying Outlook signature settings across classic Outlook versions.",
-      "status": "Active",
-      "lastUpdated": "2026-03-19",
-      "notes": [
-        "Useful for broader compatibility across older Outlook installs.",
-        "Presented as its own card instead of staying inside a script ZIP."
-      ],
-      "apis": [],
-      "databases": [],
-      "links": [
-        {
-          "label": "Start Locally",
-          "url": "applications/scripts/Codex Project/Set-OutlookSignature-AllClassicVersions.ps1",
-          "type": "start"
-        },
-        {
-          "label": "Download Script",
-          "url": "applications/scripts/Codex Project/Set-OutlookSignature-AllClassicVersions.ps1",
-          "type": "download"
-        },
-        {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Codex%20Project/Set-OutlookSignature-AllClassicVersions.ps1",
-          "type": "github"
-        }
-      ]
-    },
-    {
-      "name": "Unblock Outlook Signature Settings",
-      "category": "Scripts",
-      "description": "Small remediation PowerShell script for unblocking Outlook signature settings on a local Windows machine.",
-      "status": "Active",
-      "lastUpdated": "2026-03-19",
-      "notes": [
-        "Targeted fix script for local Outlook signature configuration issues.",
-        "Best launched directly on the affected workstation."
-      ],
-      "apis": [],
-      "databases": [],
-      "links": [
-        {
-          "label": "Start Locally",
-          "url": "applications/scripts/Codex Project/Unblock-OutlookSignatureSettings.ps1",
-          "type": "start"
-        },
-        {
-          "label": "Download Script",
-          "url": "applications/scripts/Codex Project/Unblock-OutlookSignatureSettings.ps1",
-          "type": "download"
-        },
-        {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Codex%20Project/Unblock-OutlookSignatureSettings.ps1",
-          "type": "github"
-        }
-      ]
-    },
-    {
-      "name": "Document Scan Flow",
-      "category": "Workflows",
-      "description": "Power Automate export package for the Midas document scan processing workflow.",
-      "status": "Active",
-      "lastUpdated": "2026-03-25",
-      "notes": [
-        "Export package is stored in the dashboard repo.",
-        "Use this card when you want the scan-processing flow specifically."
-      ],
-      "apis": [
-        {
-          "name": "Power Automate API",
-          "type": "Microsoft 365",
-          "cost": "Included in M365 Business",
-          "url": "https://learn.microsoft.com/en-us/power-automate/"
-        },
-        {
-          "name": "SharePoint REST API",
-          "type": "Microsoft 365",
-          "cost": "Included in M365 Business",
-          "url": "https://learn.microsoft.com/en-us/sharepoint/dev/sp-add-ins/get-to-know-the-sharepoint-rest-service"
-        }
-      ],
-      "databases": [
-        {
-          "name": "SharePoint Lists",
-          "type": "Cloud",
-          "cost": "Included in M365 Business",
-          "url": "https://support.microsoft.com/en-us/office/introduction-to-lists-8b3f8dde-ecfd-4992-9388-611b9f99c15a"
-        }
-      ],
-      "links": [
-        {
-          "label": "Download Flow",
-          "url": "applications/workflows/Powerautomade Flow/MidasTechDocumentScanFlow_20260326005922.zip",
-          "type": "download"
-        },
-        {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/Apps",
-          "type": "github"
-        }
-      ]
-    },
-    {
-      "name": "Master Categories Flow",
-      "category": "Workflows",
-      "description": "Power Automate export package for the Midas master categories and document classification workflow.",
-      "status": "Active",
-      "lastUpdated": "2026-03-25",
-      "notes": [
-        "Export package is stored in the dashboard repo.",
-        "Use this card when you want the categories flow specifically."
-      ],
-      "apis": [
-        {
-          "name": "Power Automate API",
-          "type": "Microsoft 365",
-          "cost": "Included in M365 Business",
-          "url": "https://learn.microsoft.com/en-us/power-automate/"
-        },
-        {
-          "name": "SharePoint REST API",
-          "type": "Microsoft 365",
-          "cost": "Included in M365 Business",
-          "url": "https://learn.microsoft.com/en-us/sharepoint/dev/sp-add-ins/get-to-know-the-sharepoint-rest-service"
-        }
-      ],
-      "databases": [
-        {
-          "name": "SharePoint Lists",
-          "type": "Cloud",
-          "cost": "Included in M365 Business",
-          "url": "https://support.microsoft.com/en-us/office/introduction-to-lists-8b3f8dde-ecfd-4992-9388-611b9f99c15a"
-        }
-      ],
-      "links": [
-        {
-          "label": "Download Flow",
-          "url": "applications/workflows/Powerautomade Flow/MidasTechMasterCategoriesFlow_20260326010536.zip",
-          "type": "download"
-        },
-        {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/Apps",
-          "type": "github"
-        }
-      ]
-    }
-  ]
-}
-;
+﻿window.MIDAS_APPS_DATA = {
+    "apps":  [
+                 {
+                     "name":  "Midas Payroll Desktop",
+                     "category":  "Desktop App",
+                     "folderPath":  "applications/desktop-apps/Payroll Project",
+                     "description":  "Ontario payroll processing and compliance desktop application with installer packaging, local persistence, and update flow support.",
+                     "status":  "Active",
+                     "lastUpdated":  "2026-04-06",
+                     "manual":  [
+                                    "Use Download to install the latest packaged desktop build from GitHub Releases.",
+                                    "Use Start Locally when you want to run the checked-out desktop app in this workspace.",
+                                    "Publish a new GitHub release whenever a new installer should appear in the dashboard."
+                                ],
+                     "notes":  [
+                                   "Installer executable is linked to a GitHub Release asset.",
+                                   "Standalone GitHub repository verified."
+                               ],
+                     "apis":  [
+
+                              ],
+                     "databases":  [
+                                       {
+                                           "name":  "SQLite",
+                                           "type":  "Local",
+                                           "cost":  "Free",
+                                           "url":  "https://www.sqlite.org/index.html"
+                                       }
+                                   ],
+                     "links":  [
+                                   {
+                                       "label":  "Start Locally",
+                                       "url":  "applications/desktop-apps/Payroll Project/Start Payroll Desktop.bat",
+                                       "type":  "start"
+                                   },
+                                   {
+                                       "label":  "Download",
+                                       "url":  "https://github.com/midastechinc/Cursor/releases/download/v0.1.17/Midas.Payroll-Setup-0.1.17.exe",
+                                       "type":  "download"
+                                   },
+                                   {
+                                       "label":  "GitHub",
+                                       "url":  "https://github.com/midastechinc/Cursor",
+                                       "type":  "github"
+                                   }
+                               ]
+                 },
+                 {
+                     "name":  "StudioB Issue Tracker",
+                     "category":  "Desktop App",
+                     "folderPath":  "applications/desktop-apps/Issue Tracker",
+                     "description":  "Desktop-based issue and case tracking system with user authentication and a packaged Windows executable.",
+                     "status":  "Active",
+                     "lastUpdated":  "2026-04-06",
+                     "manual":  [
+                                    "Use Download to grab the current Windows executable from GitHub.",
+                                    "Use Start Locally when you want to run the checked-out project on this machine.",
+                                    "Open the GitHub folder link for source updates until a standalone repo is created."
+                                ],
+                     "notes":  [
+                                   "Installer executable is now linked through GitHub raw download.",
+                                   "Standalone GitHub repo is still missing."
+                               ],
+                     "apis":  [
+
+                              ],
+                     "databases":  [
+                                       {
+                                           "name":  "SQLite",
+                                           "type":  "Local",
+                                           "cost":  "Free",
+                                           "url":  "https://www.sqlite.org/index.html"
+                                       }
+                                   ],
+                     "links":  [
+                                   {
+                                       "label":  "Start Locally",
+                                       "url":  "applications/desktop-apps/Issue Tracker/RUN.bat",
+                                       "type":  "start"
+                                   },
+                                   {
+                                       "label":  "Download",
+                                       "url":  "https://github.com/midastechinc/Apps/raw/main/applications/desktop-apps/Issue%20Tracker/dist/StudioB_IssueTracker.exe",
+                                       "type":  "download"
+                                   },
+                                   {
+                                       "label":  "GitHub",
+                                       "url":  "https://github.com/midastechinc/Apps/tree/main/applications/desktop-apps/Issue%20Tracker",
+                                       "type":  "github"
+                                   }
+                               ]
+                 },
+                 {
+                     "name":  "Build Migration Sheet",
+                     "category":  "Scripts",
+                     "folderPath":  "applications/scripts/Build-Migration-Sheet",
+                     "description":  "Generates migration reporting output for the application inventory, including spreadsheet-ready CSV files and migration summaries.",
+                     "status":  "Active",
+                     "lastUpdated":  "2026-04-06",
+                     "manual":  [
+                                    "Use Start Locally to generate migration reporting from the local workspace.",
+                                    "Use Download Script to grab the latest PowerShell file from GitHub.",
+                                    "Review the generated migration output in the report folder after the run."
+                                ],
+                     "notes":  [
+                                   "Script was moved into its own dedicated folder.",
+                                   "Standalone GitHub repo is still missing."
+                               ],
+                     "apis":  [
+
+                              ],
+                     "databases":  [
+
+                                   ],
+                     "links":  [
+                                   {
+                                       "label":  "Start Locally",
+                                       "url":  "applications/scripts/Build-Migration-Sheet/build-migration-sheet.ps1",
+                                       "type":  "start"
+                                   },
+                                   {
+                                       "label":  "Download Script",
+                                       "url":  "https://github.com/midastechinc/Apps/raw/main/applications/scripts/Build-Migration-Sheet/build-migration-sheet.ps1",
+                                       "type":  "download"
+                                   },
+                                   {
+                                       "label":  "GitHub",
+                                       "url":  "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Build-Migration-Sheet/build-migration-sheet.ps1",
+                                       "type":  "github"
+                                   }
+                               ]
+                 },
+                 {
+                     "name":  "Check Compromise Indicators",
+                     "category":  "Scripts",
+                     "folderPath":  "applications/scripts/Check-Compromise-Indicators",
+                     "description":  "Security-focused PowerShell script that checks for compromise indicators and produces incident report output for follow-up analysis.",
+                     "status":  "Active",
+                     "lastUpdated":  "2026-04-06",
+                     "manual":  [
+                                    "Use Start Locally to scan the current machine for compromise indicators.",
+                                    "Use Download Script to pull the latest PowerShell file from GitHub.",
+                                    "Review the incident report output after the script finishes."
+                                ],
+                     "notes":  [
+                                   "Script was moved into its own dedicated folder.",
+                                   "Standalone GitHub repo is still missing."
+                               ],
+                     "apis":  [
+
+                              ],
+                     "databases":  [
+
+                                   ],
+                     "links":  [
+                                   {
+                                       "label":  "Start Locally",
+                                       "url":  "applications/scripts/Check-Compromise-Indicators/Check-CompromiseIndicators.ps1",
+                                       "type":  "start"
+                                   },
+                                   {
+                                       "label":  "Download Script",
+                                       "url":  "https://github.com/midastechinc/Apps/raw/main/applications/scripts/Check-Compromise-Indicators/Check-CompromiseIndicators.ps1",
+                                       "type":  "download"
+                                   },
+                                   {
+                                       "label":  "GitHub",
+                                       "url":  "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Check-Compromise-Indicators/Check-CompromiseIndicators.ps1",
+                                       "type":  "github"
+                                   }
+                               ]
+                 },
+                 {
+                     "name":  "Computer Audit",
+                     "category":  "Scripts",
+                     "folderPath":  "applications/scripts/Computer-Audit",
+                     "description":  "PowerShell audit script for collecting detailed workstation information, hardware details, software footprint, network settings, and security posture checks.",
+                     "status":  "Active",
+                     "lastUpdated":  "2026-04-06",
+                     "manual":  [
+                                    "Use Start Locally to run the audit script on the current Windows machine.",
+                                    "Use Download Script to pull the latest PowerShell file from GitHub.",
+                                    "Review the generated HTML and JSON reports under C:\\MidasTech after the run completes."
+                                ],
+                     "notes":  [
+                                   "Script was moved into its own dedicated folder.",
+                                   "GitHub download now points at the script file directly."
+                               ],
+                     "apis":  [
+
+                              ],
+                     "databases":  [
+
+                                   ],
+                     "links":  [
+                                   {
+                                       "label":  "Start Locally",
+                                       "url":  "applications/scripts/Computer-Audit/ComputerAudit.ps1",
+                                       "type":  "start"
+                                   },
+                                   {
+                                       "label":  "Download Script",
+                                       "url":  "https://github.com/midastechinc/Apps/raw/main/applications/scripts/Computer-Audit/ComputerAudit.ps1",
+                                       "type":  "download"
+                                   },
+                                   {
+                                       "label":  "GitHub",
+                                       "url":  "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Computer-Audit/ComputerAudit.ps1",
+                                       "type":  "github"
+                                   }
+                               ]
+                 },
+                 {
+                     "name":  "Generate ScanSnap Power Automate Doc",
+                     "category":  "Scripts",
+                     "folderPath":  "applications/scripts/Generate-ScanSnap-Power-Automate-Doc",
+                     "description":  "Builds PowerShell-generated documentation for the ScanSnap and Power Automate setup process.",
+                     "status":  "Active",
+                     "lastUpdated":  "2026-04-06",
+                     "manual":  [
+                                    "Use Start Locally to run the PowerShell wrapper for the documentation generator.",
+                                    "Use Download Script to pull the latest generator from GitHub.",
+                                    "Review the paired Python helper and DOCX template in the same folder when adjusting the output."
+                                ],
+                     "notes":  [
+                                   "Script and supporting files were moved into their own dedicated folder.",
+                                   "Standalone GitHub repo is still missing."
+                               ],
+                     "apis":  [
+                                  {
+                                      "name":  "Power Automate API",
+                                      "type":  "Microsoft 365",
+                                      "cost":  "Included in M365 Business",
+                                      "url":  "https://learn.microsoft.com/en-us/power-automate/"
+                                  }
+                              ],
+                     "databases":  [
+
+                                   ],
+                     "links":  [
+                                   {
+                                       "label":  "Start Locally",
+                                       "url":  "applications/scripts/Generate-ScanSnap-Power-Automate-Doc/generate_scansnap_power_automate_doc.ps1",
+                                       "type":  "start"
+                                   },
+                                   {
+                                       "label":  "Download Script",
+                                       "url":  "https://github.com/midastechinc/Apps/raw/main/applications/scripts/Generate-ScanSnap-Power-Automate-Doc/generate_scansnap_power_automate_doc.ps1",
+                                       "type":  "download"
+                                   },
+                                   {
+                                       "label":  "GitHub",
+                                       "url":  "https://github.com/midastechinc/Apps/tree/main/applications/scripts/Generate-ScanSnap-Power-Automate-Doc",
+                                       "type":  "github"
+                                   }
+                               ]
+                 },
+                 {
+                     "name":  "Generate ScanSnap Search Addendum",
+                     "category":  "Scripts",
+                     "folderPath":  "applications/scripts/Generate-ScanSnap-Search-Addendum",
+                     "description":  "Creates the ScanSnap search system addendum and related documentation updates from PowerShell.",
+                     "status":  "Active",
+                     "lastUpdated":  "2026-04-06",
+                     "manual":  [
+                                    "Use Start Locally to build the current ScanSnap search addendum.",
+                                    "Use Download Script to pull the latest PowerShell generator from GitHub.",
+                                    "Review the DOCX output in the same folder when updating documentation."
+                                ],
+                     "notes":  [
+                                   "Script and supporting files were moved into their own dedicated folder.",
+                                   "Standalone GitHub repo is still missing."
+                               ],
+                     "apis":  [
+                                  {
+                                      "name":  "Power Automate API",
+                                      "type":  "Microsoft 365",
+                                      "cost":  "Included in M365 Business",
+                                      "url":  "https://learn.microsoft.com/en-us/power-automate/"
+                                  }
+                              ],
+                     "databases":  [
+
+                                   ],
+                     "links":  [
+                                   {
+                                       "label":  "Start Locally",
+                                       "url":  "applications/scripts/Generate-ScanSnap-Search-Addendum/generate_scansnap_search_addendum.ps1",
+                                       "type":  "start"
+                                   },
+                                   {
+                                       "label":  "Download Script",
+                                       "url":  "https://github.com/midastechinc/Apps/raw/main/applications/scripts/Generate-ScanSnap-Search-Addendum/generate_scansnap_search_addendum.ps1",
+                                       "type":  "download"
+                                   },
+                                   {
+                                       "label":  "GitHub",
+                                       "url":  "https://github.com/midastechinc/Apps/tree/main/applications/scripts/Generate-ScanSnap-Search-Addendum",
+                                       "type":  "github"
+                                   }
+                               ]
+                 },
+                 {
+                     "name":  "Run Midas Signature Workflow",
+                     "category":  "Scripts",
+                     "folderPath":  "applications/scripts/Run-Midas-Signature-Workflow",
+                     "description":  "Lightweight PowerShell launcher for the Midas email signature workflow.",
+                     "status":  "Active",
+                     "lastUpdated":  "2026-04-06",
+                     "manual":  [
+                                    "Use Start Locally to run the signature workflow on a Windows workstation.",
+                                    "Use Download Script to grab the latest launcher from GitHub.",
+                                    "Run it on a machine with Outlook installed for the full signature flow."
+                                ],
+                     "notes":  [
+                                   "Script was moved into its own dedicated folder.",
+                                   "Standalone GitHub repo is still missing."
+                               ],
+                     "apis":  [
+
+                              ],
+                     "databases":  [
+
+                                   ],
+                     "links":  [
+                                   {
+                                       "label":  "Start Locally",
+                                       "url":  "applications/scripts/Run-Midas-Signature-Workflow/Run-MidasSignatureWorkflow.ps1",
+                                       "type":  "start"
+                                   },
+                                   {
+                                       "label":  "Download Script",
+                                       "url":  "https://github.com/midastechinc/Apps/raw/main/applications/scripts/Run-Midas-Signature-Workflow/Run-MidasSignatureWorkflow.ps1",
+                                       "type":  "download"
+                                   },
+                                   {
+                                       "label":  "GitHub",
+                                       "url":  "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Run-Midas-Signature-Workflow/Run-MidasSignatureWorkflow.ps1",
+                                       "type":  "github"
+                                   }
+                               ]
+                 },
+                 {
+                     "name":  "ScanSnap Daily Processor",
+                     "category":  "Scripts",
+                     "folderPath":  "applications/scripts/scansnap-daily-processor",
+                     "description":  "Automation instructions for the daily ScanSnap document processor that renames, moves, and reindexes scanned documents.",
+                     "status":  "Active",
+                     "lastUpdated":  "2026-04-06",
+                     "manual":  [
+                                    "Review the SKILL.md instructions in this folder before running the daily processing routine.",
+                                    "Use Download Package to pull the latest shared Apps repository snapshot from GitHub.",
+                                    "Keep the ScanSnap configuration paths current before scheduling the workflow."
+                                ],
+                     "notes":  [
+                                   "This folder currently contains automation instructions rather than a packaged runnable script.",
+                                   "Standalone GitHub repo is still missing."
+                               ],
+                     "apis":  [
+                                  {
+                                      "name":  "Power Automate API",
+                                      "type":  "Microsoft 365",
+                                      "cost":  "Included in M365 Business",
+                                      "url":  "https://learn.microsoft.com/en-us/power-automate/"
+                                  }
+                              ],
+                     "databases":  [
+
+                                   ],
+                     "links":  [
+                                   {
+                                       "label":  "Download Package",
+                                       "url":  "https://github.com/midastechinc/Apps/archive/refs/heads/main.zip",
+                                       "type":  "download"
+                                   },
+                                   {
+                                       "label":  "GitHub",
+                                       "url":  "https://github.com/midastechinc/Apps/tree/main/applications/scripts/scansnap-daily-processor",
+                                       "type":  "github"
+                                   }
+                               ]
+                 },
+                 {
+                     "name":  "Set Midas Outlook Signature",
+                     "category":  "Scripts",
+                     "folderPath":  "applications/scripts/Set-Midas-Outlook-Signature",
+                     "description":  "Configures the Midas Outlook signature setup locally through PowerShell automation.",
+                     "status":  "Active",
+                     "lastUpdated":  "2026-04-06",
+                     "manual":  [
+                                    "Use Start Locally to apply the Midas signature configuration.",
+                                    "Use Download Script to pull the latest PowerShell file from GitHub.",
+                                    "Run it on the target workstation after closing Outlook if settings are locked."
+                                ],
+                     "notes":  [
+                                   "Script was moved into its own dedicated folder.",
+                                   "Standalone GitHub repo is still missing."
+                               ],
+                     "apis":  [
+
+                              ],
+                     "databases":  [
+
+                                   ],
+                     "links":  [
+                                   {
+                                       "label":  "Start Locally",
+                                       "url":  "applications/scripts/Set-Midas-Outlook-Signature/Set-MidasOutlookSignature.ps1",
+                                       "type":  "start"
+                                   },
+                                   {
+                                       "label":  "Download Script",
+                                       "url":  "https://github.com/midastechinc/Apps/raw/main/applications/scripts/Set-Midas-Outlook-Signature/Set-MidasOutlookSignature.ps1",
+                                       "type":  "download"
+                                   },
+                                   {
+                                       "label":  "GitHub",
+                                       "url":  "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Set-Midas-Outlook-Signature/Set-MidasOutlookSignature.ps1",
+                                       "type":  "github"
+                                   }
+                               ]
+                 },
+                 {
+                     "name":  "Set Outlook Signature All Classic Versions",
+                     "category":  "Scripts",
+                     "folderPath":  "applications/scripts/Set-Outlook-Signature-All-Classic-Versions",
+                     "description":  "PowerShell helper for applying Outlook signature settings across classic Outlook versions.",
+                     "status":  "Active",
+                     "lastUpdated":  "2026-04-06",
+                     "manual":  [
+                                    "Use Start Locally when you need to update signature settings on classic Outlook builds.",
+                                    "Use Download Script to pull the latest PowerShell file from GitHub.",
+                                    "Run it on the affected workstation with the right Outlook profile available."
+                                ],
+                     "notes":  [
+                                   "Script was moved into its own dedicated folder.",
+                                   "Standalone GitHub repo is still missing."
+                               ],
+                     "apis":  [
+
+                              ],
+                     "databases":  [
+
+                                   ],
+                     "links":  [
+                                   {
+                                       "label":  "Start Locally",
+                                       "url":  "applications/scripts/Set-Outlook-Signature-All-Classic-Versions/Set-OutlookSignature-AllClassicVersions.ps1",
+                                       "type":  "start"
+                                   },
+                                   {
+                                       "label":  "Download Script",
+                                       "url":  "https://github.com/midastechinc/Apps/raw/main/applications/scripts/Set-Outlook-Signature-All-Classic-Versions/Set-OutlookSignature-AllClassicVersions.ps1",
+                                       "type":  "download"
+                                   },
+                                   {
+                                       "label":  "GitHub",
+                                       "url":  "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Set-Outlook-Signature-All-Classic-Versions/Set-OutlookSignature-AllClassicVersions.ps1",
+                                       "type":  "github"
+                                   }
+                               ]
+                 },
+                 {
+                     "name":  "Unblock Outlook Signature Settings",
+                     "category":  "Scripts",
+                     "folderPath":  "applications/scripts/Unblock-Outlook-Signature-Settings",
+                     "description":  "Small remediation PowerShell script for unblocking Outlook signature settings on a local Windows machine.",
+                     "status":  "Active",
+                     "lastUpdated":  "2026-04-06",
+                     "manual":  [
+                                    "Use Start Locally to apply the Outlook signature settings remediation.",
+                                    "Use Download Script to pull the latest PowerShell file from GitHub.",
+                                    "Run it on the affected workstation before retrying the main signature setup."
+                                ],
+                     "notes":  [
+                                   "Script was moved into its own dedicated folder.",
+                                   "Standalone GitHub repo is still missing."
+                               ],
+                     "apis":  [
+
+                              ],
+                     "databases":  [
+
+                                   ],
+                     "links":  [
+                                   {
+                                       "label":  "Start Locally",
+                                       "url":  "applications/scripts/Unblock-Outlook-Signature-Settings/Unblock-OutlookSignatureSettings.ps1",
+                                       "type":  "start"
+                                   },
+                                   {
+                                       "label":  "Download Script",
+                                       "url":  "https://github.com/midastechinc/Apps/raw/main/applications/scripts/Unblock-Outlook-Signature-Settings/Unblock-OutlookSignatureSettings.ps1",
+                                       "type":  "download"
+                                   },
+                                   {
+                                       "label":  "GitHub",
+                                       "url":  "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Unblock-Outlook-Signature-Settings/Unblock-OutlookSignatureSettings.ps1",
+                                       "type":  "github"
+                                   }
+                               ]
+                 },
+                 {
+                     "name":  "Lead Tracker",
+                     "category":  "Web App",
+                     "folderPath":  "applications/web-apps/LeadTracker",
+                     "description":  "LinkedIn lead scraping workflow with a live dashboard UI, local automation batch files, and Supabase-backed storage.",
+                     "status":  "Active",
+                     "lastUpdated":  "2026-04-06",
+                     "manual":  [
+                                    "Open Launch to view the lead tracker interface.",
+                                    "Run Bootstrap Session once to establish the initial LinkedIn session.",
+                                    "Use Run Pull for manual collection or schedule the PowerShell task from the local folder."
+                                ],
+                     "notes":  [
+                                   "Live deployment verified on GitHub Pages.",
+                                   "Standalone GitHub repo is still missing."
+                               ],
+                     "apis":  [
+                                  {
+                                      "name":  "Supabase API",
+                                      "type":  "Backend as a Service",
+                                      "cost":  "$25/month (Pro plan)",
+                                      "url":  "https://supabase.com/"
+                                  }
+                              ],
+                     "databases":  [
+                                       {
+                                           "name":  "SQLite",
+                                           "type":  "Local",
+                                           "cost":  "Free",
+                                           "url":  "https://www.sqlite.org/index.html"
+                                       },
+                                       {
+                                           "name":  "Supabase PostgreSQL",
+                                           "type":  "Cloud",
+                                           "cost":  "Included in Supabase Pro",
+                                           "url":  "https://supabase.com/database"
+                                       }
+                                   ],
+                     "links":  [
+                                   {
+                                       "label":  "Launch",
+                                       "url":  "https://midastechinc.github.io/Leads/",
+                                       "type":  "app"
+                                   },
+                                   {
+                                       "label":  "Bootstrap Session",
+                                       "url":  "applications/web-apps/LeadTracker/Bootstrap LinkedIn Session.bat",
+                                       "type":  "start"
+                                   },
+                                   {
+                                       "label":  "Run Pull",
+                                       "url":  "applications/web-apps/LeadTracker/Run LinkedIn Pull.bat",
+                                       "type":  "start"
+                                   },
+                                   {
+                                       "label":  "GitHub",
+                                       "url":  "https://github.com/midastechinc/Apps/tree/main/applications/web-apps/LeadTracker",
+                                       "type":  "github"
+                                   }
+                               ]
+                 },
+                 {
+                     "name":  "Midas Portfolio",
+                     "category":  "Web App",
+                     "folderPath":  "applications/web-apps/portfolio",
+                     "description":  "Investment dashboard and portfolio tracker for Midas Tech with a deployed front end and Supabase backend.",
+                     "status":  "Active",
+                     "lastUpdated":  "2026-04-06",
+                     "manual":  [
+                                    "Open Launch to use the live portfolio dashboard.",
+                                    "Configure Supabase in config.js when you need to run or redeploy the local source.",
+                                    "Use the GitHub repo to manage deployment updates and schema changes."
+                                ],
+                     "notes":  [
+                                   "Local source was moved from the Codex folder into My Application.",
+                                   "Standalone GitHub repository verified."
+                               ],
+                     "apis":  [
+                                  {
+                                      "name":  "Supabase API",
+                                      "type":  "Backend as a Service",
+                                      "cost":  "$25/month (Pro plan)",
+                                      "url":  "https://supabase.com/"
+                                  },
+                                  {
+                                      "name":  "Google Fonts API",
+                                      "type":  "Web Service",
+                                      "cost":  "Free",
+                                      "url":  "https://developers.google.com/fonts"
+                                  }
+                              ],
+                     "databases":  [
+                                       {
+                                           "name":  "Supabase PostgreSQL",
+                                           "type":  "Cloud",
+                                           "cost":  "Included in Supabase Pro",
+                                           "url":  "https://supabase.com/database"
+                                       }
+                                   ],
+                     "links":  [
+                                   {
+                                       "label":  "Launch",
+                                       "url":  "https://midastechinc.github.io/portfolio/",
+                                       "type":  "app"
+                                   },
+                                   {
+                                       "label":  "GitHub",
+                                       "url":  "https://github.com/midastechinc/portfolio",
+                                       "type":  "github"
+                                   }
+                               ]
+                 },
+                 {
+                     "name":  "PDF Sign Here Stamp",
+                     "category":  "Web App",
+                     "folderPath":  "applications/web-apps/Signhere-Stamp-Project/PDF-Signhere-Stamp",
+                     "description":  "Professional PDF signing tool with auto-placement of signature stamps that runs fully in the browser.",
+                     "status":  "Active",
+                     "lastUpdated":  "2026-04-06",
+                     "manual":  [
+                                    "Open Launch to use the live PDF stamping app.",
+                                    "Drop a PDF, place or adjust Sign Here stamps, then download the updated file.",
+                                    "Use the template tools to save recurring layouts for batch processing."
+                                ],
+                     "notes":  [
+                                   "Dedicated local source folder is kept under Signhere-Stamp-Project.",
+                                   "Standalone GitHub repository verified."
+                               ],
+                     "apis":  [
+
+                              ],
+                     "databases":  [
+
+                                   ],
+                     "links":  [
+                                   {
+                                       "label":  "Launch",
+                                       "url":  "https://midastechinc.github.io/PDF-Signhere-Stamp/",
+                                       "type":  "app"
+                                   },
+                                   {
+                                       "label":  "GitHub",
+                                       "url":  "https://github.com/midastechinc/PDF-Signhere-Stamp",
+                                       "type":  "github"
+                                   }
+                               ]
+                 },
+                 {
+                     "name":  "Search Tool",
+                     "category":  "Web App",
+                     "folderPath":  "applications/web-apps/Search Tool",
+                     "description":  "Local file search engine with OCR support. The web UI can launch from the dashboard, and the local server can be started from a batch file when needed.",
+                     "status":  "Active",
+                     "lastUpdated":  "2026-04-06",
+                     "manual":  [
+                                    "Use Launch to open the browser UI for searching indexed files.",
+                                    "Use Start Locally first when you need the bundled local service running.",
+                                    "Update the shared repo folder when the search logic or UI changes."
+                                ],
+                     "notes":  [
+                                   "Best experience comes from starting the local server first.",
+                                   "Source is still tracked inside the shared Apps repository."
+                               ],
+                     "apis":  [
+                                  {
+                                      "name":  "File System Access API",
+                                      "type":  "Browser API",
+                                      "cost":  "Free",
+                                      "url":  "https://developer.mozilla.org/en-US/docs/Web/API/File_System_API"
+                                  },
+                                  {
+                                      "name":  "Google Fonts API",
+                                      "type":  "Web Service",
+                                      "cost":  "Free",
+                                      "url":  "https://developers.google.com/fonts"
+                                  }
+                              ],
+                     "databases":  [
+
+                                   ],
+                     "links":  [
+                                   {
+                                       "label":  "Launch",
+                                       "url":  "applications/web-apps/Search Tool/index.html",
+                                       "type":  "app"
+                                   },
+                                   {
+                                       "label":  "Start Locally",
+                                       "url":  "applications/web-apps/Search Tool/launch.bat",
+                                       "type":  "start"
+                                   },
+                                   {
+                                       "label":  "GitHub",
+                                       "url":  "https://github.com/midastechinc/Apps/tree/main/applications/web-apps/Search%20Tool",
+                                       "type":  "github"
+                                   }
+                               ]
+                 },
+                 {
+                     "name":  "Studio B Post Designer",
+                     "category":  "Web App",
+                     "folderPath":  "applications/web-apps/studiob-home-post-studio",
+                     "description":  "Luxury Instagram post designer for Studio B with a live Vercel deployment and dedicated source repository.",
+                     "status":  "Active",
+                     "lastUpdated":  "2026-04-06",
+                     "manual":  [
+                                    "Open Launch to use the live Studio B carousel builder.",
+                                    "Run npm install and npm run dev in the local folder when you want to work on the source.",
+                                    "Use Vercel dev or the deployed API routes for product URL import and image proxy support."
+                                ],
+                     "notes":  [
+                                   "Local source was moved from the Codex folder into My Application.",
+                                   "Standalone GitHub repository verified."
+                               ],
+                     "apis":  [
+                                  {
+                                      "name":  "Google Fonts API",
+                                      "type":  "Web Service",
+                                      "cost":  "Free",
+                                      "url":  "https://developers.google.com/fonts"
+                                  }
+                              ],
+                     "databases":  [
+
+                                   ],
+                     "links":  [
+                                   {
+                                       "label":  "Launch",
+                                       "url":  "https://studiob-home-post-studio.vercel.app/",
+                                       "type":  "app"
+                                   },
+                                   {
+                                       "label":  "GitHub",
+                                       "url":  "https://github.com/midastechinc/studiob-home-post-studio",
+                                       "type":  "github"
+                                   }
+                               ]
+                 },
+                 {
+                     "name":  "Document Scan Flow",
+                     "category":  "Workflows",
+                     "folderPath":  "applications/workflows/Document-Scan-Flow",
+                     "description":  "Power Automate export package for the Midas document scan processing workflow.",
+                     "status":  "Active",
+                     "lastUpdated":  "2026-04-06",
+                     "manual":  [
+                                    "Use Download Flow to grab the latest exported package from GitHub.",
+                                    "Import the zip into Power Automate when you need to restore or migrate the workflow.",
+                                    "Review the GitHub folder before updating environment-specific connectors."
+                                ],
+                     "notes":  [
+                                   "Workflow export was moved into its own dedicated folder.",
+                                   "Standalone GitHub repo is still missing."
+                               ],
+                     "apis":  [
+                                  {
+                                      "name":  "Power Automate API",
+                                      "type":  "Microsoft 365",
+                                      "cost":  "Included in M365 Business",
+                                      "url":  "https://learn.microsoft.com/en-us/power-automate/"
+                                  },
+                                  {
+                                      "name":  "SharePoint REST API",
+                                      "type":  "Microsoft 365",
+                                      "cost":  "Included in M365 Business",
+                                      "url":  "https://learn.microsoft.com/en-us/sharepoint/dev/sp-add-ins/get-to-know-the-sharepoint-rest-service"
+                                  }
+                              ],
+                     "databases":  [
+                                       {
+                                           "name":  "SharePoint Lists",
+                                           "type":  "Cloud",
+                                           "cost":  "Included in M365 Business",
+                                           "url":  "https://support.microsoft.com/en-us/office/introduction-to-lists-8b3f8dde-ecfd-4992-9388-611b9f99c15a"
+                                       }
+                                   ],
+                     "links":  [
+                                   {
+                                       "label":  "Download Flow",
+                                       "url":  "https://github.com/midastechinc/Apps/raw/main/applications/workflows/Document-Scan-Flow/MidasTechDocumentScanFlow_20260326005922.zip",
+                                       "type":  "download"
+                                   },
+                                   {
+                                       "label":  "GitHub",
+                                       "url":  "https://github.com/midastechinc/Apps/tree/main/applications/workflows/Document-Scan-Flow",
+                                       "type":  "github"
+                                   }
+                               ]
+                 },
+                 {
+                     "name":  "Master Categories Flow",
+                     "category":  "Workflows",
+                     "folderPath":  "applications/workflows/Master-Categories-Flow",
+                     "description":  "Power Automate export package for the Midas master categories and document classification workflow.",
+                     "status":  "Active",
+                     "lastUpdated":  "2026-04-06",
+                     "manual":  [
+                                    "Use Download Flow to grab the latest exported package from GitHub.",
+                                    "Import the zip into Power Automate when you need to restore or migrate the workflow.",
+                                    "Review the SharePoint action map in the same folder before editing classifications."
+                                ],
+                     "notes":  [
+                                   "Workflow export was moved into its own dedicated folder.",
+                                   "Standalone GitHub repo is still missing."
+                               ],
+                     "apis":  [
+                                  {
+                                      "name":  "Power Automate API",
+                                      "type":  "Microsoft 365",
+                                      "cost":  "Included in M365 Business",
+                                      "url":  "https://learn.microsoft.com/en-us/power-automate/"
+                                  },
+                                  {
+                                      "name":  "SharePoint REST API",
+                                      "type":  "Microsoft 365",
+                                      "cost":  "Included in M365 Business",
+                                      "url":  "https://learn.microsoft.com/en-us/sharepoint/dev/sp-add-ins/get-to-know-the-sharepoint-rest-service"
+                                  }
+                              ],
+                     "databases":  [
+                                       {
+                                           "name":  "SharePoint Lists",
+                                           "type":  "Cloud",
+                                           "cost":  "Included in M365 Business",
+                                           "url":  "https://support.microsoft.com/en-us/office/introduction-to-lists-8b3f8dde-ecfd-4992-9388-611b9f99c15a"
+                                       }
+                                   ],
+                     "links":  [
+                                   {
+                                       "label":  "Download Flow",
+                                       "url":  "https://github.com/midastechinc/Apps/raw/main/applications/workflows/Master-Categories-Flow/MidasTechMasterCategoriesFlow_20260326010536.zip",
+                                       "type":  "download"
+                                   },
+                                   {
+                                       "label":  "GitHub",
+                                       "url":  "https://github.com/midastechinc/Apps/tree/main/applications/workflows/Master-Categories-Flow",
+                                       "type":  "github"
+                                   }
+                               ]
+                 },
+                 {
+                     "name":  "Business Card Depot",
+                     "category":  "Mobile App",
+                     "folderPath":  "applications/mobile-apps/Business Card Depot",
+                     "description":  "Mobile app to scan business cards, extract contact information, review the parsed fields, and save the result into phone contacts.",
+                     "status":  "Development",
+                     "lastUpdated":  "2026-04-06",
+                     "manual":  [
+                                    "Use the GitHub repo to track source and upcoming releases.",
+                                    "Build the first Android APK and upload it to GitHub Releases before adding the download link.",
+                                    "Use the app to capture cards from the camera, imported images, or screenshots, then review and save contacts."
+                                ],
+                     "notes":  [
+                                   "Registered with register-dashboard-app.ps1.",
+                                   "APK download link will be added after the first GitHub Release is published."
+                               ],
+                     "apis":  [
+
+                              ],
+                     "databases":  [
+
+                                   ],
+                     "links":  [
+                                   {
+                                       "label":  "GitHub",
+                                       "url":  "https://github.com/midastechinc/business-card-depot",
+                                       "type":  "github"
+                                   }
+                               ]
+                 }
+             ]
+};

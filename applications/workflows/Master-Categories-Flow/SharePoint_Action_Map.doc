@@ -1,0 +1,172 @@
+SharePoint Action Map
+
+Purpose
+This document shows how to convert the current OneDrive for Business document handling setup to a SharePoint document library and folder setup while keeping the same business logic.
+
+Source Flows Reviewed
+1. DMS Intake and Classification
+2. Master Category Folder Setup
+
+Recommended SharePoint Target
+- Site Address: https://midastech365.sharepoint.com/sites/support
+- Library Name: Documents or Shared Documents
+- Main folders:
+  - /Scans/Inbox
+  - /Scans/Processed
+  - /Manual Review
+
+Action Map For Flow 1
+
+1. Trigger
+- Current OneDrive action:
+  - When a file is created
+- Replace with SharePoint action:
+  - When a file is created in a folder
+- Configure:
+  - Site Address = target SharePoint site
+  - Library Name = target document library
+  - Folder = /Scans/Inbox
+- Notes:
+  - This replaces the current OneDrive folder watch on /Scans/Inbox
+
+2. Get file metadata
+- Current OneDrive action:
+  - Get file metadata
+- Replace with SharePoint action:
+  - Get file metadata
+- Use:
+  - File Identifier from the SharePoint trigger
+- Notes:
+  - Do not reuse the OneDrive expression that depends on x-ms-file-id
+
+3. Get file content
+- Current OneDrive action:
+  - Get file content
+- Replace with SharePoint action:
+  - Get file content
+- Use:
+  - File Identifier from SharePoint
+
+4. Oversize file move to manual review
+- Current OneDrive action:
+  - Move or rename a file
+- Replace with SharePoint action:
+  - Move file
+- Configure:
+  - Current Site Address = target SharePoint site
+  - File to Move = Identifier from SharePoint
+  - Destination Site Address = target SharePoint site
+  - Destination Folder = /Manual Review
+- Notes:
+  - This is used in the file size condition branch
+
+5. Manual review move after AI result
+- Current OneDrive action:
+  - Move or rename a file
+- Replace with SharePoint action:
+  - Move file
+- Configure:
+  - File to Move = Identifier from SharePoint
+  - Destination Folder = /Manual Review
+- Notes:
+  - This is used when needsManualReview = true
+
+6. Create processing folder placeholder
+- Current OneDrive action:
+  - Create file
+- Replace with SharePoint action:
+  - Create file
+- Configure:
+  - Site Address = target SharePoint site
+  - Folder Path = /Scans/Processed/<MasterCategory>/<SuggestedSubfolder>
+  - File Name = .keep
+  - File Content = temp
+- Notes:
+  - This keeps your current folder creation approach
+  - In some environments, you may need to create parent folders first if they do not exist
+
+7. Move final file into processed folder
+- Current OneDrive action:
+  - Move or rename a file using path
+- Replace with SharePoint action:
+  - Move file
+- Configure:
+  - File to Move = Identifier from SharePoint
+  - Destination Folder = /Scans/Processed/<MasterCategory>/<SuggestedSubfolder>
+  - Destination File Name = <newFileName>.<extension>
+- Notes:
+  - In SharePoint, it is usually better to use the built-in destination folder and destination file name fields rather than path expressions copied from OneDrive
+
+8. Create sharing link
+- Current OneDrive action:
+  - Create share link
+- Replace with SharePoint action:
+  - Create sharing link for a file or folder
+- Configure:
+  - Site Address = target SharePoint site
+  - Library Name = target document library
+  - Item ID or Identifier = moved SharePoint file
+  - Link Type = View
+  - Link Scope = Organization
+
+What Does Not Need To Change In Flow 1
+- OCR action
+- OpenAI classification action
+- Parse JSON action
+- Category and subfolder compose steps
+- SharePoint list read for Master Categories
+- SharePoint list write for Document Log
+- Email actions
+
+Important Dynamic Content Changes In Flow 1
+- Replace OneDrive-specific references such as:
+  - triggerOutputs()?['headers/x-ms-file-id']
+  - outputs('Get_file_metadata')?['body/Path']
+- Rebind them using SharePoint dynamic content such as:
+  - Identifier
+  - File Identifier
+  - Path
+  - Full Path
+  - Name with extension
+- Recommendation:
+  - Recreate the affected file actions in the designer instead of copying OneDrive expressions directly
+
+Action Map For Flow 2
+
+1. Create top-level category folder
+- Current OneDrive action:
+  - Create file
+- Replace with SharePoint action:
+  - Create file
+- Configure:
+  - Site Address = target SharePoint site
+  - Folder Path = /Scans/Processed/<MasterCategory>
+  - File Name = .keep
+  - File Content = init
+- Notes:
+  - This preserves the current category folder creation logic
+
+What Does Not Need To Change In Flow 2
+- SharePoint trigger on Master Categories list
+- SharePoint site reference for the category list
+
+Suggested SharePoint Folder Layout
+- Documents/Scans/Inbox
+- Documents/Scans/Processed
+- Documents/Manual Review
+
+Testing Checklist
+1. Upload a sample file into /Scans/Inbox.
+2. Confirm the SharePoint trigger fires.
+3. Confirm file metadata and content actions work.
+4. Confirm OCR and classification still run.
+5. Confirm oversize files move to /Manual Review.
+6. Confirm manual-review files also move correctly when needsManualReview = true.
+7. Confirm processed files are moved to /Scans/Processed/<MasterCategory>/<SuggestedSubfolder>.
+8. Confirm the SharePoint sharing link opens correctly.
+9. Confirm the SharePoint log item still gets created.
+10. Confirm the email contains the working document link.
+
+Best Practice
+- Safest approach: rebuild the OneDrive file actions as SharePoint actions directly in Power Automate.
+- Do not rely on OneDrive internal ids, paths, or headers after switching connectors.

@@ -11,6 +11,9 @@
 !data/
 !data/apps.json
 !data/apps-data.js
+!tools/
+tools/*
+!tools/*.ps1
 !.github/
 !.github/copilot-instructions.md
 !applications/
@@ -27,6 +30,13 @@ applications/web-apps/Signhere-Stamp-Project/PDF-Signhere-Stamp/*
 !applications/web-apps/Signhere-Stamp-Project/PDF-Signhere-Stamp/index.html
 !applications/desktop-apps/
 applications/desktop-apps/*
+!applications/mobile-apps/
+applications/mobile-apps/*
+!applications/mobile-apps/README.md
+!applications/mobile-apps/*/
+!applications/mobile-apps/*/**
+applications/mobile-apps/*/node_modules/
+applications/mobile-apps/*/.expo/
 !applications/desktop-apps/Issue Tracker/
 applications/desktop-apps/Issue Tracker/*
 !applications/desktop-apps/Issue Tracker/dist/
@@ -43,3 +53,56 @@ applications/scripts/*
 !applications/scripts/Codex Project/
 applications/scripts/Codex Project/*
 !applications/scripts/Codex Project/*.ps1
+!applications/web-apps/LeadTracker/
+applications/web-apps/LeadTracker/*
+!applications/web-apps/LeadTracker/index.html
+!applications/web-apps/LeadTracker/README.md
+!applications/web-apps/LeadTracker/schema.sql
+!applications/web-apps/LeadTracker/.env.example
+!applications/web-apps/LeadTracker/requirements-linkedin.txt
+!applications/web-apps/LeadTracker/Bootstrap LinkedIn Session.bat
+!applications/web-apps/LeadTracker/Run LinkedIn Pull.bat
+!applications/web-apps/LeadTracker/scripts/
+applications/web-apps/LeadTracker/scripts/*
+!applications/web-apps/LeadTracker/scripts/*.ps1
+!applications/web-apps/LeadTracker/scripts/*.py
+!applications/scripts/scansnap-daily-processor/
+applications/scripts/scansnap-daily-processor/*
+!applications/scripts/scansnap-daily-processor/SKILL.md
+!applications/scripts/Build-Migration-Sheet/
+applications/scripts/Build-Migration-Sheet/*
+!applications/scripts/Build-Migration-Sheet/build-migration-sheet.ps1
+!applications/scripts/Check-Compromise-Indicators/
+applications/scripts/Check-Compromise-Indicators/*
+!applications/scripts/Check-Compromise-Indicators/Check-CompromiseIndicators.ps1
+!applications/scripts/Computer-Audit/
+applications/scripts/Computer-Audit/*
+!applications/scripts/Computer-Audit/ComputerAudit.ps1
+!applications/scripts/Generate-ScanSnap-Power-Automate-Doc/
+applications/scripts/Generate-ScanSnap-Power-Automate-Doc/*
+!applications/scripts/Generate-ScanSnap-Power-Automate-Doc/generate_scansnap_power_automate_doc.ps1
+!applications/scripts/Generate-ScanSnap-Power-Automate-Doc/generate_scansnap_power_automate_doc.py
+!applications/scripts/Generate-ScanSnap-Power-Automate-Doc/ScanSnap_Power_Automate_Setup_Guide.docx
+!applications/scripts/Generate-ScanSnap-Search-Addendum/
+applications/scripts/Generate-ScanSnap-Search-Addendum/*
+!applications/scripts/Generate-ScanSnap-Search-Addendum/generate_scansnap_search_addendum.ps1
+!applications/scripts/Generate-ScanSnap-Search-Addendum/ScanSnap_Search_System_Addendum.docx
+!applications/scripts/Run-Midas-Signature-Workflow/
+applications/scripts/Run-Midas-Signature-Workflow/*
+!applications/scripts/Run-Midas-Signature-Workflow/Run-MidasSignatureWorkflow.ps1
+!applications/scripts/Set-Midas-Outlook-Signature/
+applications/scripts/Set-Midas-Outlook-Signature/*
+!applications/scripts/Set-Midas-Outlook-Signature/Set-MidasOutlookSignature.ps1
+!applications/scripts/Set-Outlook-Signature-All-Classic-Versions/
+applications/scripts/Set-Outlook-Signature-All-Classic-Versions/*
+!applications/scripts/Set-Outlook-Signature-All-Classic-Versions/Set-OutlookSignature-AllClassicVersions.ps1
+!applications/scripts/Unblock-Outlook-Signature-Settings/
+applications/scripts/Unblock-Outlook-Signature-Settings/*
+!applications/scripts/Unblock-Outlook-Signature-Settings/Unblock-OutlookSignatureSettings.ps1
+!applications/workflows/Document-Scan-Flow/
+applications/workflows/Document-Scan-Flow/*
+!applications/workflows/Document-Scan-Flow/MidasTechDocumentScanFlow_20260326005922.zip
+!applications/workflows/Master-Categories-Flow/
+applications/workflows/Master-Categories-Flow/*
+!applications/workflows/Master-Categories-Flow/MidasTechMasterCategoriesFlow_20260326010536.zip
+!applications/workflows/Master-Categories-Flow/SharePoint_Action_Map.doc

@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "My Mobile App",
+    "slug": "my-mobile-app",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "android": {
+      "package": "com.midastech.mymobileapp",
+      "versionCode": 1
+    }
+  }
+}

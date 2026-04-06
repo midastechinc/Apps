@@ -87,9 +87,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return {
             ...app,
             notes: Array.isArray(app.notes) ? app.notes : [],
+            manual: Array.isArray(app.manual) ? app.manual : [],
             links: Array.isArray(app.links) ? app.links : [],
             apis: Array.isArray(app.apis) ? app.apis : [],
-            databases: Array.isArray(app.databases) ? app.databases : []
+            databases: Array.isArray(app.databases) ? app.databases : [],
+            folderPath: typeof app.folderPath === 'string' ? app.folderPath : ''
         };
     }
 
@@ -104,7 +106,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 app.category,
                 app.status,
                 app.lastUpdated,
+                app.folderPath,
                 ...app.notes,
+                ...app.manual,
                 ...app.links.map(link => link.label),
                 ...app.apis.map(api => api.name),
                 ...app.databases.map(database => database.name)
@@ -208,6 +212,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const actionMarkup = app.links.length > 0
             ? app.links.map(createAppLink).join('')
             : '<span class="app-link app-link-disabled">No actions available</span>';
+        const manualMarkup = app.manual.length > 0
+            ? `
+                <div class="manual-block">
+                    <p class="services-label">How To Use</p>
+                    <ul class="manual-list">
+                        ${app.manual.map(step => `<li>${escapeHtml(step)}</li>`).join('')}
+                    </ul>
+                </div>
+            `
+            : '';
 
         card.innerHTML = `
             <div class="app-topline">
@@ -227,6 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ${notesMarkup}
             ${apiMarkup}
             ${databaseMarkup}
+            ${manualMarkup}
             <div class="app-actions">
                 ${actionMarkup}
             </div>

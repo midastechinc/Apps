@@ -1,113 +1,74 @@
 # Midas Tech Apps Dashboard
 
-A centralized dashboard for all Midas Tech applications, providing easy access and organization.
+This repository is the master inventory for the `My Application` workspace. The dashboard surfaces each app with the right action type for its category:
 
-## Features
+- Web apps launch.
+- Desktop apps expose download and local-start links.
+- Mobile apps should expose APK downloads.
+- Scripts expose local run and GitHub download links.
+- Workflows expose downloadable export packages.
 
-- **📱 Application Catalog**: Browse all web, desktop, and mobile applications
-- **🔍 Search & Filter**: Find applications quickly by name, description, or category
-- **📊 Status Tracking**: See which applications are active, in development, or archived
-- **🔗 Quick Access**: Direct links to launch applications or view source code
-- **📈 Statistics**: Overview of total applications and categories
-- **🔌 API Monitoring**: Track all external APIs and their usage across applications
-- **💾 Database Inventory**: Monitor database systems and storage solutions
+## Folder Rules
 
-## Dashboard Sections
+Every tracked app should live under its own folder inside one of these category roots:
 
-### Applications Tab
-- Grid view of all applications with descriptions and links
-- Category filtering (Web Apps, Desktop Apps, Mobile Apps, Scripts)
-- Search functionality across app names and descriptions
-- Status indicators (Active, Development, Archived)
+- `applications/web-apps`
+- `applications/desktop-apps`
+- `applications/mobile-apps`
+- `applications/scripts`
+- `applications/workflows`
 
-### APIs Tab
-- Overview of all external APIs used across applications
-- Cost tracking (Free, Paid, Included in subscriptions)
-- Application usage mapping
-- Service type categorization
+Shared utility folders that are not real app cards can stay beside them, but the audit will flag any top-level folder that is not represented in the dashboard data.
 
-### Databases Tab
-- Database systems inventory
-- Cost and hosting type information
-- Application dependencies
-- Local vs cloud storage tracking
+## Dashboard Data
 
-## Adding New Applications
+The dashboard reads from `data/apps.json`. The browser-friendly fallback copy in `data/apps-data.js` is generated from the JSON file so the dashboard also works when opened directly from disk.
 
-To add a new application to the dashboard:
+Each app entry now carries:
 
-1. Edit `data/apps.json`
-2. Add a new object to the `apps` array with the following structure:
-   ```json
-   {
-     "name": "Application Name",
-     "category": "Web App|Desktop App|Mobile App|Scripts",
-     "description": "Brief description of the application",
-     "status": "Active|Development|Archived",
-     "lastUpdated": "YYYY-MM-DD",
-     "apis": [
-       {
-         "name": "API Name",
-         "type": "API Type",
-         "cost": "Cost information"
-       }
-     ],
-     "databases": [
-       {
-         "name": "Database Name",
-         "type": "Local|Cloud",
-         "cost": "Cost information"
-       }
-     ],
-     "links": [
-       {
-         "label": "Launch|Download|GitHub",
-         "url": "https://...",
-         "type": "app|github"
-       }
-     ]
-   }
-   ```
+- `folderPath`
+- `manual`
+- typed action links for launch, download, local start, and GitHub
 
-3. Commit and push changes to update the live dashboard
+## Standard Workflow
 
-## API & Database Tracking
+1. Create or move the app into its own folder under `applications/...`.
+2. Add or update the app entry in `data/apps.json`.
+3. Run `tools/sync-dashboard-data.ps1`.
+4. Run `tools/audit-applications.ps1`.
+5. Commit the updated app folder plus dashboard data.
 
-The dashboard automatically aggregates API and database usage across all applications:
+## Helper Scripts
 
-- **APIs**: External services, web APIs, native APIs
-- **Databases**: SQL databases, NoSQL, cloud storage, local storage
-- **Costs**: Free, paid subscriptions, included in other services
-- **Dependencies**: Which applications use which services
+- `tools/register-dashboard-app.ps1`
+  Creates a folder if needed, scaffolds a basic `README.md`, adds a dashboard entry, and regenerates `data/apps-data.js`.
+
+- `tools/new-mobile-app.ps1`
+  Copies the shared Expo template into a new mobile app folder and reminds you to create the dedicated GitHub repo.
+
+- `tools/sync-dashboard-data.ps1`
+  Normalizes `data/apps.json` and rebuilds `data/apps-data.js`.
+
+- `tools/audit-applications.ps1`
+  Checks the dashboard inventory against real folders and writes a markdown audit report under `reports/`.
 
 ## Deployment
 
-This dashboard is hosted on GitHub Pages at `https://midastechinc.github.io/Apps/`
+The dashboard is hosted on GitHub Pages at `https://midastechinc.github.io/Apps/`.
 
-To deploy updates:
-1. Make changes to the code
-2. Commit and push to the `main` branch
-3. GitHub Pages will automatically update
+After changing the app catalog:
 
-## Technologies Used
+1. Run `tools/sync-dashboard-data.ps1`
+2. Commit the folder and data updates
+3. Push to `main`
 
-- HTML5
-- CSS3 (Custom properties, Grid, Flexbox)
-- Vanilla JavaScript (ES6+)
-- JSON for data storage
+## Current Cleanup Direction
 
-## Future Enhancements
+The workspace is being normalized toward:
 
-- User authentication for admin features
-- Application usage analytics
-- Automated deployment from other repos
-- API integration for dynamic updates
-- Dark mode support
-- Cost tracking and budget alerts
-- Service health monitoring
+- one app per folder
+- one dashboard card per app
+- GitHub links on every card
+- short how-to guidance on every card
 
-## Contributing
-
-All Midas Tech applications should be added to this dashboard for centralized access and management.
-
-For questions or suggestions, contact the development team.
+Anything that still points to the shared `Apps` repo instead of a dedicated repository will show up as a warning in the audit report.
