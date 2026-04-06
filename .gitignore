@@ -1,0 +1,40 @@
+# Ignore everything
+*
+
+# Except the dashboard files
+!index.html
+!README.md
+!css/
+!css/style.css
+!js/
+!js/app.js
+!data/
+!data/apps.json
+!data/apps-data.js
+!.github/
+!.github/copilot-instructions.md
+!applications/
+applications/*
+!applications/web-apps/
+applications/web-apps/*
+!applications/web-apps/Search Tool/
+applications/web-apps/Search Tool/*
+!applications/web-apps/Search Tool/index.html
+!applications/web-apps/Signhere-Stamp-Project/
+applications/web-apps/Signhere-Stamp-Project/*
+!applications/web-apps/Signhere-Stamp-Project/PDF-Signhere-Stamp/
+applications/web-apps/Signhere-Stamp-Project/PDF-Signhere-Stamp/*
+!applications/web-apps/Signhere-Stamp-Project/PDF-Signhere-Stamp/index.html
+!applications/desktop-apps/
+applications/desktop-apps/*
+!applications/desktop-apps/Issue Tracker/
+applications/desktop-apps/Issue Tracker/*
+!applications/desktop-apps/Issue Tracker/dist/
+applications/desktop-apps/Issue Tracker/dist/*
+!applications/desktop-apps/Issue Tracker/dist/StudioB_IssueTracker.exe
+!applications/workflows/
+applications/workflows/*
+!applications/workflows/Powerautomade Flow/
+applications/workflows/Powerautomade Flow/*
+!applications/workflows/Powerautomade Flow/MidasTechDocumentScanFlow_20260326005922.zip
+!applications/workflows/Powerautomade Flow/MidasTechMasterCategoriesFlow_20260326010536.zip

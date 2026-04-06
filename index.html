@@ -3,79 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Midas Tech Apps Dashboard</title>
+    <title>Midas Tech Application Dashboard</title>
+    <meta name="description" content="Midas Tech dashboard for launching web apps, downloading desktop installers, starting local tools, and reviewing source locations.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <header>
-        <h1>Midas Tech Applications Dashboard</h1>
-        <p>Organized collection of all Midas Tech web applications</p>
-        <div class="search-container">
-            <input type="text" id="searchInput" placeholder="Search applications...">
-            <select id="categoryFilter">
-                <option value="all">All Categories</option>
-                <option value="web">Web Apps</option>
-                <option value="desktop">Desktop Apps</option>
-                <option value="mobile">Mobile Apps</option>
-                <option value="scripts">Scripts</option>
-            </select>
+    <header class="hero">
+        <div class="hero-panel">
+            <div class="hero-copy">
+                <p class="eyebrow">Midas Tech Operating Dashboard</p>
+                <h1>Applications, installs, local tools, and source links in one place.</h1>
+                <p class="hero-text">Each card is wired around how the app actually works: web apps launch, desktop apps download, local tools can be started, and source buttons point to a real repository path instead of stale placeholders.</p>
+            </div>
+            <div class="hero-side">
+                <div class="hero-callout">
+                    <span class="callout-label">Dashboard Repo</span>
+                    <a class="hero-link" href="https://github.com/midastechinc/Apps" target="_blank" rel="noopener noreferrer">Open GitHub</a>
+                </div>
+                <div class="hero-callout subdued">
+                    <span class="callout-label">Current Focus</span>
+                    <span class="callout-value">Verified buttons and local actions</span>
+                </div>
+            </div>
         </div>
     </header>
 
-    <main>
-        <div class="tabs">
-            <button class="tab-button active" onclick="showTab('apps')">Applications</button>
-            <button class="tab-button" onclick="showTab('apis')">APIs</button>
-            <button class="tab-button" onclick="showTab('databases')">Databases</button>
-        </div>
+    <main class="page-shell">
+        <section class="control-panel" aria-label="Dashboard filters">
+            <div class="controls-row">
+                <label class="field search-field" for="searchInput">
+                    <span class="field-label">Search</span>
+                    <input type="text" id="searchInput" placeholder="Search apps, categories, notes, or buttons">
+                </label>
 
-        <div id="stats">
-            <div class="stat-card">
-                <h3>Total Apps</h3>
-                <span id="totalApps">0</span>
+                <label class="field filter-field" for="categoryFilter">
+                    <span class="field-label">Category</span>
+                    <select id="categoryFilter">
+                        <option value="all">All Categories</option>
+                        <option value="web app">Web Apps</option>
+                        <option value="desktop app">Desktop Apps</option>
+                        <option value="mobile app">Mobile Apps</option>
+                        <option value="scripts">Scripts</option>
+                        <option value="workflows">Workflows</option>
+                    </select>
+                </label>
             </div>
-            <div class="stat-card">
-                <h3>Web Apps</h3>
-                <span id="webApps">0</span>
-            </div>
-            <div class="stat-card">
-                <h3>Active</h3>
-                <span id="activeApps">0</span>
-            </div>
-        </div>
 
-        <div id="appsTab" class="tab-content active">
-            <div id="appsGrid" class="apps-grid">
-                <!-- Apps will be loaded here -->
+            <div id="stats" class="stats-grid">
+                <article class="stat-card">
+                    <p class="stat-label">Total Apps</p>
+                    <span id="totalApps" class="stat-value">0</span>
+                </article>
+                <article class="stat-card">
+                    <p class="stat-label">Web Apps</p>
+                    <span id="webApps" class="stat-value">0</span>
+                </article>
+                <article class="stat-card">
+                    <p class="stat-label">Local Tools</p>
+                    <span id="localTools" class="stat-value">0</span>
+                </article>
+                <article class="stat-card">
+                    <p class="stat-label">Source Links</p>
+                    <span id="sourceLinks" class="stat-value">0</span>
+                </article>
             </div>
-        </div>
+        </section>
 
-        <div id="apisTab" class="tab-content">
-            <div class="section-header">
-                <h2>API Usage Overview</h2>
-                <p>External APIs and services used across all applications</p>
+        <section class="tab-shell">
+            <div class="tabs" role="tablist" aria-label="Dashboard sections">
+                <button class="tab-button active" type="button" role="tab" aria-selected="true" aria-controls="appsTab" data-tab="apps">Applications</button>
+                <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="apisTab" data-tab="apis">APIs</button>
+                <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="databasesTab" data-tab="databases">Databases</button>
             </div>
-            <div id="apisGrid" class="services-grid">
-                <!-- APIs will be loaded here -->
-            </div>
-        </div>
 
-        <div id="databasesTab" class="tab-content">
-            <div class="section-header">
-                <h2>Database Usage Overview</h2>
-                <p>Database systems and storage solutions used across all applications</p>
-            </div>
-            <div id="databasesGrid" class="services-grid">
-                <!-- Databases will be loaded here -->
-            </div>
-        </div>
+            <section id="appsTab" class="tab-content active" role="tabpanel" aria-labelledby="applications-tab">
+                <div class="section-intro">
+                    <h2>Application Inventory</h2>
+                    <p>Web apps, desktop installers, local-start tools, scripts, and workflow exports are grouped here with the correct action buttons for each type.</p>
+                </div>
+                <div id="appsGrid" class="apps-grid">
+                    <p class="empty-state">Loading applications...</p>
+                </div>
+            </section>
+
+            <section id="apisTab" class="tab-content" role="tabpanel">
+                <div class="section-intro">
+                    <h2>API Overview</h2>
+                    <p>Shared services used across the current application inventory.</p>
+                </div>
+                <div id="apisGrid" class="services-grid"></div>
+            </section>
+
+            <section id="databasesTab" class="tab-content" role="tabpanel">
+                <div class="section-intro">
+                    <h2>Database Overview</h2>
+                    <p>Local and cloud storage systems referenced by the current application inventory.</p>
+                </div>
+                <div id="databasesGrid" class="services-grid"></div>
+            </section>
+        </section>
     </main>
 
-    <footer>
-        <p>&copy; 2026 Midas Tech Inc. | <a href="https://github.com/midastechinc/Apps" target="_blank">View on GitHub</a></p>
+    <footer class="site-footer">
+        <p>&copy; 2026 Midas Tech Inc. Dashboard source lives in <a href="https://github.com/midastechinc/Apps" target="_blank" rel="noopener noreferrer">midastechinc/Apps</a>.</p>
     </footer>
 
+    <script src="data/apps-data.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

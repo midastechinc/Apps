@@ -1,5 +1,4 @@
-// Midas Tech Apps Dashboard JavaScript
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('searchInput');
     const categoryFilter = document.getElementById('categoryFilter');
     const appsGrid = document.getElementById('appsGrid');
@@ -7,41 +6,86 @@ document.addEventListener('DOMContentLoaded', function() {
     const databasesGrid = document.getElementById('databasesGrid');
     const totalAppsEl = document.getElementById('totalApps');
     const webAppsEl = document.getElementById('webApps');
-    const activeAppsEl = document.getElementById('activeApps');
+    const localToolsEl = document.getElementById('localTools');
+    const sourceLinksEl = document.getElementById('sourceLinks');
+    const tabButtons = Array.from(document.querySelectorAll('.tab-button'));
 
     let apps = [];
     let apis = [];
     let databases = [];
 
-    // Load apps data
-    fetch('data/apps.json')
-        .then(response => response.json())
-        .then(data => {
-            apps = data.apps;
-            processServicesData();
-            renderApps(apps);
-            renderAPIs(apis);
-            renderDatabases(databases);
-            updateStats(apps);
-        })
-        .catch(error => {
-            console.error('Error loading apps data:', error);
-            appsGrid.innerHTML = '<p>Error loading applications. Please check the data file.</p>';
-        });
+    bindEvents();
+    loadDashboard();
 
-    // Search functionality
-    searchInput.addEventListener('input', filterApps);
-    categoryFilter.addEventListener('change', filterApps);
+    function bindEvents() {
+        searchInput.addEventListener('input', filterApps);
+        categoryFilter.addEventListener('change', filterApps);
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                setActiveTab(button.dataset.tab || 'apps');
+            });
+        });
+    }
+
+    function loadDashboard() {
+        if (window.MIDAS_APPS_DATA && Array.isArray(window.MIDAS_APPS_DATA.apps)) {
+            hydrateDashboard(window.MIDAS_APPS_DATA);
+            return;
+        }
+
+        fetch('data/apps.json')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                return response.json();
+            })
+            .then(hydrateDashboard)
+            .catch(error => {
+                console.error('Error loading apps data:', error);
+                appsGrid.innerHTML = '<p class="empty-state">Unable to load the application inventory. Check <code>data/apps.json</code>.</p>';
+            });
+    }
+
+    function hydrateDashboard(data) {
+        apps = Array.isArray(data.apps) ? data.apps.map(normalizeApp) : [];
+        processServicesData();
+        renderApps(apps);
+        renderAPIs(apis);
+        renderDatabases(databases);
+        updateStats(apps);
+    }
+
+    function normalizeApp(app) {
+        return {
+            ...app,
+            notes: Array.isArray(app.notes) ? app.notes : [],
+            links: Array.isArray(app.links) ? app.links : [],
+            apis: Array.isArray(app.apis) ? app.apis : [],
+            databases: Array.isArray(app.databases) ? app.databases : []
+        };
+    }
 
     function filterApps() {
-        const searchTerm = searchInput.value.toLowerCase();
+        const searchTerm = searchInput.value.trim().toLowerCase();
         const category = categoryFilter.value;
 
         const filteredApps = apps.filter(app => {
-            const matchesSearch = app.name.toLowerCase().includes(searchTerm) ||
-                                app.description.toLowerCase().includes(searchTerm) ||
-                                app.category.toLowerCase().includes(searchTerm);
+            const haystack = [
+                app.name,
+                app.description,
+                app.category,
+                app.status,
+                app.lastUpdated,
+                ...app.notes,
+                ...app.links.map(link => link.label),
+                ...app.apis.map(api => api.name),
+                ...app.databases.map(database => database.name)
+            ].join(' ').toLowerCase();
 
+            const matchesSearch = searchTerm === '' || haystack.includes(searchTerm);
             const matchesCategory = category === 'all' || app.category.toLowerCase() === category;
 
             return matchesSearch && matchesCategory;
@@ -55,105 +99,159 @@ document.addEventListener('DOMContentLoaded', function() {
         const databaseMap = new Map();
 
         apps.forEach(app => {
-            // Process APIs
-            if (app.apis && app.apis.length > 0) {
-                app.apis.forEach(api => {
-                    if (!apiMap.has(api.name)) {
-                        apiMap.set(api.name, {
-                            name: api.name,
-                            type: api.type,
-                            cost: api.cost,
-                            apps: []
-                        });
-                    }
-                    apiMap.get(api.name).apps.push(app.name);
-                });
-            }
+            app.apis.forEach(api => {
+                if (!apiMap.has(api.name)) {
+                    apiMap.set(api.name, {
+                        name: api.name,
+                        type: api.type,
+                        cost: api.cost,
+                        apps: []
+                    });
+                }
 
-            // Process Databases
-            if (app.databases && app.databases.length > 0) {
-                app.databases.forEach(db => {
-                    if (!databaseMap.has(db.name)) {
-                        databaseMap.set(db.name, {
-                            name: db.name,
-                            type: db.type,
-                            cost: db.cost,
-                            apps: []
-                        });
-                    }
-                    databaseMap.get(db.name).apps.push(app.name);
-                });
-            }
+                apiMap.get(api.name).apps.push(app.name);
+            });
+
+            app.databases.forEach(database => {
+                if (!databaseMap.has(database.name)) {
+                    databaseMap.set(database.name, {
+                        name: database.name,
+                        type: database.type,
+                        cost: database.cost,
+                        apps: []
+                    });
+                }
+
+                databaseMap.get(database.name).apps.push(app.name);
+            });
         });
 
-        apis = Array.from(apiMap.values());
-        databases = Array.from(databaseMap.values());
+        apis = Array.from(apiMap.values()).sort((left, right) => left.name.localeCompare(right.name));
+        databases = Array.from(databaseMap.values()).sort((left, right) => left.name.localeCompare(right.name));
     }
 
     function renderApps(appsToRender) {
         appsGrid.innerHTML = '';
 
         if (appsToRender.length === 0) {
-            appsGrid.innerHTML = '<p>No applications found matching your criteria.</p>';
+            appsGrid.innerHTML = '<p class="empty-state">No applications match the current search and category filters.</p>';
             return;
         }
 
         appsToRender.forEach(app => {
-            const appCard = createAppCard(app);
-            appsGrid.appendChild(appCard);
+            appsGrid.appendChild(createAppCard(app));
         });
     }
 
     function createAppCard(app) {
-        const card = document.createElement('div');
+        const card = document.createElement('article');
         card.className = 'app-card';
 
-        const statusClass = app.status.toLowerCase().replace(' ', '');
+        const statusClass = cssSafeToken(app.status);
+        const notesMarkup = app.notes.length > 0
+            ? `
+                <div class="note-stack">
+                    ${app.notes.map(note => `<span class="note-pill">${escapeHtml(note)}</span>`).join('')}
+                </div>
+            `
+            : '';
+
+        const apiMarkup = app.apis.length > 0
+            ? `
+                <div class="services-block">
+                    <p class="services-label">APIs</p>
+                    <div class="service-pills">
+                        ${app.apis.map(api => `<span class="service-pill">${escapeHtml(api.name)}</span>`).join('')}
+                    </div>
+                </div>
+            `
+            : '';
+
+        const databaseMarkup = app.databases.length > 0
+            ? `
+                <div class="services-block">
+                    <p class="services-label">Databases</p>
+                    <div class="service-pills">
+                        ${app.databases.map(database => `<span class="service-pill">${escapeHtml(database.name)}</span>`).join('')}
+                    </div>
+                </div>
+            `
+            : '';
+
+        const actionMarkup = app.links.length > 0
+            ? app.links.map(createAppLink).join('')
+            : '<span class="app-link app-link-disabled">No actions available</span>';
 
         card.innerHTML = `
-            <div class="app-header">
-                <h3>${app.name}</h3>
-                <span class="app-category">${app.category}</span>
+            <div class="app-topline">
+                <div>
+                    <p class="app-kicker">${escapeHtml(app.category)}</p>
+                    <h3 class="app-title">${escapeHtml(app.name)}</h3>
+                </div>
+                <span class="app-status ${statusClass}">${escapeHtml(app.status)}</span>
             </div>
-            <div class="app-content">
-                <p class="app-description">${app.description}</p>
-                <div class="app-meta">
-                    <span class="app-status ${statusClass}">${app.status}</span>
-                    <span class="app-date">Updated: ${app.lastUpdated}</span>
-                </div>
-                <div class="app-links">
-                    ${app.links.map(link => createAppLink(link, window.location.protocol === 'file:')).join('')}
-                </div>
+            <p class="app-description">${escapeHtml(app.description)}</p>
+            <div class="app-metrics">
+                <span class="metric-pill">Updated ${escapeHtml(app.lastUpdated)}</span>
+                <span class="metric-pill">${app.apis.length} API${app.apis.length === 1 ? '' : 's'}</span>
+                <span class="metric-pill">${app.databases.length} Database${app.databases.length === 1 ? '' : 's'}</span>
+                <span class="metric-pill">${app.links.length} Action${app.links.length === 1 ? '' : 's'}</span>
+            </div>
+            ${notesMarkup}
+            ${apiMarkup}
+            ${databaseMarkup}
+            <div class="app-actions">
+                ${actionMarkup}
             </div>
         `;
 
         return card;
     }
 
-    function createAppLink(link, canOpenLocalFolder) {
-        if (link.type === 'folder') {
-            return '';
+    function createAppLink(link) {
+        if (!link || !link.url) {
+            return '<span class="app-link app-link-disabled">Unavailable</span>';
         }
 
+        const isRepoAsset = isRelativeRepoAsset(link.url);
+        const assetType = isRepoAsset ? getRepoAssetType(link.url) : 'external';
         const classes = ['app-link'];
+        const safeLabel = escapeHtml(link.label || 'Open');
+
         if (link.type === 'github') {
             classes.push('secondary');
+        } else if (link.type === 'download' || assetType === 'download') {
+            classes.push('download');
+        } else if (link.type === 'start' || assetType === 'local-launch') {
+            classes.push('start');
         }
 
-        return `<a href="${link.url}" class="${classes.join(' ')}" target="_blank">${link.label}</a>`;
+        if ((link.type === 'start' || assetType === 'local-launch') && window.location.protocol !== 'file:') {
+            return `<span class="${classes.join(' ')} app-link-disabled" title="This local action only works when the dashboard is opened from your computer">${safeLabel}</span>`;
+        }
+
+        const href = isRepoAsset ? encodeURI(link.url) : escapeAttribute(link.url);
+        const attributes = [`href="${href}"`];
+
+        if ((link.type === 'download' || assetType === 'download') && isRepoAsset) {
+            attributes.push('download');
+        } else {
+            attributes.push('target="_blank"', 'rel="noopener noreferrer"');
+        }
+
+        return `<a ${attributes.join(' ')} class="${classes.join(' ')}">${safeLabel}</a>`;
     }
 
     function renderAPIs(apisToRender) {
         apisGrid.innerHTML = '';
 
         if (apisToRender.length === 0) {
-            apisGrid.innerHTML = '<p>No APIs found.</p>';
+            apisGrid.innerHTML = '<p class="empty-state">No APIs are listed in the current inventory.</p>';
             return;
         }
 
         apisToRender.forEach(api => {
-            const apiCard = createServiceCard(api, 'api');
-            apisGrid.appendChild(apiCard);
+            apisGrid.appendChild(createServiceCard(api));
         });
     }
 
@@ -161,72 +259,111 @@ document.addEventListener('DOMContentLoaded', function() {
         databasesGrid.innerHTML = '';
 
         if (databasesToRender.length === 0) {
-            databasesGrid.innerHTML = '<p>No databases found.</p>';
+            databasesGrid.innerHTML = '<p class="empty-state">No databases are listed in the current inventory.</p>';
             return;
         }
 
-        databasesToRender.forEach(db => {
-            const dbCard = createServiceCard(db, 'database');
-            databasesGrid.appendChild(dbCard);
+        databasesToRender.forEach(database => {
+            databasesGrid.appendChild(createServiceCard(database));
         });
     }
 
-    function createServiceCard(service, type) {
-        const card = document.createElement('div');
+    function createServiceCard(service) {
+        const card = document.createElement('article');
         card.className = 'service-card';
 
-        const costClass = service.cost.toLowerCase().includes('free') ? 'free' :
-                         service.cost.toLowerCase().includes('$') || service.cost.toLowerCase().includes('pro') ? 'paid' : 'included';
+        const costClass = classifyCost(service.cost);
+        const usedByMarkup = service.apps
+            .sort((left, right) => left.localeCompare(right))
+            .map(appName => `<span class="app-tag">${escapeHtml(appName)}</span>`)
+            .join('');
 
         card.innerHTML = `
-            <div class="service-header">
-                <h3>${service.name}</h3>
-                <span class="service-type">${service.type}</span>
+            <div class="service-head">
+                <div>
+                    <h3>${escapeHtml(service.name)}</h3>
+                    <span class="service-type">${escapeHtml(service.type)}</span>
+                </div>
+                <span class="service-cost ${costClass}">${escapeHtml(service.cost)}</span>
             </div>
-            <div class="service-content">
-                <div class="service-meta">
-                    <span class="service-cost ${costClass}">${service.cost}</span>
-                </div>
-                <div class="service-apps">
-                    <h4>Used by:</h4>
-                    <div class="app-tags">
-                        ${service.apps.map(app => `<span class="app-tag">${app}</span>`).join('')}
-                    </div>
-                </div>
+            <div class="services-block">
+                <p class="services-label">Used By</p>
+                <div class="app-tags">${usedByMarkup}</div>
             </div>
         `;
 
         return card;
     }
 
-    function updateStats(apps) {
-        totalAppsEl.textContent = apps.length;
-        webAppsEl.textContent = apps.filter(app => app.category === 'Web App').length;
-        activeAppsEl.textContent = apps.filter(app => app.status === 'Active').length;
+    function updateStats(appsToCount) {
+        totalAppsEl.textContent = String(appsToCount.length);
+        webAppsEl.textContent = String(appsToCount.filter(app => app.category === 'Web App').length);
+        localToolsEl.textContent = String(appsToCount.filter(app => app.links.some(link => link.type === 'start' || getRepoAssetType(link.url || '') === 'local-launch')).length);
+        sourceLinksEl.textContent = String(appsToCount.filter(app => app.links.some(link => link.type === 'github')).length);
+    }
+
+    function setActiveTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(panel => {
+            panel.classList.toggle('active', panel.id === `${tabName}Tab`);
+        });
+
+        tabButtons.forEach(button => {
+            const isActive = button.dataset.tab === tabName;
+            button.classList.toggle('active', isActive);
+            button.setAttribute('aria-selected', String(isActive));
+        });
+    }
+
+    function isRelativeRepoAsset(url) {
+        return typeof url === 'string' && !/^https?:\/\//i.test(url) && !/^mailto:/i.test(url);
+    }
+
+    function getRepoAssetType(url) {
+        const normalized = String(url || '').toLowerCase();
+
+        if (normalized.endsWith('.html') || normalized.endsWith('.htm')) {
+            return 'web';
+        }
+
+        if (normalized.endsWith('.exe') || normalized.endsWith('.msi') || normalized.endsWith('.zip') || normalized.endsWith('.7z')) {
+            return 'download';
+        }
+
+        if (normalized.endsWith('.bat') || normalized.endsWith('.cmd') || normalized.endsWith('.ps1') || normalized.endsWith('.vbs')) {
+            return 'local-launch';
+        }
+
+        return 'file';
+    }
+
+    function classifyCost(cost) {
+        const normalized = String(cost || '').toLowerCase();
+
+        if (normalized.includes('free')) {
+            return 'free';
+        }
+
+        if (normalized.includes('$') || normalized.includes('pro')) {
+            return 'paid';
+        }
+
+        return 'included';
+    }
+
+    function cssSafeToken(value) {
+        return String(value || '').trim().toLowerCase().replace(/\s+/g, '-');
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function escapeAttribute(value) {
+        return escapeHtml(value);
     }
 });
-
-// Tab switching functionality
-function showTab(tabName) {
-    // Hide all tab contents
-    const tabContents = document.querySelectorAll('.tab-content');
-    tabContents.forEach(content => content.classList.remove('active'));
-
-    // Remove active class from all tab buttons
-    const tabButtons = document.querySelectorAll('.tab-button');
-    tabButtons.forEach(button => button.classList.remove('active'));
-
-    // Show selected tab content
-    const selectedTab = document.getElementById(tabName + 'Tab');
-    if (selectedTab) {
-        selectedTab.classList.add('active');
-    }
-
-    // Add active class to clicked button
-    const clickedButton = Array.from(tabButtons).find(button =>
-        button.textContent.toLowerCase().includes(tabName.toLowerCase())
-    );
-    if (clickedButton) {
-        clickedButton.classList.add('active');
-    }
-}

@@ -1,0 +1,2619 @@
+<!DOCTYPE html>
+<!--
+================================================================================
+  MIDAS TECH FILE SEARCH ENGINE v3.0 — QA-Fixed Release
+  Built by Midas Tech Inc | www.midastech.ca | info@midastech.ca
+  905-787-2038 | 30 Via Renzo Dr Suite 200, Richmond Hill, ON L4S 0B8
+================================================================================
+
+  FIXES IN v3.0 (all 35 QA issues resolved):
+  BUG-001 escHtml now escapes ' and " — no XSS via data attributes
+  BUG-002 Fixed-height rows (52px enforced) — virtual scroll accurate at 10k files
+  BUG-003 localStorage quota handled properly — QuotaExceededError surfaced to user
+  BUG-004 Tesseract worker serialized init + terminate() on stop/new scan
+  BUG-005 Re-scan uses saved dirHandle — no dialog shown
+  BUG-006 Queue item IDs use array index — no btoa unicode crash
+  BUG-007 Skipped file count reported after scan
+  BUG-008 Zero-byte files show "0 B" not "—"
+  BUG-009 loadScript serialized with singleton Promise per URL
+  BUG-010 DOCX/PPTX regex uses \d+ — slides 10+ extracted
+  BUG-011 contentIndex cleared when new index loaded
+  BUG-012 DecompressionStream errors surfaced — partial badge added
+  BUG-013 Stop sets 'stopped' status; terminate() called immediately
+  BUG-014 lastRange always invalidated after content change
+  BUG-015 Content scope guard: inName skipped when scope='content'
+  BUG-016 date> adds 86400000ms so files ON that date are included
+  BUG-017 Invalid size/date inputs shown as inline query warning
+  BUG-018 XLSX targets workbook.xml + sheet\d+.xml for inline strings
+  BUG-019 scrollToIdx clamped to Math.max(0,…)
+  BUG-020 Help panel closes when OCR panel opens and vice versa
+  BUG-021 Duplicate padding-left removed from .cell-snippet
+  BUG-022 Arrow key handler guarded with tag !== 'INPUT'
+  BUG-023 Persistent banner shown when File System Access API absent
+  BUG-024 extractionQueue reset on new scan/JSON load
+  BUG-025 Logo "Search" span uses explicit light-mode color
+  BUG-026 "Has Content" chip + typeFilter reset on index clear
+  BUG-027 Export filename includes ISO date
+  BUG-028 OCR progress bar reset at scan start
+  BUG-029 Help and OCR panels mutually exclusive
+  INFO-001 --row-h-content removed
+  INFO-002 md mapped consistently to 'doc' only
+  INFO-003 PDF partial badge shown for capped documents
+  INFO-004 GIF excluded from OCR targets with warning
+  INFO-005 Inline SVG favicon added
+  INFO-006 OCR panel SVG uses currentColor
+
+  POWER AUTOMATE JSON SCHEMA:
+  {
+    "name":     "filename.pdf",
+    "path":     "Folder/Sub/filename.pdf",
+    "size":     1048576,
+    "type":     "pdf",
+    "modified": "2025-01-10T12:00:00Z",
+    "url":      "https://sharepoint-link/filename.pdf",
+    "content":  "pre-extracted text (optional)"
+  }
+================================================================================
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="description" content="Midas Tech File Search Engine — local and cloud file search with OCR content indexing"/>
+<!-- INFO-005: inline SVG favicon -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Crect width='28' height='28' rx='6' fill='%230072BC'/%3E%3Cpath d='M6 20V8l8 7 8-7v12' stroke='%2300AEEF' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E"/>
+<title>Midas File Search</title>
+<style>
+/* ── Reset ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cyan:#00AEEF;--blue:#0072BC;--dark:#0c1120;--surface:#131f35;
+  --surface2:#1c2d47;--surface3:#243858;--border:#2d4468;
+  --text:#edf2f9;--text2:#94aecb;--text3:#5a7a9e;
+  --green:#22c55e;--red:#ef4444;--amber:#f59e0b;--purple:#a855f7;
+  --row-h:58px;--header-h:64px;
+  --font-mono:'Cascadia Code','Fira Code','Courier New',monospace;
+  --font-ui:'Segoe UI',system-ui,-apple-system,sans-serif;
+  --radius:8px;--shadow:0 8px 32px rgba(0,0,0,.5);--transition:.15s ease;
+}
+[data-theme="light"]{
+  --dark:#f0f4fa;--surface:#ffffff;--surface2:#f5f8ff;
+  --surface3:#eaf0fb;--border:#d1ddef;
+  --text:#1a2540;--text2:#4a6080;--text3:#8fa3c0;
+}
+html,body{height:100%;overflow:hidden;background:var(--dark);color:var(--text);font-family:var(--font-ui);font-size:15px;line-height:1.5}
+#app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+/* ── Header ── */
+#hdr{display:flex;align-items:center;gap:10px;padding:0 20px;height:var(--header-h);
+  background:var(--surface);border-bottom:2px solid var(--border);flex-shrink:0;
+  box-shadow:0 2px 16px rgba(0,114,188,.12);flex-wrap:nowrap;overflow:hidden}
+#logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;
+  color:var(--cyan);white-space:nowrap;text-decoration:none;flex-shrink:0}
+/* BUG-025: explicit color per theme */
+#logo .logo-word{color:var(--text2)}
+[data-theme="light"] #logo .logo-word{color:#4a6080}
+.logo-sub{font-size:10px;color:var(--text3);font-weight:400;letter-spacing:.5px;
+  text-transform:uppercase;line-height:1;display:block;margin-top:1px}
+#hdr-spacer{flex:1;min-width:4px}
+.hdr-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--border);
+  border-radius:var(--radius);background:var(--surface2);color:var(--text2);cursor:pointer;
+  font-size:13px;font-family:var(--font-ui);font-weight:500;transition:all var(--transition);white-space:nowrap;flex-shrink:0}
+.hdr-btn:hover{border-color:var(--cyan);color:var(--cyan);background:rgba(0,174,239,.08)}
+.hdr-btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.hdr-btn.primary:hover{background:var(--cyan);border-color:var(--cyan)}
+.hdr-btn.ocr-btn{border-color:var(--purple);color:var(--purple);background:rgba(168,85,247,.08)}
+.hdr-btn.ocr-btn:hover{background:rgba(168,85,247,.18);border-color:var(--purple)}
+.hdr-btn svg{flex-shrink:0}
+#theme-btn{padding:6px;border:1px solid var(--border);border-radius:var(--radius);
+  background:var(--surface2);cursor:pointer;color:var(--text2);transition:all var(--transition);
+  display:flex;align-items:center;flex-shrink:0}
+#theme-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+/* ── Folder bar ── */
+#folder-bar{display:flex;align-items:center;gap:8px;flex:2;min-width:0;max-width:500px;
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:6px 12px;cursor:pointer;transition:all var(--transition)}
+#folder-bar:hover{border-color:var(--cyan);background:rgba(0,174,239,.06)}
+#folder-bar svg{flex-shrink:0;color:var(--cyan)}
+#folder-path-text{flex:1;font-size:13px;color:var(--text2);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+#folder-change-btn{flex-shrink:0;font-size:11px;color:var(--cyan);background:none;
+  border:1px solid var(--cyan);border-radius:4px;padding:2px 8px;cursor:pointer;
+  font-family:var(--font-ui);transition:all var(--transition)}
+#folder-change-btn:hover{background:var(--cyan);color:#fff}
+/* ── Folder modal ── */
+#folder-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);
+  z-index:600;align-items:center;justify-content:center}
+#folder-modal.open{display:flex}
+#folder-modal-box{background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:28px;width:520px;max-width:90vw;box-shadow:var(--shadow)}
+#folder-modal-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px}
+#folder-modal-sub{font-size:13px;color:var(--text3);margin-bottom:18px;line-height:1.6}
+#folder-modal-input{width:100%;padding:12px;background:var(--surface2);
+  border:2px solid var(--border);border-radius:var(--radius);color:var(--text);
+  font-family:var(--font-mono);font-size:13px;outline:none;resize:vertical;
+  transition:border-color .15s;box-sizing:border-box;margin-bottom:8px;display:block;line-height:1.6}
+#folder-modal-input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,174,239,.12)}
+#folder-modal-hint{font-size:12px;color:var(--text3);margin-bottom:18px;line-height:1.7}
+.folder-modal-actions{display:flex;gap:10px;justify-content:flex-end}
+.modal-btn{padding:10px 22px;border-radius:var(--radius);cursor:pointer;font-size:14px;
+  font-family:var(--font-ui);font-weight:600;transition:all var(--transition);border:none}
+.modal-btn.primary{background:var(--blue);color:#fff}
+.modal-btn.primary:hover{background:var(--cyan)}
+.modal-btn.secondary{background:var(--surface2);border:1px solid var(--border);color:var(--text2)}
+.modal-btn.secondary:hover{border-color:var(--cyan);color:var(--cyan)}
+
+/* BUG-023: API unavailable banner */
+#api-warning{display:none;background:rgba(245,158,11,.1);border-bottom:1px solid rgba(245,158,11,.3);
+  padding:6px 14px;font-size:11px;color:var(--amber);flex-shrink:0;align-items:center;gap:8px}
+#api-warning.visible{display:flex}
+/* Wrong-open banner — shown when index.html opened as file:// while server is running */
+#wrong-open-banner{display:none;background:rgba(239,68,68,.12);border-bottom:2px solid var(--red);
+  padding:10px 16px;font-size:12px;color:#fca5a5;flex-shrink:0;align-items:flex-start;gap:10px;
+  flex-direction:column}
+#wrong-open-banner.visible{display:flex}
+#wrong-open-banner strong{color:#fff}
+#wrong-open-banner code{background:rgba(255,255,255,.1);padding:1px 6px;border-radius:3px;
+  font-family:var(--font-mono);font-size:12px;color:#fff}
+#wrong-open-banner a{color:var(--cyan);text-decoration:underline;cursor:pointer}
+
+/* ── Search Bar ── */
+#search-bar{display:flex;align-items:center;gap:10px;padding:12px 20px;
+  background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+#search-wrap{flex:1;min-width:200px;position:relative;display:flex;align-items:center}
+#search-icon{position:absolute;left:11px;color:var(--text3);pointer-events:none;z-index:1}
+#search-input{width:100%;padding:11px 38px 11px 42px;background:var(--surface2);
+  border:2px solid var(--border);border-radius:var(--radius);color:var(--text);
+  font-family:var(--font-ui);font-size:14px;outline:none;transition:all var(--transition)}
+#search-input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,174,239,.12)}
+#search-input::placeholder{color:var(--text3);font-size:12px}
+#clear-btn{position:absolute;right:9px;background:none;border:none;color:var(--text3);
+  cursor:pointer;padding:2px;display:none;border-radius:3px}
+#clear-btn:hover{color:var(--text)}
+#clear-btn.visible{display:flex;align-items:center}
+/* BUG-017: query error hint */
+#query-error{width:100%;font-size:11px;color:var(--amber);padding:2px 4px;display:none}
+#query-error.visible{display:block}
+.search-scope{display:flex;gap:1px;background:var(--surface3);border:1px solid var(--border);
+  border-radius:var(--radius);overflow:hidden;flex-shrink:0}
+.scope-btn{padding:7px 14px;background:none;border:none;color:var(--text3);cursor:pointer;
+  font-size:13px;font-family:var(--font-ui);transition:all var(--transition);white-space:nowrap}
+.scope-btn.active{background:var(--blue);color:#fff;font-weight:600}
+.scope-btn:hover:not(.active){background:var(--surface2);color:var(--text)}
+#filter-bar{display:flex;gap:5px;flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+#filter-bar::-webkit-scrollbar{display:none}
+.type-chip{padding:6px 14px;border:1px solid var(--border);border-radius:20px;
+  background:var(--surface2);color:var(--text2);cursor:pointer;font-size:13px;
+  font-weight:500;transition:all var(--transition);white-space:nowrap}
+.type-chip:hover,.type-chip.active{background:rgba(0,174,239,.15);border-color:var(--cyan);color:var(--cyan)}
+.type-chip.content-only{border-color:var(--purple);color:var(--purple);background:rgba(168,85,247,.08)}
+.type-chip.content-only.active{background:rgba(168,85,247,.2)}
+
+/* ── Status Bar ── */
+#status-bar{display:flex;align-items:center;gap:12px;padding:6px 20px;
+  background:var(--surface2);border-bottom:1px solid var(--border);
+  font-size:13px;color:var(--text3);flex-shrink:0;flex-wrap:wrap}
+#status-count{color:var(--text2)}
+#status-mode{color:var(--cyan);font-weight:600}
+#ocr-status{color:var(--purple);display:none}
+#sort-info{margin-left:auto;display:flex;gap:6px;align-items:center}
+
+/* ── Table Header ── */
+#tbl-header{display:grid;grid-template-columns:44px 1fr 90px 100px 150px 140px;
+  padding:0 20px;height:42px;align-items:center;
+  background:var(--surface2);border-bottom:2px solid var(--border);
+  font-size:12px;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.7px;font-weight:700;flex-shrink:0;user-select:none}
+.th{cursor:pointer;display:flex;align-items:center;gap:3px;user-select:none;
+  padding:3px 5px;border-radius:4px;transition:all var(--transition);white-space:nowrap}
+.th:hover{color:var(--text);background:var(--surface3)}
+.th.active{color:var(--cyan)}
+.sort-arrow{font-size:9px;opacity:.7}
+
+/* ── Virtual Scroll ── */
+#scroll-container{flex:1;overflow-y:auto;overflow-x:hidden;position:relative}
+#scroll-container::-webkit-scrollbar{width:5px}
+#scroll-container::-webkit-scrollbar-track{background:transparent}
+#scroll-container::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+#scroll-container::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+#virtual-spacer{position:relative;width:100%}
+#rows-container{position:absolute;top:0;left:0;right:0}
+
+/* ── File Row — BUG-002: fixed height, no min-height ── */
+.file-row{display:grid;grid-template-columns:44px 1fr 90px 100px 150px 140px;
+  align-items:center;padding:0 20px;height:var(--row-h);
+  border-bottom:1px solid var(--border);cursor:pointer;overflow:hidden;
+  transition:background var(--transition);position:relative}
+.file-row:hover{background:var(--surface2)}
+.file-row.focused{background:rgba(0,174,239,.07);box-shadow:inset 2px 0 0 var(--cyan)}
+.cell-icon{display:flex;align-items:center;justify-content:center;width:20px;flex-shrink:0}
+.cell-icon svg{width:18px;height:18px;flex-shrink:0}
+.cell-name{min-width:0;display:flex;flex-direction:column;gap:1px}
+.cell-name-text{font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;color:var(--text);line-height:1.3}
+.cell-path{font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-family:var(--font-mono)}
+/* BUG-002: snippet clamped to 1 line to keep row height fixed */
+.cell-snippet{font-size:10px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;font-style:italic;
+  border-left:2px solid var(--purple);
+  /* BUG-021: single padding declaration */
+  padding:0 6px;
+  color:var(--text2)}
+.cell-snippet mark{background:rgba(168,85,247,.3);color:var(--purple)}
+.cell-content-badge{display:inline-flex;align-items:center;gap:2px;padding:0 4px;
+  border-radius:3px;font-size:9px;font-weight:600;letter-spacing:.3px;white-space:nowrap}
+.badge-indexed{background:rgba(168,85,247,.15);color:var(--purple);border:1px solid rgba(168,85,247,.3)}
+.badge-partial{background:rgba(245,158,11,.1);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
+.badge-error{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.cell-type{font-size:12px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;font-weight:600}
+.cell-size{font-size:13px;color:var(--text2);font-family:var(--font-mono);text-align:right}
+.cell-date{font-size:12px;color:var(--text3);text-align:right;padding-right:4px}
+.cell-extract{display:flex;align-items:center;justify-content:flex-end;gap:5px}
+.folder-btn{padding:4px 7px;border:1px solid var(--border);border-radius:6px;
+  background:none;color:var(--text3);cursor:pointer;font-size:11px;transition:all var(--transition);
+  display:flex;align-items:center;gap:3px}
+.folder-btn:hover{border-color:var(--cyan);color:var(--cyan);background:rgba(0,174,239,.08)}
+.folder-btn svg{width:12px;height:12px}
+.extract-btn{padding:2px 7px;border:1px solid var(--border);border-radius:4px;
+  background:none;color:var(--text3);cursor:pointer;font-size:10px;font-family:var(--font-ui);
+  transition:all var(--transition);white-space:nowrap}
+.extract-btn:hover{border-color:var(--purple);color:var(--purple);background:rgba(168,85,247,.08)}
+.extract-btn.extracting{color:var(--amber);border-color:var(--amber);animation:pulse 1s ease infinite}
+.extract-btn.done{color:var(--green);border-color:var(--green)}
+.extract-btn.partial{color:var(--amber);border-color:var(--amber)}
+.extract-btn.err{color:var(--red);border-color:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+mark{background:rgba(0,174,239,.25);color:var(--cyan);border-radius:2px;padding:0 1px}
+
+/* ── Empty State ── */
+#empty-state{display:none;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;gap:16px;padding:40px;text-align:center}
+#empty-state.visible{display:flex}
+.empty-icon{font-size:52px;opacity:.3}
+.empty-title{font-size:17px;font-weight:600;color:var(--text2)}
+.empty-sub{font-size:13px;color:var(--text3);max-width:400px;line-height:1.6}
+.empty-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+.empty-btn{padding:9px 18px;border-radius:var(--radius);cursor:pointer;font-size:13px;
+  font-family:var(--font-ui);display:flex;align-items:center;gap:7px;transition:all var(--transition)}
+.empty-btn.p{background:var(--blue);border:1px solid var(--blue);color:#fff}
+.empty-btn.p:hover{background:var(--cyan);border-color:var(--cyan)}
+.empty-btn.s{background:var(--surface2);border:1px solid var(--border);color:var(--text2)}
+.empty-btn.s:hover{border-color:var(--cyan);color:var(--cyan)}
+
+/* ── Preview Panel ── */
+#preview-panel{position:fixed;right:0;top:0;bottom:0;width:420px;
+  background:var(--surface);border-left:1px solid var(--border);
+  box-shadow:-8px 0 32px rgba(0,0,0,.5);z-index:490;
+  display:flex;flex-direction:column;transform:translateX(100%);
+  transition:transform .25s ease}
+#preview-panel.open{transform:translateX(0)}
+#preview-hdr{display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
+#preview-title{font-size:13px;font-weight:600;color:var(--text);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;flex:1}
+#preview-close{background:none;border:none;color:var(--text3);cursor:pointer;
+  padding:4px;border-radius:4px;display:flex;align-items:center;flex-shrink:0}
+#preview-close:hover{color:var(--text);background:var(--surface2)}
+#preview-meta{padding:10px 16px;border-bottom:1px solid var(--border);
+  font-size:12px;color:var(--text3);display:flex;gap:16px;flex-wrap:wrap;flex-shrink:0}
+.preview-meta-item{display:flex;gap:4px}
+.preview-meta-label{color:var(--text3)}
+.preview-meta-value{color:var(--text2);font-weight:500}
+#preview-body{flex:1;overflow:auto;position:relative;background:var(--dark)}
+#preview-body::-webkit-scrollbar{width:6px}
+#preview-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+#preview-frame{width:100%;height:100%;border:none;background:#fff}
+#preview-img{max-width:100%;max-height:100%;display:block;margin:auto;padding:16px}
+#preview-text{padding:16px;font-family:var(--font-mono);font-size:12px;
+  color:var(--text2);line-height:1.6;white-space:pre-wrap;word-break:break-all}
+#preview-placeholder{display:flex;flex-direction:column;align-items:center;
+  justify-content:center;height:100%;gap:12px;padding:32px;text-align:center}
+#preview-placeholder .p-icon{font-size:48px;opacity:.3}
+#preview-placeholder .p-msg{font-size:13px;color:var(--text3);line-height:1.6}
+#preview-open-btn{padding:9px 20px;background:var(--blue);color:#fff;border:none;
+  border-radius:var(--radius);cursor:pointer;font-size:13px;font-family:var(--font-ui);
+  font-weight:600;transition:all var(--transition)}
+#preview-open-btn:hover{background:var(--cyan)}
+#preview-actions{padding:10px 16px;border-top:1px solid var(--border);
+  display:flex;gap:8px;flex-shrink:0}
+.preview-action-btn{flex:1;padding:8px;background:var(--surface2);border:1px solid var(--border);
+  color:var(--text2);border-radius:var(--radius);cursor:pointer;font-size:12px;
+  font-family:var(--font-ui);transition:all var(--transition);text-align:center}
+.preview-action-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+@media(max-width:768px){#preview-panel{width:100%}}
+
+/* ── OCR Panel ── */
+#ocr-panel{position:fixed;right:0;top:0;bottom:0;width:340px;
+  background:var(--surface);border-left:1px solid var(--border);
+  box-shadow:-8px 0 32px rgba(0,0,0,.3);
+  /* BUG-020: raise z-index above help panel (400), both use fixed positioning */
+  z-index:500;
+  display:flex;flex-direction:column;transform:translateX(100%);
+  transition:transform .25s ease}
+#ocr-panel.open{transform:translateX(0)}
+#ocr-panel-hdr{display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
+#ocr-panel-title{font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
+#ocr-panel-close{background:none;border:none;color:var(--text3);cursor:pointer;padding:4px;
+  border-radius:4px;display:flex;align-items:center}
+#ocr-panel-close:hover{color:var(--text);background:var(--surface2)}
+#ocr-panel-body{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+#ocr-panel-body::-webkit-scrollbar{width:4px}
+#ocr-panel-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.ocr-section-title{font-size:11px;text-transform:uppercase;letter-spacing:.6px;
+  color:var(--text3);font-weight:600;margin-bottom:6px}
+.ocr-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ocr-stat{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:10px;text-align:center}
+.ocr-stat-n{font-size:22px;font-weight:700;color:var(--cyan)}
+.ocr-stat-l{font-size:10px;color:var(--text3);margin-top:2px}
+.ocr-actions{display:flex;flex-direction:column;gap:8px}
+.ocr-action-btn{display:flex;align-items:center;gap:8px;padding:9px 12px;
+  border-radius:var(--radius);cursor:pointer;font-size:12px;font-family:var(--font-ui);
+  transition:all var(--transition);border:1px solid var(--border);background:var(--surface2);color:var(--text2)}
+.ocr-action-btn:hover{border-color:var(--purple);color:var(--purple);background:rgba(168,85,247,.08)}
+.ocr-action-btn.danger{color:var(--red)}
+.ocr-action-btn.danger:hover{border-color:var(--red);background:rgba(239,68,68,.08)}
+.ocr-queue-title{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);font-weight:600}
+#ocr-queue{display:flex;flex-direction:column;gap:4px;max-height:300px;overflow-y:auto}
+#ocr-queue::-webkit-scrollbar{width:3px}
+#ocr-queue::-webkit-scrollbar-thumb{background:var(--border)}
+.queue-item{display:flex;align-items:center;gap:8px;padding:6px 8px;
+  background:var(--surface2);border-radius:4px;font-size:11px;min-width:0}
+.queue-item-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)}
+.queue-item-status{flex-shrink:0;font-size:10px;font-weight:600}
+.qs-pending{color:var(--text3)}
+.qs-running{color:var(--amber)}
+.qs-done{color:var(--green)}
+.qs-error{color:var(--red)}
+.qs-stopped{color:var(--text3);opacity:.5}
+.qs-partial{color:var(--amber)}
+.ocr-progress-wrap{background:var(--surface3);border-radius:3px;height:6px;overflow:hidden;margin-top:4px}
+.ocr-progress-bar{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));
+  border-radius:3px;transition:width .3s ease;width:0%}
+
+/* ── Toast ── */
+#toast{position:fixed;bottom:22px;right:22px;padding:9px 16px;border-radius:var(--radius);
+  font-size:12px;background:var(--surface);border:1px solid var(--border);
+  box-shadow:var(--shadow);color:var(--text);z-index:9999;
+  transform:translateY(70px);opacity:0;transition:all .22s ease;pointer-events:none;
+  max-width:320px;display:flex;align-items:center;gap:7px}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.ok{border-color:var(--green);color:var(--green)}
+#toast.err{border-color:var(--red);color:var(--red)}
+#toast.info{border-color:var(--cyan);color:var(--cyan)}
+#toast.warn{border-color:var(--amber);color:var(--amber)}
+
+/* ── Scan Overlay ── */
+#scan-overlay{display:none;position:fixed;inset:0;background:rgba(10,14,23,.85);
+  z-index:200;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+#scan-overlay.visible{display:flex}
+.scan-spinner{width:38px;height:38px;border:3px solid var(--border);
+  border-top-color:var(--cyan);border-radius:50%;animation:spin .75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.scan-msg{font-size:14px;color:var(--text2)}
+.scan-count{font-size:12px;color:var(--text3);font-family:var(--font-mono)}
+
+/* ── Help Panel ── BUG-020: z-index below OCR panel (500) */
+#help-panel{display:none;position:fixed;top:60px;right:12px;width:310px;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px;z-index:450;box-shadow:var(--shadow)}
+#help-panel.visible{display:block}
+.help-title{font-size:11px;font-weight:700;color:var(--cyan);text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:8px;margin-top:10px}
+.help-title:first-child{margin-top:0}
+.help-row{display:flex;align-items:baseline;gap:8px;margin-bottom:5px;font-size:12px}
+.help-cmd{font-family:var(--font-mono);background:var(--surface2);border:1px solid var(--border);
+  padding:1px 5px;border-radius:3px;color:var(--cyan);white-space:nowrap;font-size:11px}
+.help-desc{color:var(--text3)}
+
+/* ── Mobile ── */
+@media(max-width:768px){
+  #tbl-header{display:none}
+  .file-row{grid-template-columns:32px 1fr 76px;padding:0 12px}
+  .cell-type,.cell-date,.cell-extract{display:none}
+  .cell-size{font-size:10px;text-align:right}
+  #hdr{padding:0 10px;gap:5px}
+  .hdr-btn span{display:none}
+  .hdr-btn{padding:6px 7px}
+  #search-bar{padding:8px 10px;gap:6px}
+  #status-bar{padding:3px 10px}
+  #sort-info{display:none}
+  #ocr-panel{width:100%}
+}
+@media(max-width:420px){
+  #logo .logo-sub{display:none}
+  .search-scope{display:none}
+}
+</style>
+</head>
+<body data-theme="dark">
+<div id="app">
+
+  <!-- ── Header ── -->
+  <header id="hdr">
+    <a id="logo" href="https://www.midastech.ca" target="_blank" rel="noopener">
+      <svg width="26" height="26" viewBox="0 0 28 28" fill="none">
+        <rect width="28" height="28" rx="6" fill="#0072BC"/>
+        <path d="M6 20V8l8 7 8-7v12" stroke="#00AEEF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <!-- BUG-025: .logo-word uses explicit themed color -->
+      <div><span>Midas<span class="logo-word">Search</span></span>
+        <span class="logo-sub">Midas Tech Inc</span></div>
+    </a>
+    <!-- Current folder path display -->
+    <div id="folder-bar" onclick="openFolderModal()" title="Click to change search folder">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      <span id="folder-path-text">No folder loaded</span>
+    </div>
+    <div id="hdr-spacer"></div>
+    <button class="hdr-btn primary" id="btn-scan" onclick="openFolderModal()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      <span>Select Folder</span>
+    </button>
+    <button class="hdr-btn" id="btn-load-json">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <span>Load JSON</span>
+    </button>
+    <!-- INFO-006: stroke="currentColor" -->
+    <button class="hdr-btn ocr-btn" id="btn-ocr-panel">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h3m4 0h3M7 12h10M7 16h6"/></svg>
+      <span>OCR &amp; Content</span>
+    </button>
+    <button class="hdr-btn" id="btn-export" style="display:none">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>Export JSON</span>
+    </button>
+    <button class="hdr-btn" id="btn-rescan" style="display:none">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      <span>Re-scan</span>
+    </button>
+    <button class="hdr-btn" id="btn-help">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span>Help</span>
+    </button>
+    <button id="theme-btn">
+      <svg id="theme-icon-dark" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg id="theme-icon-light" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </header>
+
+  <!-- BUG-023: persistent banner when File System Access API absent -->
+  <div id="api-warning">
+    ⚠️ Your browser does not support the File System Access API (folder scanning). Use <strong>Load JSON</strong> mode to search files from an index.json generated by Power Automate.
+  </div>
+  <div id="wrong-open-banner">
+    <div>🔴 <strong>Wrong way to open this file.</strong> You double-clicked <code>index.html</code> directly — this causes a security error that blocks the server connection.</div>
+    <div>✅ <strong>Fix:</strong> Double-click <code>launch.bat</code> instead. It starts the server and opens the correct URL: <a onclick="window.open('http://localhost:51248','_blank')">http://localhost:51248</a></div>
+    <div style="opacity:.7">Or manually open your browser and go to <code>http://localhost:51248</code> &nbsp;(server is already running)</div>
+  </div>
+
+  <!-- ── Search Bar ── -->
+  <div id="search-bar">
+    <div id="search-wrap">
+      <svg id="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="search-input" placeholder='Search files + content… type:pdf  size>1mb  date>2024-01-01  content:"invoice"' autocomplete="off" spellcheck="false"/>
+      <button id="clear-btn">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <!-- BUG-017: query error display -->
+    <div id="query-error"></div>
+    <div class="search-scope">
+      <button class="scope-btn active" data-scope="all">All</button>
+      <button class="scope-btn" data-scope="name">Name</button>
+      <button class="scope-btn" data-scope="content">Content</button>
+    </div>
+    <div id="filter-bar">
+      <button class="type-chip active" data-type="">All Files</button>
+      <button class="type-chip content-only" data-type="__indexed__">📄 Has Content</button>
+      <!-- Dynamic type chips injected by JS after scan -->
+    </div>
+    <!-- Type filter dropdown -->
+    <div id="type-filter-wrap" style="position:relative;flex-shrink:0">
+      <button id="type-filter-btn" class="hdr-btn" onclick="toggleTypeDropdown()" style="gap:6px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/></svg>
+        <span id="type-filter-label">Filter Types</span>
+      </button>
+      <div id="type-dropdown" style="display:none;position:absolute;top:calc(100% + 6px);right:0;
+        background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+        box-shadow:var(--shadow);z-index:600;min-width:200px;max-height:360px;overflow-y:auto;
+        padding:6px 0">
+        <div style="padding:6px 12px 4px;font-size:11px;color:var(--text3);font-weight:700;
+          text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);margin-bottom:4px">
+          File Types in Folder
+        </div>
+        <label id="type-all-label" style="display:flex;align-items:center;gap:8px;padding:7px 14px;
+          cursor:pointer;font-size:13px;color:var(--text)" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background=''">
+          <input type="checkbox" id="type-all-cb" checked onchange="toggleAllTypes(this.checked)"
+            style="width:15px;height:15px;accent-color:var(--cyan)"/>
+          <span style="font-weight:600">All Types</span>
+        </label>
+        <div id="type-checkbox-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Status Bar ── -->
+  <div id="status-bar">
+    <span id="status-mode">No files loaded</span>
+    <span id="status-count"></span>
+    <span id="ocr-status"></span>
+    <div id="sort-info">
+      <span>Sort:</span>
+      <span id="sort-label" style="color:var(--text2)">Name ↑</span>
+    </div>
+  </div>
+
+  <!-- ── Table Header ── -->
+  <div id="tbl-header">
+    <div></div>
+    <div class="th active" data-col="name"><span>Name</span><span class="sort-arrow">↑</span></div>
+    <div class="th" data-col="type"><span>Type</span><span class="sort-arrow"></span></div>
+    <div class="th" data-col="size"><span>Size</span><span class="sort-arrow"></span></div>
+    <div class="th" data-col="modified"><span>Modified</span><span class="sort-arrow"></span></div>
+    <div class="th" data-col="content" style="justify-content:flex-end;color:var(--purple)"><span>Content</span><span class="sort-arrow"></span></div>
+  </div>
+
+  <!-- ── Virtual Scroll ── -->
+  <div id="scroll-container">
+    <div id="virtual-spacer"><div id="rows-container"></div></div>
+    <div id="empty-state">
+      <div class="empty-icon">🗂️</div>
+      <div class="empty-title">No files loaded yet</div>
+      <div class="empty-sub">Select a local folder to scan, or load an <code>index.json</code> from OneDrive / SharePoint. Then use the OCR &amp; Content panel to index file contents for full-text search.</div>
+      <div class="empty-actions">
+        <button class="empty-btn p" id="empty-btn-scan">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          Select Folder
+        </button>
+        <button class="empty-btn s" id="empty-btn-json">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Load Index JSON
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Preview Panel ── -->
+<div id="preview-panel">
+  <div id="preview-hdr">
+    <span id="preview-title">Preview</span>
+    <button id="preview-close" onclick="closePreview()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div id="preview-meta"></div>
+  <div id="preview-body">
+    <div id="preview-placeholder">
+      <div class="p-icon">👁️</div>
+      <div class="p-msg">Click any file to preview it here</div>
+    </div>
+  </div>
+  <div id="preview-actions">
+    <button class="preview-action-btn" onclick="openCurrentFile()" title="Open file in browser/app">🔗 Open</button>
+    <button class="preview-action-btn" onclick="openCurrentFolder()" title="Show in Explorer">📁 Folder</button>
+    <button class="preview-action-btn" onclick="shareToOutlook()" title="Share via Outlook email">📧 Email</button>
+    <button class="preview-action-btn" onclick="copyFilePath()" title="Copy full file path">📋 Copy Path</button>
+    <button class="preview-action-btn" onclick="renameCurrentFile()" title="Rename file">✏️ Rename</button>
+    <button class="preview-action-btn" onclick="extractCurrentFile()" title="Extract text content">⚡ Extract</button>
+  </div>
+</div>
+
+<!-- ── OCR Panel ── -->
+<div id="ocr-panel">
+  <div id="ocr-panel-hdr">
+    <!-- INFO-006: currentColor -->
+    <div id="ocr-panel-title">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="color:var(--purple)"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h3m4 0h3M7 12h10M7 16h6"/></svg>
+      OCR &amp; Content Indexing
+    </div>
+    <button id="ocr-panel-close">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div id="ocr-panel-body">
+    <div>
+      <div class="ocr-section-title">Index Stats</div>
+      <div class="ocr-stats">
+        <div class="ocr-stat"><div class="ocr-stat-n" id="stat-total">0</div><div class="ocr-stat-l">Total Files</div></div>
+        <div class="ocr-stat"><div class="ocr-stat-n" id="stat-indexed" style="color:var(--purple)">0</div><div class="ocr-stat-l">Indexed</div></div>
+        <div class="ocr-stat"><div class="ocr-stat-n" id="stat-pending" style="color:var(--amber)">0</div><div class="ocr-stat-l">Pending</div></div>
+        <div class="ocr-stat"><div class="ocr-stat-n" id="stat-errors" style="color:var(--red)">0</div><div class="ocr-stat-l">Errors</div></div>
+      </div>
+      <div class="ocr-progress-wrap" style="margin-top:10px">
+        <div class="ocr-progress-bar" id="ocr-progress-bar"></div>
+      </div>
+    </div>
+    <div>
+      <div class="ocr-section-title">Extraction Controls</div>
+      <div class="ocr-actions">
+        <button class="ocr-action-btn" id="ocr-btn-all">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Extract All Supported Files
+        </button>
+        <button class="ocr-action-btn" id="ocr-btn-images">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          OCR Images Only
+        </button>
+        <button class="ocr-action-btn" id="ocr-btn-pdfs">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Extract PDFs Only
+        </button>
+        <button class="ocr-action-btn" id="ocr-btn-docs">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Extract Docs/Text Only
+        </button>
+        <button class="ocr-action-btn" id="ocr-btn-stop" style="display:none;color:var(--amber);border-color:var(--amber)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="6" y="6" width="12" height="12"/></svg>
+          Stop Extraction
+        </button>
+        <button class="ocr-action-btn" id="ocr-btn-export-content">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export Full Index (with content)
+        </button>
+        <button class="ocr-action-btn danger" id="ocr-btn-clear">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          Clear All Content Index
+        </button>
+      </div>
+      <div style="margin-top:8px;font-size:10px;color:var(--text3);line-height:1.5;padding:8px;
+        background:var(--surface2);border-radius:var(--radius);border:1px solid var(--border)">
+        ⚠️ OCR (images) and PDF extraction require internet on first use to load Tesseract.js / PDF.js.
+        Subsequent extractions in the same session work offline.
+        <!-- INFO-004: GIF note -->
+        GIF files are not OCR-supported (decorative); use JPG/PNG/WEBP/TIFF for image text.
+      </div>
+    </div>
+    <div>
+      <div class="ocr-queue-title">Extraction Queue</div>
+      <div id="ocr-queue" style="margin-top:6px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Folder Change Modal ── -->
+<div id="folder-modal">
+  <div id="folder-modal-box">
+    <div id="folder-modal-title" style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      Select Folder to Search
+    </div>
+    <div id="folder-modal-sub" style="font-size:14px;color:var(--text2);margin-bottom:16px;line-height:1.6">Loading…</div>
+    <button id="btn-browse-folder" onclick="browseFolderPicker()" style="display:none;width:100%;padding:14px;margin-bottom:14px;background:var(--blue);border:none;border-radius:var(--radius);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font-ui);transition:all var(--transition);align-items:center;justify-content:center;gap:10px">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      Browse and Select Folder
+    </button>
+    <div id="folder-path-section">
+      <textarea id="folder-modal-input" rows="4" placeholder="C:\Users\Ali\Documents&#10;C:\MidasTech\Clients&#10;C:\Users\Ali\OneDrive - MidasTech\Projects"></textarea>
+      <div id="folder-modal-hint" style="font-size:12px;color:var(--text3);margin-bottom:18px;line-height:1.7"></div>
+      <div class="folder-modal-actions">
+        <button class="modal-btn secondary" onclick="closeFolderModal()">Cancel</button>
+        <button class="modal-btn primary" onclick="submitFolderChange()">Load Folder(s)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Scan Overlay ── -->
+<div id="scan-overlay">
+  <div class="scan-spinner"></div>
+  <div class="scan-msg" id="scan-msg">Scanning folder…</div>
+  <div class="scan-count" id="scan-count">0 files found</div>
+</div>
+
+<!-- ── Toast ── -->
+<div id="toast"></div>
+
+<!-- ── Help Panel ── -->
+<div id="help-panel">
+  <div class="help-title">🔍 Search Syntax</div>
+  <div class="help-row"><span class="help-cmd">type:pdf</span><span class="help-desc">Filter by file type</span></div>
+  <div class="help-row"><span class="help-cmd">size&gt;10mb</span><span class="help-desc">Larger than 10 MB</span></div>
+  <div class="help-row"><span class="help-cmd">size&lt;500kb</span><span class="help-desc">Smaller than 500 KB</span></div>
+  <div class="help-row"><span class="help-cmd">date&gt;2024-01-01</span><span class="help-desc">Modified on or after</span></div>
+  <div class="help-row"><span class="help-cmd">"exact phrase"</span><span class="help-desc">Exact name/path match</span></div>
+  <div class="help-row"><span class="help-cmd">content:"invoice"</span><span class="help-desc">Search inside file content</span></div>
+  <div class="help-row"><span class="help-cmd">report Q3</span><span class="help-desc">Fuzzy match both words</span></div>
+  <div class="help-title">⌨️ Keyboard</div>
+  <div class="help-row"><span class="help-cmd">/</span><span class="help-desc">Focus search</span></div>
+  <div class="help-row"><span class="help-cmd">↑ ↓</span><span class="help-desc">Navigate results (outside input)</span></div>
+  <div class="help-row"><span class="help-cmd">Enter</span><span class="help-desc">Open focused file</span></div>
+  <div class="help-row"><span class="help-cmd">Esc</span><span class="help-desc">Clear / close panels</span></div>
+  <div class="help-title">📄 Content Extraction</div>
+  <div style="font-size:11px;color:var(--text3);line-height:1.8">
+    PDF • DOCX • XLSX • PPTX (all slides) •<br>
+    Images: JPG/PNG/WEBP/BMP/TIFF via OCR •<br>
+    TXT, CSV, JSON, XML, HTML, Markdown, Code
+  </div>
+</div>
+
+<!-- Hidden inputs -->
+<input type="file" id="json-input" accept=".json" style="display:none"/>
+
+<script>
+'use strict';
+/* ══════════════════════════════════════════════════════
+   CONSTANTS
+══════════════════════════════════════════════════════ */
+const ROW_H        = 52;   // BUG-002: matches --row-h exactly
+const BUFFER       = 6;
+const DEBOUNCE_MS  = 180;
+const CHUNK_SIZE   = 400;
+const OCR_CONCURRENCY = 2;
+const LS_KEY       = 'midasIdx_v3';
+const LS_CONTENT   = 'midasContent_v3';
+const LS_THEME     = 'midasTheme';
+// BUG-003: realistic budget (4MB), not 60MB
+const LS_CONTENT_MAX = 4 * 1024 * 1024;
+const SERVER_PORT    = 51248;
+const SERVER_BASE    = `http://localhost:${SERVER_PORT}`;
+
+const PDFJS_URL    = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+const PDFJS_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const TESSERACT_URL= 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+
+/* ── Type maps ── */
+const TYPE_MAP = {
+  pdf:'pdf',
+  doc:'doc', docx:'doc', odt:'doc', rtf:'doc', txt:'doc',
+  // INFO-002: md mapped consistently to 'doc' only
+  md:'doc',
+  csv:'csv', xls:'xls', xlsx:'xls', ods:'xls',
+  ppt:'ppt', pptx:'ppt', odp:'ppt',
+  jpg:'img', jpeg:'img', png:'img', webp:'img',
+  bmp:'img', tiff:'img', tif:'img', heic:'img',
+  // INFO-004: gif excluded from OCR targets — keep in type map for display
+  gif:'img', svg:'img', ico:'img',
+  mp4:'vid', mkv:'vid', avi:'vid', mov:'vid', wmv:'vid', webm:'vid',
+  mp3:'aud', wav:'aud', flac:'aud', aac:'aud', ogg:'aud', m4a:'aud',
+  js:'code', ts:'code', jsx:'code', tsx:'code', html:'code', htm:'code',
+  css:'code', py:'code', java:'code', cs:'code', cpp:'code', c:'code',
+  php:'code', rb:'code', go:'code', rs:'code', sh:'code', bash:'code',
+  json:'code', xml:'code', yml:'code', yaml:'code', sql:'code',
+  zip:'zip', rar:'zip', '7z':'zip', tar:'zip', gz:'zip', bz2:'zip',
+};
+// Inline SVG icons keyed by type group — consistent on all OS/browsers
+const ICONS = {
+  pdf:    '<svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>',
+  doc:    '<svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="8" y1="9" x2="11" y2="9"/></svg>',
+  csv:    '<svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>',
+  xls:    '<svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="12" x2="11" y2="17"/><line x1="14" y1="12" x2="11" y2="17"/></svg>',
+  ppt:    '<svg viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="10" cy="14" r="2"/><line x1="12" y1="14" x2="16" y2="14"/></svg>',
+  img:    '<svg viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
+  vid:    '<svg viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>',
+  aud:    '<svg viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
+  code:   '<svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
+  zip:    '<svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="12" x2="12" y2="18"/><line x1="10" y1="14" x2="14" y2="14"/></svg>',
+  default:'<svg viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
+};
+const CHIP_GROUPS = {
+  pdf:  ['pdf'],
+  // INFO-002: md in doc group only
+  doc:  ['doc','docx','odt','rtf','txt','md'],
+  xls:  ['xls','xlsx','csv','ods'],
+  img:  ['jpg','jpeg','png','gif','webp','bmp','svg','ico','tiff','tif','heic'],
+  vid:  ['mp4','mkv','avi','mov','wmv','webm','flv','m4v'],
+  code: ['js','ts','jsx','tsx','html','htm','css','py','java','cs','cpp','c',
+         'php','rb','go','rs','sh','bash','json','xml','yml','yaml','sql','md'],
+  zip:  ['zip','rar','7z','tar','gz','bz2'],
+};
+
+const EXTRACTABLE_TYPES = {
+  plain:  ['txt','md','csv','json','xml','html','htm','js','ts','jsx','tsx','css',
+           'py','java','cs','cpp','c','php','rb','go','rs','sh','bash','yml','yaml','sql'],
+  pdf:    ['pdf'],
+  office: ['docx','xlsx','pptx'],
+  // INFO-004: gif removed from OCR targets
+  image:  ['jpg','jpeg','png','webp','bmp','tiff','tif'],
+};
+
+/* ══════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════ */
+const state = {
+  allFiles:[], filtered:[], query:'', searchScope:'all',
+  sort:{col:'name',dir:'asc'}, mode:'none', theme:'dark',
+  focusedIdx:-1, typeFilter:'',
+  lastDirHandle:null,
+  contentIndex:{},       // path -> {text, partial}
+  extractionQueue:[],    // {path,name,ext,file,status,error?}
+  isExtracting:false,
+  stopExtraction:false,
+  pdfJsLoaded:false, tesseractLoaded:false,
+  serverAvailable:false, // true when local server.js is running
+};
+
+/* ══════════════════════════════════════════════════════
+   DOM
+══════════════════════════════════════════════════════ */
+const $  = id => document.getElementById(id);
+const el = {
+  searchInput:$('search-input'), clearBtn:$('clear-btn'),
+  queryError:$('query-error'),
+  scrollContainer:$('scroll-container'), virtualSpacer:$('virtual-spacer'),
+  rowsContainer:$('rows-container'), emptyState:$('empty-state'),
+  statusMode:$('status-mode'), statusCount:$('status-count'),
+  ocrStatus:$('ocr-status'), sortLabel:$('sort-label'),
+  scanOverlay:$('scan-overlay'), scanMsg:$('scan-msg'), scanCount:$('scan-count'),
+  toast:$('toast'), helpPanel:$('help-panel'), jsonInput:$('json-input'),
+  btnExport:$('btn-export'), btnRescan:$('btn-rescan'),
+  themeIconDark:$('theme-icon-dark'), themeIconLight:$('theme-icon-light'),
+  ocrPanel:$('ocr-panel'), ocrQueue:$('ocr-queue'),
+  statTotal:$('stat-total'), statIndexed:$('stat-indexed'),
+  statPending:$('stat-pending'), statErrors:$('stat-errors'),
+  ocrProgressBar:$('ocr-progress-bar'),
+  ocrBtnStop:$('ocr-btn-stop'),
+  apiWarning:$('api-warning'),
+  wrongOpenBanner:$('wrong-open-banner'),
+};
+
+/* ══════════════════════════════════════════════════════
+   UTILITIES
+══════════════════════════════════════════════════════ */
+function fmtSize(b) {
+  // BUG-008: explicit 0 check
+  if (b === null || b === undefined) return '—';
+  if (b === 0) return '0 B';
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  if (b < 1073741824) return (b/1048576).toFixed(1) + ' MB';
+  return (b/1073741824).toFixed(2) + ' GB';
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleDateString('en-CA', {year:'numeric',month:'short',day:'numeric'});
+  } catch { return iso.slice(0,10); }
+}
+
+function getExt(name) {
+  const d = name.lastIndexOf('.');
+  return d > -1 ? name.slice(d+1).toLowerCase() : '';
+}
+function getGroup(ext) { return TYPE_MAP[ext] || 'default'; }
+function getIcon(ext)  { return ICONS[getGroup(ext)] || ICONS.default; }
+
+function parseBytes(s) {
+  const m = s.toLowerCase().match(/^([\d.]+)(kb|mb|gb|b)?$/);
+  if (!m) return null;
+  const n = parseFloat(m[1]), u = m[2] || 'b';
+  return n * ({b:1, kb:1024, mb:1048576, gb:1073741824}[u] || 1);
+}
+
+function debounce(fn, ms) {
+  let t;
+  return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+}
+
+// BUG-001: escape & < > " AND ' to prevent XSS
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function highlight(text, terms) {
+  if (!terms || !terms.length) return escHtml(text);
+  let r = escHtml(text);
+  terms.forEach(t => {
+    if (!t) return;
+    const re = new RegExp('(' + t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi');
+    r = r.replace(re, '<mark>$1</mark>');
+  });
+  return r;
+}
+
+function snippetAround(text, terms, maxLen=120) {
+  if (!text || !terms.length) return '';
+  const lower = text.toLowerCase();
+  let best = -1;
+  for (const t of terms) {
+    const i = lower.indexOf(t.toLowerCase());
+    if (i > -1 && (best === -1 || i < best)) best = i;
+  }
+  if (best === -1) return escHtml(text.slice(0, maxLen));
+  const start = Math.max(0, best - 30);
+  const end   = Math.min(text.length, start + maxLen);
+  const snip  = (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
+  return highlight(snip, terms);
+}
+
+let toastT;
+function showToast(msg, type='info') {
+  el.toast.className = `show ${type}`;
+  el.toast.textContent = msg;
+  clearTimeout(toastT);
+  toastT = setTimeout(() => { el.toast.className = ''; }, 3500);
+}
+
+// BUG-009: singleton script loader — no concurrent double-load
+const _scriptPromises = {};
+function loadScript(url) {
+  if (_scriptPromises[url]) return _scriptPromises[url];
+  _scriptPromises[url] = new Promise((res, rej) => {
+    if (document.querySelector(`script[src="${url}"]`)) { res(); return; }
+    const s = document.createElement('script');
+    s.src = url;
+    s.onload = res;
+    s.onerror = () => { delete _scriptPromises[url]; rej(new Error('Failed: ' + url)); };
+    document.head.appendChild(s);
+  });
+  return _scriptPromises[url];
+}
+
+function isoDate() {
+  return new Date().toISOString().slice(0,10);
+}
+
+/* ══════════════════════════════════════════════════════
+   QUERY PARSER
+   BUG-016: date> adds one day so files ON that date are included
+   BUG-017: invalid size/date input shown as query warning
+══════════════════════════════════════════════════════ */
+function parseQuery(raw) {
+  const t = {
+    exact:[], fuzzy:[], contentTerms:[],
+    type:null, sizeGt:null, sizeLt:null,
+    dateGt:null, dateLt:null,
+    errors:[],
+  };
+  if (!raw) return t;
+  let q = raw.trim();
+
+  // content:"term" or content:word
+  q = q.replace(/content:"([^"]+)"/gi, (_, p) => { t.contentTerms.push(p.toLowerCase()); return ''; });
+  q = q.replace(/content:(\S+)/gi,     (_, p) => { t.contentTerms.push(p.toLowerCase()); return ''; });
+  // "exact phrase"
+  q = q.replace(/"([^"]+)"/g, (_, p) => { t.exact.push(p.toLowerCase()); return ''; });
+  // type:
+  q = q.replace(/\btype:(\S+)/gi, (_, v) => { t.type = v.toLowerCase(); return ''; });
+  // size> size<
+  q = q.replace(/\bsize>(\S+)/gi, (_, v) => {
+    const n = parseBytes(v);
+    if (n === null) t.errors.push(`Invalid size: "${v}"`);
+    else t.sizeGt = n;
+    return '';
+  });
+  q = q.replace(/\bsize<(\S+)/gi, (_, v) => {
+    const n = parseBytes(v);
+    if (n === null) t.errors.push(`Invalid size: "${v}"`);
+    else t.sizeLt = n;
+    return '';
+  });
+  // date> date< — BUG-016: add 86400000ms so date is inclusive
+  q = q.replace(/\bdate>(\S+)/gi, (_, v) => {
+    const d = new Date(v);
+    if (isNaN(d)) t.errors.push(`Invalid date: "${v}"`);
+    else t.dateGt = d.getTime() - 1; // inclusive: files on that day pass
+    return '';
+  });
+  q = q.replace(/\bdate<(\S+)/gi, (_, v) => {
+    const d = new Date(v);
+    if (isNaN(d)) t.errors.push(`Invalid date: "${v}"`);
+    else t.dateLt = d.getTime() + 86400000; // inclusive end-of-day
+    return '';
+  });
+
+  t.fuzzy = q.trim().split(/\s+/).filter(Boolean).map(w => w.toLowerCase());
+  return t;
+}
+
+function matchFile(f, tokens, chipType, scope) {
+  // Extension filter from type dropdown
+  if (activeExtFilters.has('__NONE__')) return false; // all unchecked
+  if (activeExtFilters.size > 0 && !activeExtFilters.has(f.ext || 'no ext')) return false;
+  // Chip type filter
+  if (chipType === '__indexed__') {
+    if (!state.contentIndex[f.path]) return false;
+  } else if (chipType) {
+    const allowed = CHIP_GROUPS[chipType] || [];
+    if (!allowed.includes(f.ext)) return false;
+  }
+
+  if (tokens.type) {
+    const wg = CHIP_GROUPS[tokens.type];
+    if (wg) { if (!wg.includes(f.ext)) return false; }
+    else     { if (f.ext !== tokens.type) return false; }
+  }
+
+  if (tokens.sizeGt !== null && f.size <= tokens.sizeGt) return false;
+  if (tokens.sizeLt !== null && f.size >= tokens.sizeLt) return false;
+
+  if (tokens.dateGt !== null) {
+    const ts = f.modified ? new Date(f.modified).getTime() : 0;
+    if (ts <= tokens.dateGt) return false;
+  }
+  if (tokens.dateLt !== null) {
+    const ts = f.modified ? new Date(f.modified).getTime() : 0;
+    if (ts >= tokens.dateLt) return false;
+  }
+
+  const nameStr = (f.name + ' ' + f.path).toLowerCase();
+  const content = (state.contentIndex[f.path]?.text || '').toLowerCase();
+
+  // content: terms — must be in content regardless of scope
+  for (const c of tokens.contentTerms) {
+    if (!content.includes(c)) return false;
+  }
+
+  for (const p of tokens.exact) {
+    if (!nameStr.includes(p)) return false;
+  }
+
+  if (tokens.fuzzy.length) {
+    for (const w of tokens.fuzzy) {
+      // BUG-015: scope='content' skips filename check; scope='name' skips content
+      const inName    = scope !== 'content' && nameStr.includes(w);
+      const inContent = scope !== 'name'    && content.includes(w);
+      if (!inName && !inContent) return false;
+    }
+  }
+  return true;
+}
+
+/* ══════════════════════════════════════════════════════
+   SORT
+══════════════════════════════════════════════════════ */
+function sortFiles(arr) {
+  const {col, dir} = state.sort;
+  const m = dir === 'asc' ? 1 : -1;
+  return [...arr].sort((a, b) => {
+    let va, vb;
+    if      (col === 'name')     { va = a.name.toLowerCase(); vb = b.name.toLowerCase(); }
+    else if (col === 'size')     { va = a.size || 0; vb = b.size || 0; }
+    else if (col === 'modified') { va = new Date(a.modified||0).getTime(); vb = new Date(b.modified||0).getTime(); }
+    else if (col === 'type')     { va = a.ext || ''; vb = b.ext || ''; }
+    else if (col === 'content')  {
+      const ha = state.contentIndex[a.path] ? 1 : 0;
+      const hb = state.contentIndex[b.path] ? 1 : 0;
+      if (ha !== hb) return (ha - hb) * -m;
+      va = a.name.toLowerCase(); vb = b.name.toLowerCase();
+    }
+    else                         { va = a.name.toLowerCase(); vb = b.name.toLowerCase(); }
+    return va < vb ? -m : va > vb ? m : 0;
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   SEARCH + FILTER
+══════════════════════════════════════════════════════ */
+function applySearch() {
+  const tokens = parseQuery(state.query);
+
+  // BUG-017: show query errors
+  if (tokens.errors.length) {
+    el.queryError.textContent = '⚠ ' + tokens.errors.join('  ');
+    el.queryError.classList.add('visible');
+  } else {
+    el.queryError.classList.remove('visible');
+  }
+
+  let result = state.allFiles.filter(f => matchFile(f, tokens, state.typeFilter, state.searchScope));
+  result = sortFiles(result);
+  state.filtered = result;
+  state.focusedIdx = -1;
+  renderTable();
+  updateStatus();
+  // Rebuild type dropdown whenever files change
+  if (state.allFiles.length) buildTypeDropdown();
+}
+
+/* ══════════════════════════════════════════════════════
+   VIRTUAL RENDERING  (BUG-002: fixed ROW_H, no variable heights)
+══════════════════════════════════════════════════════ */
+let lastRange = [-1, -1];
+
+function renderTable() {
+  const count = state.filtered.length;
+  el.virtualSpacer.style.height = (count * ROW_H) + 'px';
+
+  if (count === 0) {
+    el.emptyState.classList.add('visible');
+    if (state.allFiles.length > 0) {
+      el.emptyState.querySelector('.empty-title').textContent = 'No results found';
+      el.emptyState.querySelector('.empty-sub').textContent =
+        'Try a different query or clear filters. Use content:"word" to search inside indexed files.';
+      el.emptyState.querySelector('.empty-actions').style.display = 'none';
+    } else {
+      el.emptyState.querySelector('.empty-title').textContent = 'No files loaded yet';
+      el.emptyState.querySelector('.empty-sub').textContent =
+        'Select a local folder to scan, or load an index.json. Then use OCR & Content to index file text.';
+      el.emptyState.querySelector('.empty-actions').style.display = 'flex';
+    }
+    el.rowsContainer.innerHTML = '';
+    lastRange = [-1, -1];
+    return;
+  }
+  el.emptyState.classList.remove('visible');
+  renderVisibleRows();
+}
+
+function renderVisibleRows() {
+  const sc = el.scrollContainer;
+  const st = sc.scrollTop, vh = sc.clientHeight;
+  const count = state.filtered.length;
+  const si = Math.max(0, Math.floor(st / ROW_H) - BUFFER);
+  const ei = Math.min(count - 1, Math.ceil((st + vh) / ROW_H) + BUFFER);
+
+  if (si === lastRange[0] && ei === lastRange[1]) return;
+  lastRange = [si, ei];
+
+  const tokens = parseQuery(state.query);
+  const ht = [...tokens.exact, ...tokens.fuzzy, ...tokens.contentTerms];
+  const frag = document.createDocumentFragment();
+  for (let i = si; i <= ei; i++) {
+    frag.appendChild(buildRow(state.filtered[i], i, ht, tokens.contentTerms));
+  }
+  el.rowsContainer.style.transform = `translateY(${si * ROW_H}px)`;
+  el.rowsContainer.innerHTML = '';
+  el.rowsContainer.appendChild(frag);
+}
+
+function buildRow(f, idx, hlTerms, contentTerms) {
+  const div = document.createElement('div');
+  div.className = 'file-row' + (idx === state.focusedIdx ? ' focused' : '');
+  div.tabIndex = 0;
+  div.dataset.idx = idx;
+
+  const ci = state.contentIndex[f.path];
+  const hasContent  = !!ci;
+  const isPartial   = ci?.partial;
+  const isExtractable = isFileExtractable(f.ext);
+
+  const nameHtml = highlight(f.name, hlTerms);
+  const pathHtml = highlight(f.path, hlTerms);
+
+  // snippet: show when content search active or scope=content
+  const showSnippet = hasContent && (contentTerms.length > 0 || state.searchScope === 'content');
+  const snippet = showSnippet ? snippetAround(ci.text, contentTerms.length ? contentTerms : hlTerms) : '';
+
+  // Badge
+  let badgeHtml = '';
+  if (hasContent) {
+    if (isPartial) badgeHtml = '<span class="cell-content-badge badge-partial">~ partial</span>';
+    else           badgeHtml = '<span class="cell-content-badge badge-indexed">✓ indexed</span>';
+  }
+
+  // Extract button — BUG-001: build via DOM, no innerHTML for user-controlled data
+  // We'll build the whole row via innerHTML but escape all user data through escHtml
+  const st2 = getFileStatus(f.path);
+  // Folder button — always shown
+  let extractHtml = `<button class="folder-btn" data-idx="${idx}" data-action="folder" title="Open containing folder">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+  </button>`;
+  if ((f.handle || state.serverAvailable) && isExtractable) {
+    const cls = st2==='running'?'extracting': st2==='done'?'done': st2==='partial'?'partial': st2==='error'?'err': '';
+    const lbl = st2==='running'?'…': st2==='done'?'✓': st2==='partial'?'~': st2==='error'?'✗': 'Extract';
+    extractHtml += `<button class="extract-btn ${cls}" data-idx="${idx}" data-action="extract">${escHtml(lbl)}</button>`;
+  }
+
+  const snippetHtml = snippet ? `<span class="cell-snippet">${snippet}</span>` : '';
+
+  div.innerHTML = `
+    <div class="cell-icon">${getIcon(f.ext)}</div>
+    <div class="cell-name">
+      <span class="cell-name-text">${nameHtml}</span>
+      <span class="cell-path">${pathHtml}</span>
+      ${badgeHtml}${snippetHtml}
+    </div>
+    <div class="cell-type">${escHtml(f.ext || '—')}</div>
+    <div class="cell-size">${fmtSize(f.size)}</div>
+    <div class="cell-date">${fmtDate(f.modified)}</div>
+    <div class="cell-extract">${extractHtml}</div>`;
+
+  div.addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (btn) {
+      e.stopPropagation();
+      const i = parseInt(btn.dataset.idx, 10);
+      if (btn.dataset.action === 'extract') { extractSingleFile(state.filtered[i]); return; }
+      if (btn.dataset.action === 'folder')  { openFileFolder(state.filtered[i]); return; }
+    }
+    openPreview(f);
+  });
+  div.addEventListener('focus', () => {
+    state.focusedIdx = idx;
+    document.querySelectorAll('.file-row.focused').forEach(r => r.classList.remove('focused'));
+    div.classList.add('focused');
+  });
+  div.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); openFile(f); } });
+  return div;
+}
+
+function getFileStatus(path) {
+  const qi = state.extractionQueue.find(q => q.path === path);
+  if (qi) return qi.status;
+  if (state.contentIndex[path]) return state.contentIndex[path].partial ? 'partial' : 'done';
+  return 'none';
+}
+
+function isFileExtractable(ext) {
+  return EXTRACTABLE_TYPES.plain.includes(ext)  ||
+         EXTRACTABLE_TYPES.pdf.includes(ext)    ||
+         EXTRACTABLE_TYPES.office.includes(ext) ||
+         EXTRACTABLE_TYPES.image.includes(ext);
+}
+
+function openFile(f) {
+  // Priority 1: server is running — use HTTP URL (true open-in-browser)
+  if (state.serverAvailable && f.path) {
+    window.open(`${SERVER_BASE}/file/${encodeURI(f.path)}`, '_blank', 'noopener');
+    return;
+  }
+  // Priority 2: cloud/JSON mode with a pre-built URL
+  if (f.url) {
+    window.open(f.url, '_blank', 'noopener');
+    return;
+  }
+  // Priority 3: File System Access API handle — blob URL
+  // Note: blob URLs CANNOT open in a new tab in most browsers (security policy).
+  // Browser-viewable types (PDF, images, txt) open inline; everything else downloads.
+  if (f.handle) {
+    f.handle.getFile()
+      .then(file => {
+        const blobUrl = URL.createObjectURL(file);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      })
+      .catch(() => showToast('Could not open file', 'err'));
+    return;
+  }
+  showToast('No URL available. Start server.js for full open support.', 'err');
+}
+
+function openFileFolder(f) {
+  if (state.serverAvailable) {
+    // Use /open-folder-select which opens Explorer with the FILE selected and window focused
+    fetch(`${SERVER_BASE}/open-folder`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({path: f.path, select: true, focus: true}),
+    }).catch(() => {});
+    showToast('Opening in Explorer…', 'info');
+  } else {
+    const folder = f.path.includes('/') ? f.path.substring(0, f.path.lastIndexOf('/')) : f.path;
+    navigator.clipboard?.writeText(folder)
+      .then(() => showToast('Folder path copied to clipboard', 'info'))
+      .catch(() => showToast('Path: ' + folder, 'info'));
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   STATUS
+══════════════════════════════════════════════════════ */
+function updateStatus() {
+  const total = state.allFiles.length, shown = state.filtered.length;
+  if (total === 0) {
+    el.statusMode.textContent = 'No files loaded';
+    el.statusCount.textContent = '';
+    return;
+  }
+  if (state.serverAvailable)          el.statusMode.textContent = '🟢 Server Mode';
+  else if (state.mode === 'local')   el.statusMode.textContent = '📁 Local Folder';
+  else                               el.statusMode.textContent = '☁️ Cloud / JSON';
+  el.statusCount.textContent = (state.query || state.typeFilter)
+    ? `${shown.toLocaleString()} of ${total.toLocaleString()} files`
+    : `${total.toLocaleString()} files`;
+  const {col, dir} = state.sort;
+  el.sortLabel.textContent = col.charAt(0).toUpperCase() + col.slice(1) + (dir==='asc'?' ↑':' ↓');
+  updateOcrStats();
+}
+
+function updateOcrStats() {
+  const total   = state.allFiles.length;
+  const indexed = Object.keys(state.contentIndex).length;
+  const pending = state.extractionQueue.filter(q => q.status==='pending'||q.status==='running').length;
+  const errors  = state.extractionQueue.filter(q => q.status==='error').length;
+  el.statTotal.textContent   = total;
+  el.statIndexed.textContent = indexed;
+  el.statPending.textContent = pending;
+  el.statErrors.textContent  = errors;
+  if (indexed > 0 && total > 0) {
+    el.ocrProgressBar.style.width = Math.round(indexed / total * 100) + '%';
+    el.ocrStatus.style.display = 'inline';
+    el.ocrStatus.textContent = `📄 ${indexed} indexed`;
+  } else {
+    el.ocrStatus.style.display = 'none';
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   FOLDER SCAN
+══════════════════════════════════════════════════════ */
+async function startLocalScan() {
+  // If server is running: use server index (no File System API needed)
+  if (state.serverAvailable) {
+    await loadFromServer();
+    return;
+  }
+  if (!window.showDirectoryPicker) {
+    showToast('File System Access API not supported. Use Load JSON mode or run server.js.', 'err');
+    return;
+  }
+  let dh;
+  try { dh = await window.showDirectoryPicker({mode:'read'}); }
+  catch (e) { if (e.name !== 'AbortError') showToast('Folder access denied', 'err'); return; }
+  await doScan(dh);
+}
+
+// ── Folder modal JS ─────────────────────────────────────
+function openFolderModal() {
+  const modal = $('folder-modal');
+  if (!modal) { console.error('folder-modal not found'); return; }
+  modal.classList.add('open');
+  const inp = $('folder-modal-input');
+  if (!inp) { console.error('folder-modal-input not found'); return; }
+  if (state.currentFolder) inp.value = state.currentFolder;
+
+  // Update UI based on current mode
+  const modeMsg = $('folder-modal-sub');
+  const hintMsg = $('folder-modal-hint');
+  const browseBtn = $('btn-browse-folder');
+
+  if (state.serverAvailable) {
+    if (modeMsg) modeMsg.innerHTML = 'Enter one or more folder paths — one per line.<br>Server is running — files will be indexed automatically.';
+    if (hintMsg) hintMsg.innerHTML = '&#x1F4A1; <strong>Tip:</strong> Open folder in Windows Explorer &rarr; click the address bar &rarr; Ctrl+C &rarr; paste here.<br>&#x2601;&#xFE0F; <strong>Cloud drives:</strong> Paste the local sync path (e.g. C:\Users\Ali\OneDrive - MidasTech)';
+    if (browseBtn) browseBtn.style.display = 'none';
+  } else if (window.showDirectoryPicker) {
+    if (modeMsg) modeMsg.innerHTML = 'Click <strong>Browse Folder</strong> to pick a folder using your browser file picker.<br>Or type a path manually below.';
+    if (hintMsg) hintMsg.innerHTML = '&#x2139;&#xFE0F; You can pick one folder at a time. Click Browse multiple times to add more.';
+    if (browseBtn) browseBtn.style.display = 'inline-flex';
+  } else {
+    if (modeMsg) modeMsg.innerHTML = '&#x26A0;&#xFE0F; <strong>No server running.</strong> Start <code>launch.bat</code> first, then click Select Folder again.<br>Or use <strong>Load JSON</strong> to load a pre-built index.';
+    if (hintMsg) hintMsg.innerHTML = '';
+    if (browseBtn) browseBtn.style.display = 'none';
+  }
+
+  setTimeout(() => inp.focus(), 50);
+}
+
+async function browseFolderPicker() {
+  if (!window.showDirectoryPicker) { showToast('Not supported in this browser', 'err'); return; }
+  try {
+    const dh = await window.showDirectoryPicker({mode:'read'});
+    state.lastDirHandle = dh;
+    closeFolderModal();
+    await doScan(dh);
+    if ($('folder-path-text')) $('folder-path-text').textContent = dh.name;
+    state.currentFolder = dh.name;
+  } catch(e) {
+    if (e.name !== 'AbortError') showToast('Could not open folder: ' + e.message, 'err');
+  }
+}
+
+function closeFolderModal() {
+  const modal = $('folder-modal');
+  if (modal) modal.classList.remove('open');
+}
+
+async function submitFolderChange() {
+  const raw = $('folder-modal-input').value.trim();
+  if (!raw) { showToast('Please enter a folder path', 'err'); return; }
+
+  const paths = raw.split('\n')
+    .map(p => p.trim().replace(/^"|"$/g, '').replace(/[/\\]+$/, ''))
+    .filter(p => p.length > 0);
+  if (!paths.length) { showToast('Please enter at least one folder path', 'err'); return; }
+  closeFolderModal();
+
+  if (state.serverAvailable) {
+    // Mode 1: server running — tell server to index these folders
+    try {
+      const resp = await fetch(`${SERVER_BASE}/set-roots`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({paths}),
+      });
+      const data = await resp.json();
+      if (!resp.ok) { showToast('Error: ' + (data.error || resp.status), 'err'); return; }
+      state.currentFolder = paths.join(', ');
+      const bar = $('folder-path-text');
+      if (bar) bar.textContent = paths.length === 1 ? paths[0] : paths.length + ' folders';
+      await loadFromServer();
+    } catch(e) { showToast('Server error: ' + e.message, 'err'); }
+
+  } else if (window.showDirectoryPicker) {
+    // Mode 2: no server, but browser picker available — open picker directly
+    showToast('No server running — opening folder picker instead', 'info');
+    await browseFolderPicker();
+
+  } else {
+    // Mode 3: no server, no picker — clear instructions
+    showToast('Start launch.bat first to enable folder scanning', 'err');
+  }
+}
+
+document.addEventListener('click', ev => {
+  if (ev.target === $('folder-modal')) closeFolderModal();
+});
+if ($('folder-modal-input')) {
+  $('folder-modal-input').addEventListener('keydown', e => {
+    // Shift+Enter submits, plain Enter adds newline (for multi-folder)
+    if (e.key==='Enter' && e.shiftKey) { e.preventDefault(); submitFolderChange(); }
+    if (e.key==='Escape') closeFolderModal();
+  });
+}
+
+// Load full file index from local server (server.js running)
+async function loadFromServer() {
+  el.scanOverlay.classList.add('visible');
+  el.scanMsg.textContent = 'Loading index from server…';
+  el.scanCount.textContent = '';
+  try {
+    const resp = await fetch(`${SERVER_BASE}/index.json`);
+    if (!resp.ok) throw new Error('Server returned ' + resp.status);
+    const data = await resp.json();
+    state.contentIndex = {};
+    state.extractionQueue = [];
+    el.ocrProgressBar.style.width = '0%';
+    state.allFiles = data.map(f => ({
+      name:     f.name,
+      path:     f.path,
+      size:     f.size,
+      ext:      getExt(f.name),
+      type:     f.type || getExt(f.name),
+      modified: f.modified,
+      url:      f.url,   // server-provided HTTP URL — opens in browser
+      handle:   null,
+    }));
+    data.forEach(f => { if (f.content && f.path) state.contentIndex[f.path] = {text:f.content, partial:false}; });
+    state.mode = 'local';
+    saveIndex();
+    el.btnExport.style.display = 'flex';
+    el.btnRescan.style.display = 'flex';
+    applySearch();
+    showToast(`✓ Loaded ${state.allFiles.length.toLocaleString()} files from server`, 'ok');
+    // Update folder bar with current roots from server
+    try {
+      const sr = await fetch(`${SERVER_BASE}/status`);
+      const sd = await sr.json();
+      if (sd.roots && sd.roots.length) {
+        state.currentFolder = sd.roots.join(', ');
+        if ($('folder-path-text')) $('folder-path-text').textContent =
+          sd.roots.length === 1 ? sd.roots[0] : sd.roots.length + ' folders';
+        // Pre-fill modal textarea
+        if ($('folder-modal-input')) $('folder-modal-input').value = sd.roots.join('\n');
+      }
+    } catch {}
+  } catch (e) {
+    showToast('Could not load from server: ' + e.message, 'err');
+  } finally {
+    el.scanOverlay.classList.remove('visible');
+  }
+}
+
+// Rescan: server mode reloads from server; local mode reuses handle
+async function rescanFolder() {
+  if (state.serverAvailable) { await loadFromServer(); return; }
+  if (!state.lastDirHandle) { showToast('No folder to re-scan. Please select a folder first.', 'err'); return; }
+  try {
+    const perm = await state.lastDirHandle.requestPermission({mode:'read'});
+    if (perm !== 'granted') { showToast('Folder permission denied', 'err'); return; }
+  } catch { showToast('Could not re-access folder', 'err'); return; }
+  await doScan(state.lastDirHandle);
+}
+
+async function doScan(dh) {
+  state.lastDirHandle = dh;
+  // BUG-024: reset queue on new scan
+  state.extractionQueue = [];
+  // BUG-011: clear stale content index on new scan
+  state.contentIndex = {};
+  saveContentIndex();
+  // BUG-028: reset progress bar
+  el.ocrProgressBar.style.width = '0%';
+
+  el.scanOverlay.classList.add('visible');
+  el.scanMsg.textContent = 'Scanning: ' + dh.name;
+  el.scanCount.textContent = '0 files found';
+
+  try {
+    const files = [];
+    let skipped = 0; // BUG-007
+    await scanChunked(dh, '', files, (s) => { skipped += s; });
+    state.allFiles = files;
+    state.mode = 'local';
+    saveIndex();
+    el.btnExport.style.display = 'flex';
+    el.btnRescan.style.display = 'flex';
+    applySearch();
+    let msg = `✓ Scanned ${files.length.toLocaleString()} files`;
+    if (skipped > 0) msg += ` (${skipped} skipped — access denied)`;
+    showToast(msg, 'ok');
+  } catch (e) {
+    showToast('Scan failed: ' + e.message, 'err');
+  } finally {
+    el.scanOverlay.classList.remove('visible');
+  }
+}
+
+async function scanChunked(dh, pfx, col, onSkip) {
+  const queue = [{h:dh, p:pfx}];
+  let skipped = 0;
+  while (queue.length) {
+    const {h, p} = queue.shift();
+    for await (const [name, child] of h.entries()) {
+      if (child.kind === 'file') {
+        try {
+          const file = await child.getFile();
+          const ext  = getExt(name);
+          col.push({
+            name, path: p ? p+'/'+name : name,
+            size: file.size, ext, type: ext,
+            modified: new Date(file.lastModified).toISOString(),
+            url: null, handle: child,
+          });
+          if (col.length % CHUNK_SIZE === 0) {
+            el.scanCount.textContent = `${col.length.toLocaleString()} files found`;
+            await new Promise(r => setTimeout(r, 0));
+          }
+        } catch { skipped++; } // BUG-007: count, don't swallow
+      } else if (child.kind === 'directory') {
+        queue.push({h:child, p: p ? p+'/'+name : name});
+      }
+    }
+    el.scanCount.textContent = `${col.length.toLocaleString()} files found`;
+  }
+  if (onSkip) onSkip(skipped);
+}
+
+/* ══════════════════════════════════════════════════════
+   JSON LOAD / EXPORT
+══════════════════════════════════════════════════════ */
+function loadJsonIndex() { el.jsonInput.value = ''; el.jsonInput.click(); }
+
+el.jsonInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = evt => {
+    try {
+      const data = JSON.parse(evt.target.result);
+      if (!Array.isArray(data)) throw new Error('Expected JSON array');
+      // BUG-011: clear old content index before loading new set
+      state.contentIndex = {};
+      state.extractionQueue = []; // BUG-024
+      el.ocrProgressBar.style.width = '0%'; // BUG-028
+      state.allFiles = data.map(f => ({
+        name:     f.name || 'Unknown',
+        path:     f.path || f.name || '',
+        size:     typeof f.size === 'number' ? f.size : (parseInt(f.size) || 0),
+        ext:      getExt(f.name || ''),
+        type:     f.type || getExt(f.name || ''),
+        modified: f.modified || null,
+        url:      f.url || null,
+        handle:   null,
+      }));
+      // Load embedded content if present
+      data.forEach(f => {
+        if (f.content && f.path) state.contentIndex[f.path] = {text: f.content, partial: false};
+      });
+      state.mode = 'cloud';
+      saveIndex();
+      saveContentIndex();
+      el.btnExport.style.display = 'flex';
+      applySearch();
+      showToast(`✓ Loaded ${state.allFiles.length.toLocaleString()} files`, 'ok');
+    } catch (err) {
+      showToast('Invalid JSON: ' + err.message, 'err');
+    }
+  };
+  reader.readAsText(file);
+});
+
+// BUG-027: filename includes ISO date
+function exportJson() {
+  if (!state.allFiles.length) { showToast('No files to export', 'err'); return; }
+  const data = state.allFiles.map(f => {
+    const ci = state.contentIndex[f.path];
+    return {
+      name: f.name, path: f.path, size: f.size,
+      type: f.ext, modified: f.modified, url: f.url || '',
+      content: ci ? ci.text : undefined,
+    };
+  });
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `midas-index-${isoDate()}.json`; // BUG-027
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+  showToast(`✓ Exported ${data.length.toLocaleString()} entries`, 'ok');
+}
+
+/* ══════════════════════════════════════════════════════
+   STORAGE  (BUG-003: real quota handling)
+══════════════════════════════════════════════════════ */
+function saveIndex() {
+  try {
+    const data = state.allFiles.map(f => ({
+      name:f.name, path:f.path, size:f.size, ext:f.ext,
+      type:f.type, modified:f.modified, url:f.url
+    }));
+    localStorage.setItem(LS_KEY, JSON.stringify({mode:state.mode, files:data}));
+  } catch { /* index too large to persist — user can export */ }
+}
+
+function saveContentIndex() {
+  try {
+    const s = JSON.stringify(state.contentIndex);
+    if (s.length > LS_CONTENT_MAX) {
+      // Don't save — warn user once
+      showToast('Content index too large for browser storage. Export JSON to persist it.', 'warn');
+      return;
+    }
+    localStorage.setItem(LS_CONTENT, s);
+  } catch (e) {
+    if (e.name === 'QuotaExceededError') {
+      showToast('Browser storage full — content index not saved. Export JSON to persist.', 'warn');
+    }
+  }
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return false;
+    const stored = JSON.parse(raw);
+    if (!stored.files || !Array.isArray(stored.files)) return false;
+    state.allFiles = stored.files.map(f => ({...f, handle:null}));
+    state.mode = stored.mode || 'cloud';
+    const cr = localStorage.getItem(LS_CONTENT);
+    if (cr) state.contentIndex = JSON.parse(cr);
+    return true;
+  } catch { return false; }
+}
+
+/* ══════════════════════════════════════════════════════
+   SORT
+══════════════════════════════════════════════════════ */
+function setSort(col) {
+  if (state.sort.col === col) state.sort.dir = state.sort.dir === 'asc' ? 'desc' : 'asc';
+  else { state.sort.col = col; state.sort.dir = 'asc'; }
+  document.querySelectorAll('.th').forEach(th => {
+    const c = th.dataset.col, arrow = th.querySelector('.sort-arrow');
+    th.classList.toggle('active', c === col);
+    if (arrow) arrow.textContent = c === col ? (state.sort.dir==='asc'?'↑':'↓') : '';
+  });
+  applySearch();
+}
+
+
+/* ══════════════════════════════════════════════════════
+   FILE PREVIEW PANEL
+══════════════════════════════════════════════════════ */
+let previewFile = null;
+
+const PREVIEW_TYPES = {
+  image: ['jpg','jpeg','png','gif','webp','bmp','svg','ico','tiff','tif'],
+  pdf:   ['pdf'],
+  text:  ['txt','md','csv','json','xml','html','htm','js','ts','jsx','tsx','css',
+          'py','java','cs','cpp','c','php','rb','go','rs','sh','bash','yml','yaml','sql'],
+  video: ['mp4','webm','mov','avi','mkv'],
+  audio: ['mp3','wav','flac','aac','ogg','m4a'],
+};
+
+function openPreview(f) {
+  previewFile = f;
+  const panel = $('preview-panel');
+  panel.classList.add('open');
+  // close OCR panel if open
+  el.ocrPanel.classList.remove('open');
+  el.helpPanel.classList.remove('visible');
+
+  $('preview-title').textContent = f.name;
+
+  // Meta info
+  $('preview-meta').innerHTML = `
+    <div class="preview-meta-item"><span class="preview-meta-label">Type:</span><span class="preview-meta-value">${escHtml((f.ext||'unknown').toUpperCase())}</span></div>
+    <div class="preview-meta-item"><span class="preview-meta-label">Size:</span><span class="preview-meta-value">${fmtSize(f.size)}</span></div>
+    <div class="preview-meta-item"><span class="preview-meta-label">Modified:</span><span class="preview-meta-value">${fmtDate(f.modified)}</span></div>
+    <div class="preview-meta-item"><span class="preview-meta-label">Path:</span><span class="preview-meta-value" style="font-family:var(--font-mono);font-size:11px">${escHtml(f.path)}</span></div>`;
+
+  renderPreview(f);
+}
+
+function closePreview() {
+  $('preview-panel').classList.remove('open');
+  previewFile = null;
+}
+
+function renderPreview(f) {
+  const body = $('preview-body');
+  const ext = f.ext || '';
+  const fileUrl = state.serverAvailable ? `${SERVER_BASE}/file/${encodeURI(f.path)}` : (f.url || null);
+
+  // ── Image ────────────────────────────────────────────
+  if (PREVIEW_TYPES.image.includes(ext)) {
+    if (fileUrl) {
+      body.innerHTML = `<img id="preview-img" src="${escHtml(fileUrl)}" alt="${escHtml(f.name)}" style="max-width:100%;max-height:100%;display:block;margin:auto;padding:16px"/>`;
+    } else {
+      showPlaceholder(body, '🖼️', 'Start server to preview images');
+    }
+    return;
+  }
+
+  // ── PDF ─────────────────────────────────────────────
+  if (PREVIEW_TYPES.pdf.includes(ext)) {
+    if (fileUrl) {
+      body.innerHTML = `<iframe id="preview-frame" src="${escHtml(fileUrl)}" title="${escHtml(f.name)}"></iframe>`;
+    } else {
+      showPlaceholder(body, '📄', 'Start server to preview PDFs');
+    }
+    return;
+  }
+
+  // ── Video ─────────────────────────────────────────────
+  if (PREVIEW_TYPES.video.includes(ext)) {
+    if (fileUrl) {
+      body.innerHTML = `<video controls style="width:100%;max-height:100%;display:block" src="${escHtml(fileUrl)}"></video>`;
+    } else {
+      showPlaceholder(body, '🎬', 'Start server to preview videos');
+    }
+    return;
+  }
+
+  // ── Audio ─────────────────────────────────────────────
+  if (PREVIEW_TYPES.audio.includes(ext)) {
+    if (fileUrl) {
+      body.innerHTML = `<div style="padding:32px;text-align:center"><audio controls style="width:100%" src="${escHtml(fileUrl)}"></audio></div>`;
+    } else {
+      showPlaceholder(body, '🎵', 'Start server to preview audio');
+    }
+    return;
+  }
+
+  // ── Plain text (show content if indexed, else fetch) ──
+  if (PREVIEW_TYPES.text.includes(ext)) {
+    const ci = state.contentIndex[f.path];
+    if (ci && ci.text) {
+      body.innerHTML = `<pre id="preview-text">${escHtml(ci.text.slice(0, 50000))}</pre>`;
+      return;
+    }
+    if (fileUrl) {
+      body.innerHTML = '<div style="padding:24px;color:var(--text3)">Loading…</div>';
+      fetch(fileUrl).then(r => r.text()).then(txt => {
+        body.innerHTML = `<pre id="preview-text">${escHtml(txt.slice(0, 50000))}</pre>`;
+      }).catch(() => showPlaceholder(body, '📃', 'Could not load file'));
+      return;
+    }
+    showPlaceholder(body, '📃', 'Start server or extract content to preview text files');
+    return;
+  }
+
+  // ── Unsupported ────────────────────────────────────────
+  const msgs = {
+    docx:'Word documents preview not supported in browser.\nExtract text via OCR panel to search content.',
+    xlsx:'Excel files preview not supported in browser.',
+    pptx:'PowerPoint files preview not supported in browser.',
+    zip:'Archive files cannot be previewed.',
+    default:'This file type cannot be previewed in the browser.',
+  };
+  showPlaceholder(body, getIcon(ext), msgs[ext] || msgs.default, true);
+}
+
+function showPlaceholder(body, icon, msg, showOpen) {
+  body.innerHTML = `<div id="preview-placeholder">
+    <div class="p-icon">${icon}</div>
+    <div class="p-msg">${escHtml(msg)}</div>
+    ${showOpen ? '<button id="preview-open-btn" onclick="openCurrentFile()">Open File</button>' : ''}
+  </div>`;
+}
+
+function openCurrentFile()   { if (previewFile) openFile(previewFile); }
+function openCurrentFolder() { if (previewFile) openFileFolder(previewFile); }
+function extractCurrentFile(){ if (previewFile) extractSingleFile(previewFile); }
+
+function shareToOutlook() {
+  if (!previewFile) return;
+  const fileUrl = state.serverAvailable
+    ? `${SERVER_BASE}/file/${encodeURI(previewFile.path)}`
+    : (previewFile.url || '');
+  const subject = encodeURIComponent('Sharing: ' + previewFile.name);
+  const nl = '%0D%0A';
+  const body = 'Hi,' + nl + nl +
+    'I wanted to share this file with you:' + nl + nl +
+    'File: ' + encodeURIComponent(previewFile.name) + nl +
+    'Path: ' + encodeURIComponent(previewFile.path) + nl +
+    (fileUrl ? 'Link: ' + encodeURIComponent(fileUrl) + nl : '') + nl +
+    'Sent via Midas Tech File Search' + nl +
+    'www.midastech.ca';
+  window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+}
+
+function copyFilePath() {
+  if (!previewFile) return;
+  const p = previewFile.path;
+  // Convert forward slashes to backslashes for Windows paths
+  const pathToCopy = state.serverAvailable ? p.split('/').join('\\') : (previewFile.url || p);
+  navigator.clipboard?.writeText(pathToCopy)
+    .then(() => showToast('Path copied to clipboard', 'ok'))
+    .catch(() => { prompt('Copy this path:', pathToCopy); });
+}
+
+function renameCurrentFile() {
+  if (!previewFile) return;
+  if (!state.serverAvailable) { showToast('Rename requires server mode (run launch.bat)', 'err'); return; }
+  const newName = prompt('Rename file to:', previewFile.name);
+  if (!newName || newName === previewFile.name) return;
+  if (newName.match(/[\/:*?"<>|]/)) { showToast('Invalid characters in filename', 'err'); return; }
+  fetch(`${SERVER_BASE}/rename`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({path: previewFile.path, newName}),
+  }).then(r => r.json()).then(d => {
+    if (d.ok) {
+      // Update in state
+      const idx = state.allFiles.findIndex(f => f.path === previewFile.path);
+      if (idx > -1) {
+        state.allFiles[idx].name = d.newName;
+        state.allFiles[idx].path = d.newPath;
+        // Move content index
+        if (state.contentIndex[previewFile.path]) {
+          state.contentIndex[d.newPath] = state.contentIndex[previewFile.path];
+          delete state.contentIndex[previewFile.path];
+        }
+        previewFile = state.allFiles[idx];
+        $('preview-title').textContent = d.newName;
+      }
+      saveIndex();
+      lastRange = [-1,-1]; applySearch();
+      showToast('Renamed to: ' + d.newName, 'ok');
+    } else {
+      showToast('Rename failed: ' + (d.error||'unknown'), 'err');
+    }
+  }).catch(e => showToast('Error: ' + e.message, 'err'));
+}
+
+/* ══════════════════════════════════════════════════════
+   CONTENT EXTRACTION ENGINE
+══════════════════════════════════════════════════════ */
+
+/* ── Plain text / code ── */
+async function extractPlainText(handle) {
+  const file = await handle.getFile();
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload  = e => res(e.target.result.slice(0, 200000));
+    r.onerror = () => rej(new Error('Read error'));
+    r.readAsText(file);
+  });
+}
+
+/* ── Office XML from raw ArrayBuffer (used by server mode) ── */
+async function extractOfficeXmlFromBuffer(buf) {
+  return _parseOfficeZip(new Uint8Array(buf));
+}
+
+/* ── Office XML (DOCX/XLSX/PPTX) — pure JS ZIP ── */
+async function _parseOfficeZip(bytes) {
+  const texts = [];
+  let i = 0;
+  while (i < bytes.length - 4) {
+    if (bytes[i]===0x50 && bytes[i+1]===0x4B && bytes[i+2]===0x03 && bytes[i+3]===0x04) {
+      const fnLen          = bytes[i+26] | (bytes[i+27]<<8);
+      const extraLen       = bytes[i+28] | (bytes[i+29]<<8);
+      const compressedSize = bytes[i+18] | (bytes[i+19]<<8) | (bytes[i+20]<<16) | (bytes[i+21]<<24);
+      const compression    = bytes[i+8]  | (bytes[i+9]<<8);
+      const fnStart        = i + 30;
+      const fname          = new TextDecoder().decode(bytes.slice(fnStart, fnStart+fnLen));
+      const dataStart      = fnStart + fnLen + extraLen;
+
+      const isTextXml = /word\/document\.xml|ppt\/slides\/slide\d+\.xml|xl\/sharedStrings\.xml|xl\/workbook\.xml|xl\/worksheets\/sheet\d+\.xml/i.test(fname);
+
+      if (isTextXml) {
+        if (compression === 0) {
+          const xml = new TextDecoder('utf-8',{fatal:false}).decode(bytes.slice(dataStart, dataStart+compressedSize));
+          texts.push(xmlTextContent(xml));
+        } else if (compression === 8 && typeof DecompressionStream !== 'undefined') {
+          try {
+            const compressed = bytes.slice(dataStart, dataStart+compressedSize);
+            const ds     = new DecompressionStream('deflate-raw');
+            const writer = ds.writable.getWriter();
+            const reader = ds.readable.getReader();
+            writer.write(compressed); writer.close();
+            const chunks = []; let done = false;
+            while (!done) { const {value,done:d} = await reader.read(); if (value) chunks.push(value); done=d; }
+            const out = new Uint8Array(chunks.reduce((a,c)=>a+c.length,0));
+            let off=0; chunks.forEach(c=>{out.set(c,off);off+=c.length;});
+            texts.push(xmlTextContent(new TextDecoder('utf-8',{fatal:false}).decode(out)));
+          } catch (e) {
+            console.warn('DecompressionStream failed for', fname, e.message);
+            texts.push('');
+          }
+        }
+      }
+      i = dataStart + Math.max(0, compressedSize);
+    } else { i++; }
+  }
+  return texts.join(' ').replace(/\s+/g,' ').trim().slice(0,200000);
+}
+
+async function extractOfficeXml(handle) {
+  const file  = await handle.getFile();
+  const buf   = await file.arrayBuffer();
+  return _parseOfficeZip(new Uint8Array(buf));
+}
+
+function xmlTextContent(xml) {
+  return xml
+    .replace(/<[^>]+>/g,' ')
+    .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+    .replace(/&quot;/g,'"').replace(/&#x[0-9A-Fa-f]+;/g,'')
+    .replace(/\s+/g,' ').trim();
+}
+
+/* ── PDF via PDF.js ── */
+async function extractPdfText(handle) {
+  if (!state.pdfJsLoaded) {
+    // BUG-009: serialized via _scriptPromises singleton
+    await loadScript(PDFJS_URL);
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
+    state.pdfJsLoaded = true;
+  }
+  const file = await handle.getFile();
+  const buf  = await file.arrayBuffer();
+  const pdf  = await window.pdfjsLib.getDocument({data:buf}).promise;
+  const pages = [];
+  // INFO-003: cap at 50 pages but flag partial
+  const maxPages = Math.min(pdf.numPages, 50);
+  const partial  = pdf.numPages > 50;
+  for (let p = 1; p <= maxPages; p++) {
+    const page = await pdf.getPage(p);
+    const tc   = await page.getTextContent();
+    pages.push(tc.items.map(i => i.str).join(' '));
+  }
+  return {
+    text: pages.join('\n').replace(/\s+/g,' ').trim().slice(0,300000),
+    partial, // INFO-003
+  };
+}
+
+/* ── Image OCR via Tesseract.js — BUG-004: serialized init, race-safe ── */
+let _tesseractWorker   = null;
+let _tesseractInitProm = null;
+
+async function ensureTesseract() {
+  if (_tesseractWorker) return;
+  if (!_tesseractInitProm) {
+    _tesseractInitProm = (async () => {
+      await loadScript(TESSERACT_URL); // BUG-009: singleton promise
+      state.tesseractLoaded = true;
+      _tesseractWorker = await Tesseract.createWorker('eng', 1, {logger:()=>{}});
+    })();
+  }
+  await _tesseractInitProm;
+}
+
+// BUG-004: terminate worker cleanly
+async function terminateTesseract() {
+  if (_tesseractWorker) {
+    try { await _tesseractWorker.terminate(); } catch {}
+    _tesseractWorker   = null;
+    _tesseractInitProm = null;
+    state.tesseractLoaded = false;
+  }
+}
+
+async function extractImageOcr(handle) {
+  await ensureTesseract();
+  const file = await handle.getFile();
+  const url  = URL.createObjectURL(file);
+  try {
+    const {data:{text}} = await _tesseractWorker.recognize(url);
+    return {text: text.replace(/\s+/g,' ').trim().slice(0,150000), partial:false};
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+/* ── Fetch file bytes from server as ArrayBuffer ── */
+async function fetchFileBuffer(f) {
+  const resp = await fetch(`${SERVER_BASE}/file/${encodeURI(f.path)}`);
+  if (!resp.ok) throw new Error(`Server fetch failed: ${resp.status} ${f.path}`);
+  return resp.arrayBuffer();
+}
+
+/* ── Fake FileSystemFileHandle from a Blob (for PDF.js / Tesseract which expect handle.getFile()) ── */
+function makeFakeHandle(blob, name) {
+  return { getFile: () => Promise.resolve(new File([blob], name, {type: blob.type})) };
+}
+
+/* ── Dispatcher — handles both local (f.handle) and server mode ── */
+async function extractFileContent(f) {
+  const ext = f.ext;
+
+  // ── Server mode: fetch bytes over HTTP ──────────────────
+  if (!f.handle && state.serverAvailable) {
+    const buf = await fetchFileBuffer(f);
+    const blob = new Blob([buf]);
+    const fakeHandle = makeFakeHandle(blob, f.name);
+
+    if (EXTRACTABLE_TYPES.plain.includes(ext)) {
+      const text = await extractPlainText(fakeHandle);
+      return {text, partial:false};
+    }
+    if (EXTRACTABLE_TYPES.pdf.includes(ext))    return await extractPdfText(fakeHandle);
+    if (EXTRACTABLE_TYPES.office.includes(ext)) {
+      // extractOfficeXml works on ArrayBuffer directly — pass it through
+      const text = await extractOfficeXmlFromBuffer(buf);
+      return {text, partial: text.length === 0};
+    }
+    if (EXTRACTABLE_TYPES.image.includes(ext))  return await extractImageOcr(fakeHandle);
+    throw new Error('Unsupported type: ' + ext);
+  }
+
+  // ── Local mode: use FileSystemFileHandle ────────────────
+  if (!f.handle) throw new Error('No file handle and server not available');
+
+  if (EXTRACTABLE_TYPES.plain.includes(ext)) {
+    const text = await extractPlainText(f.handle);
+    return {text, partial:false};
+  }
+  if (EXTRACTABLE_TYPES.pdf.includes(ext))    return await extractPdfText(f.handle);
+  if (EXTRACTABLE_TYPES.office.includes(ext)) {
+    const text = await extractOfficeXml(f.handle);
+    return {text, partial: text.length === 0};
+  }
+  if (EXTRACTABLE_TYPES.image.includes(ext))  return await extractImageOcr(f.handle);
+  throw new Error('Unsupported type: ' + ext);
+}
+
+/* ══════════════════════════════════════════════════════
+   EXTRACTION QUEUE
+══════════════════════════════════════════════════════ */
+function buildQueue(files) {
+  state.extractionQueue = files.map(f => ({
+    path:f.path, name:f.name, ext:f.ext, file:f, status:'pending'
+  }));
+  renderQueue();
+}
+
+function renderQueue() {
+  // BUG-006: use array index as ID — no btoa/unicode issues
+  const items = state.extractionQueue.slice(-60);
+  el.ocrQueue.innerHTML = '';
+  items.forEach((q, i) => {
+    const div = document.createElement('div');
+    div.className = 'queue-item';
+    div.id = 'qi-' + i;
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'queue-item-name';
+    nameSpan.title = q.path;
+    nameSpan.textContent = q.name; // textContent — no XSS
+    const statusSpan = document.createElement('span');
+    statusSpan.className = `queue-item-status qs-${q.status}`;
+    statusSpan.textContent = statusEmoji(q.status);
+    div.appendChild(nameSpan);
+    div.appendChild(statusSpan);
+    el.ocrQueue.appendChild(div);
+  });
+}
+
+function statusEmoji(s) {
+  return s==='pending'?'⏳': s==='running'?'⚙️': s==='done'?'✓':
+         s==='partial'?'~': s==='error'?'✗': s==='stopped'?'⏹': '—';
+}
+
+function updateQueueItem(q) {
+  // BUG-006: find by matching path in rendered items
+  const items = el.ocrQueue.querySelectorAll('.queue-item');
+  const all = state.extractionQueue.slice(-60);
+  const i = all.indexOf(q);
+  if (i < 0 || !items[i]) return;
+  const s = items[i].querySelector('.queue-item-status');
+  if (s) { s.className = `queue-item-status qs-${q.status}`; s.textContent = statusEmoji(q.status); }
+}
+
+async function runExtractionQueue() {
+  if (state.isExtracting) return;
+  state.isExtracting   = true;
+  state.stopExtraction = false;
+  el.ocrBtnStop.style.display = 'flex';
+
+  const pending = state.extractionQueue.filter(q => q.status === 'pending');
+  let done = 0;
+
+  for (let i = 0; i < pending.length; i += OCR_CONCURRENCY) {
+    if (state.stopExtraction) {
+      // BUG-013: mark remaining as 'stopped', not 'pending'
+      pending.slice(i).forEach(q => { q.status = 'stopped'; updateQueueItem(q); });
+      break;
+    }
+    const batch = pending.slice(i, i + OCR_CONCURRENCY);
+    await Promise.all(batch.map(async q => {
+      if (state.stopExtraction) { q.status = 'stopped'; updateQueueItem(q); return; }
+      q.status = 'running'; updateQueueItem(q);
+      try {
+        const result = await extractFileContent(q.file);
+        // INFO-003: store partial flag
+        state.contentIndex[q.path] = {text: result.text, partial: result.partial};
+        q.status = result.partial ? 'partial' : 'done';
+        done++;
+        saveContentIndex();
+      } catch (e) {
+        q.status = 'error'; q.error = e.message;
+      }
+      updateQueueItem(q);
+      updateOcrStats();
+      // BUG-014: always invalidate so extract button refreshes
+      lastRange = [-1, -1];
+      renderVisibleRows();
+    }));
+  }
+
+  state.isExtracting = false;
+  el.ocrBtnStop.style.display = 'none';
+
+  // BUG-004: terminate Tesseract after bulk run to free WASM memory
+  await terminateTesseract();
+
+  updateOcrStats();
+  lastRange = [-1, -1];
+  renderVisibleRows();
+  showToast(`Extraction complete — ${done} files indexed`, 'ok');
+}
+
+async function extractSingleFile(f) {
+  if (!f.handle && !state.serverAvailable) { showToast('File not available. Start server.js for extraction.', 'err'); return; }
+  if (!isFileExtractable(f.ext)) { showToast('File type not supported for extraction', 'err'); return; }
+  let q = state.extractionQueue.find(qi => qi.path === f.path);
+  if (!q) {
+    q = {path:f.path, name:f.name, ext:f.ext, file:f, status:'pending'};
+    state.extractionQueue.push(q);
+  } else {
+    q.status = 'pending';
+  }
+  renderQueue();
+  if (!state.isExtracting) runExtractionQueue();
+}
+
+function startExtraction(filter) {
+  if (state.isExtracting) { showToast('Extraction already running', 'info'); return; }
+  // Include files accessible via handle (local scan) OR via server (server mode)
+  let files = state.allFiles.filter(f => (f.handle || state.serverAvailable) && isFileExtractable(f.ext));
+  if (filter === 'images') files = files.filter(f => EXTRACTABLE_TYPES.image.includes(f.ext));
+  if (filter === 'pdfs')   files = files.filter(f => EXTRACTABLE_TYPES.pdf.includes(f.ext));
+  if (filter === 'docs')   files = files.filter(f => [...EXTRACTABLE_TYPES.plain,...EXTRACTABLE_TYPES.office].includes(f.ext));
+  // Skip files already indexed with real content
+  files = files.filter(f => {
+    const ci = state.contentIndex[f.path];
+    return !ci || ci.text.length === 0;
+  });
+  if (!files.length) { showToast('All supported files already indexed', 'info'); return; }
+  buildQueue(files);
+  showToast(`Queued ${files.length} files for extraction`, 'info');
+  runExtractionQueue();
+}
+
+/* ══════════════════════════════════════════════════════
+   KEYBOARD NAVIGATION
+══════════════════════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  const tag = e.target.tagName;
+
+  if (e.key === '/' && tag !== 'INPUT') {
+    e.preventDefault();
+    el.searchInput.focus(); el.searchInput.select();
+    return;
+  }
+
+  if (e.key === 'Escape') {
+    if (el.helpPanel.classList.contains('visible')) { el.helpPanel.classList.remove('visible'); return; }
+    if (el.ocrPanel.classList.contains('open'))     { el.ocrPanel.classList.remove('open');     return; }
+    if (state.query) {
+      el.searchInput.value = ''; state.query = '';
+      el.clearBtn.classList.remove('visible');
+      el.queryError.classList.remove('visible');
+      applySearch();
+    }
+    return;
+  }
+
+  // BUG-022: guard arrow keys — do NOT intercept when typing in search input
+  if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && tag !== 'INPUT') {
+    e.preventDefault();
+    const cnt = state.filtered.length;
+    if (!cnt) return;
+    const delta = e.key === 'ArrowDown' ? 1 : -1;
+    state.focusedIdx = Math.max(0, Math.min(cnt-1, state.focusedIdx + delta));
+    scrollToIdx(state.focusedIdx);
+    lastRange = [-1, -1];
+    renderVisibleRows();
+    return;
+  }
+
+  if (e.key === 'Enter' && tag !== 'INPUT' && tag !== 'BUTTON') {
+    if (state.focusedIdx >= 0 && state.focusedIdx < state.filtered.length)
+      openFile(state.filtered[state.focusedIdx]);
+  }
+});
+
+function scrollToIdx(idx) {
+  const sc = el.scrollContainer;
+  const top = idx * ROW_H, bot = top + ROW_H;
+  // BUG-019: clamp to 0 to avoid negative scrollTop
+  if (top < sc.scrollTop)
+    sc.scrollTop = Math.max(0, top - BUFFER * ROW_H);
+  else if (bot > sc.scrollTop + sc.clientHeight)
+    sc.scrollTop = bot - sc.clientHeight + BUFFER * ROW_H;
+}
+
+/* ══════════════════════════════════════════════════════
+   THEME
+══════════════════════════════════════════════════════ */
+function setTheme(t) {
+  state.theme = t;
+  document.body.dataset.theme = t;
+  el.themeIconDark.style.display  = t === 'dark'  ? 'block' : 'none';
+  el.themeIconLight.style.display = t === 'light' ? 'block' : 'none';
+  localStorage.setItem(LS_THEME, t);
+}
+
+
+/* ══════════════════════════════════════════════════════
+   DYNAMIC TYPE FILTER DROPDOWN  (FIX 7)
+══════════════════════════════════════════════════════ */
+let activeExtFilters = new Set(); // empty = show all
+
+// Extension groups for dropdown
+const EXT_GROUPS = {
+  'Images':    ['jpg','jpeg','png','gif','webp','bmp','svg','ico','tiff','tif','heic','raw','cr2','nef'],
+  'Videos':    ['mp4','mkv','avi','mov','wmv','webm','flv','m4v','3gp','ts','mts'],
+  'Audio':     ['mp3','wav','flac','aac','ogg','m4a','wma','aiff','opus'],
+  'Documents': ['pdf','doc','docx','odt','rtf','txt','md','pages'],
+  'Spreadsheets':['xls','xlsx','csv','ods','tsv','numbers'],
+  'Presentations':['ppt','pptx','odp','key'],
+  'Code':      ['js','ts','jsx','tsx','html','htm','css','py','java','cs','cpp','c','php','rb','go','rs','sh','bash','json','xml','yml','yaml','sql','swift','kt','dart'],
+  'Archives':  ['zip','rar','7z','tar','gz','bz2','xz','cab','iso'],
+  'Other':     [],
+};
+
+function buildTypeDropdown() {
+  const exts = {};
+  state.allFiles.forEach(f => { const e = f.ext || 'no ext'; exts[e] = (exts[e] || 0) + 1; });
+  const list = $('type-checkbox-list');
+  list.innerHTML = '';
+
+  // Assign each ext to a group
+  const grouped = {};
+  Object.keys(EXT_GROUPS).forEach(g => { grouped[g] = []; });
+  Object.entries(exts).forEach(([ext, count]) => {
+    let placed = false;
+    for (const [gname, gexts] of Object.entries(EXT_GROUPS)) {
+      if (gname === 'Other') continue;
+      if (gexts.includes(ext)) { grouped[gname].push([ext, count]); placed = true; break; }
+    }
+    if (!placed) grouped['Other'].push([ext, count]);
+  });
+
+  // Render each group
+  Object.entries(grouped).forEach(([groupName, items]) => {
+    if (!items.length) return;
+    items.sort((a,b) => b[1]-a[1]);
+
+    // Group header with select-all checkbox
+    const ghdr = document.createElement('div');
+    ghdr.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 14px 3px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;border-top:1px solid var(--border);margin-top:4px';
+    const gcb = document.createElement('input');
+    gcb.type = 'checkbox';
+    gcb.style.cssText = 'width:13px;height:13px;accent-color:var(--cyan)';
+    gcb.checked = items.every(([e]) => activeExtFilters.size === 0 || activeExtFilters.has(e));
+    gcb.dataset.group = groupName;
+    gcb.onchange = () => toggleGroupTypes(groupName, gcb.checked);
+    const gtxt = document.createElement('span');
+    gtxt.textContent = groupName;
+    const gcount = document.createElement('span');
+    gcount.style.cssText = 'margin-left:auto;font-size:11px;color:var(--text3);font-family:var(--font-mono)';
+    gcount.textContent = items.reduce((s,[,c])=>s+c,0);
+    ghdr.appendChild(gcb); ghdr.appendChild(gtxt); ghdr.appendChild(gcount);
+    list.appendChild(ghdr);
+
+    // Individual extension rows
+    items.forEach(([ext, count]) => {
+      const lbl = document.createElement('label');
+      lbl.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 14px 6px 28px;cursor:pointer;font-size:13px;color:var(--text2)';
+      lbl.onmouseenter = () => lbl.style.background = 'var(--surface2)';
+      lbl.onmouseleave = () => lbl.style.background = '';
+      const cb = document.createElement('input');
+      cb.type='checkbox'; cb.value=ext; cb.dataset.group=groupName;
+      cb.checked = !activeExtFilters.has('__NONE__') && (activeExtFilters.size===0 || activeExtFilters.has(ext));
+      cb.style.cssText = 'width:14px;height:14px;accent-color:var(--cyan)';
+      cb.onchange = () => updateExtFilter();
+      const icon = document.createElement('span');
+      icon.style.cssText = 'width:18px;height:18px;display:inline-flex;align-items:center;flex-shrink:0';
+      icon.innerHTML = getIcon(ext);
+      const name = document.createElement('span'); name.style.flex='1';
+      name.textContent = '.'+ext.toUpperCase();
+      const num = document.createElement('span');
+      num.style.cssText = 'font-size:11px;color:var(--text3);font-family:var(--font-mono)';
+      num.textContent = count;
+      lbl.appendChild(cb); lbl.appendChild(icon); lbl.appendChild(name); lbl.appendChild(num);
+      list.appendChild(lbl);
+    });
+  });
+  updateTypeFilterLabel();
+}
+
+function toggleGroupTypes(groupName, checked) {
+  const cbs = [...$('type-checkbox-list').querySelectorAll(`input[data-group="${groupName}"][type=checkbox]:not([data-group-header])`)]
+    .filter(cb => cb.dataset.group === groupName && !cb.dataset.groupHeader);
+  // Actually select all matching row checkboxes (not the header one)
+  $('type-checkbox-list').querySelectorAll('input[type=checkbox]').forEach(cb => {
+    if (cb.dataset.group === groupName && !cb.dataset.groupHeader && cb.value) cb.checked = checked;
+  });
+  updateExtFilter();
+}
+
+function toggleTypeDropdown() {
+  const dd = $('type-dropdown');
+  dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+}
+
+function toggleAllTypes(checked) {
+  if (checked) {
+    // Select all — clear filter (empty = show everything)
+    activeExtFilters.clear();
+    $('type-checkbox-list').querySelectorAll('input[type=checkbox]').forEach(cb => { cb.checked = true; });
+  } else {
+    // Deselect all — put all exts in filter set so nothing matches
+    const allExts = [...$('type-checkbox-list').querySelectorAll('input[type=checkbox]')].map(c => c.value);
+    activeExtFilters = new Set(allExts);
+    // Then immediately clear to show nothing (empty result via impossible filter)
+    // Actually: use a special sentinel
+    activeExtFilters = new Set(['__NONE__']);
+    $('type-checkbox-list').querySelectorAll('input[type=checkbox]').forEach(cb => { cb.checked = false; });
+  }
+  updateTypeFilterLabel();
+  lastRange = [-1,-1]; applySearch();
+}
+
+function updateExtFilter() {
+  const cbs     = [...$('type-checkbox-list').querySelectorAll('input[type=checkbox]')];
+  const checked = cbs.filter(c => c.checked).map(c => c.value);
+  const total   = cbs.length;
+  const allCb   = $('type-all-cb');
+  if (checked.length === 0) {
+    // Nothing checked — show nothing
+    activeExtFilters = new Set(['__NONE__']);
+    if (allCb) allCb.checked = false;
+    if (allCb) allCb.indeterminate = false;
+  } else if (checked.length === total) {
+    activeExtFilters.clear();
+    if (allCb) { allCb.checked = true; allCb.indeterminate = false; }
+  } else {
+    activeExtFilters = new Set(checked);
+    if (allCb) { allCb.checked = false; allCb.indeterminate = true; }
+  }
+  updateTypeFilterLabel();
+  lastRange = [-1,-1]; applySearch();
+}
+
+function updateTypeFilterLabel() {
+  if (activeExtFilters.size === 0) {
+    $('type-filter-label').textContent = 'Filter Types';
+    $('type-filter-btn').style.borderColor = '';
+    $('type-filter-btn').style.color = '';
+  } else {
+    $('type-filter-label').textContent = activeExtFilters.size + ' types';
+    $('type-filter-btn').style.borderColor = 'var(--cyan)';
+    $('type-filter-btn').style.color = 'var(--cyan)';
+  }
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', e => {
+  const wrap = $('type-filter-wrap');
+  if (wrap && !wrap.contains(e.target)) $('type-dropdown').style.display = 'none';
+});
+
+/* ══════════════════════════════════════════════════════
+   EVENT BINDINGS
+══════════════════════════════════════════════════════ */
+const debouncedSearch = debounce(() => {
+  state.query = el.searchInput.value;
+  el.clearBtn.classList.toggle('visible', !!state.query);
+  lastRange = [-1, -1];
+  applySearch();
+}, DEBOUNCE_MS);
+
+el.searchInput.addEventListener('input', debouncedSearch);
+
+el.clearBtn.addEventListener('click', () => {
+  el.searchInput.value = ''; state.query = '';
+  el.clearBtn.classList.remove('visible');
+  el.queryError.classList.remove('visible');
+  lastRange = [-1, -1];
+  applySearch();
+  el.searchInput.focus();
+});
+
+el.scrollContainer.addEventListener('scroll', () => requestAnimationFrame(renderVisibleRows));
+window.addEventListener('resize', () => { lastRange = [-1, -1]; renderVisibleRows(); });
+
+// Sort column headers
+document.querySelectorAll('.th').forEach(th => {
+  if (!th.dataset.col) return;
+  th.addEventListener('click', () => setSort(th.dataset.col));
+});
+
+document.querySelectorAll('.type-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.type-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    state.typeFilter = chip.dataset.type;
+    lastRange = [-1, -1];
+    applySearch();
+  });
+});
+
+document.querySelectorAll('.scope-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.scope-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.searchScope = btn.dataset.scope;
+    if (btn.dataset.scope === 'content' && Object.keys(state.contentIndex).length === 0) {
+      showToast('No files indexed yet. Use OCR & Content panel to extract text first.', 'warn');
+    }
+    lastRange = [-1, -1];
+    applySearch();
+  });
+});
+
+// btn-scan now calls openFolderModal() via inline onclick
+$('btn-load-json').addEventListener('click', loadJsonIndex);
+el.btnExport.addEventListener('click', exportJson);
+// BUG-005: re-scan uses saved handle
+el.btnRescan.addEventListener('click', rescanFolder);
+
+// BUG-029: mutual exclusion — help and OCR panels
+$('btn-help').addEventListener('click', () => {
+  const open = el.helpPanel.classList.toggle('visible');
+  if (open) el.ocrPanel.classList.remove('open'); // BUG-029
+});
+
+$('btn-ocr-panel').addEventListener('click', () => {
+  const open = el.ocrPanel.classList.toggle('open');
+  if (open) el.helpPanel.classList.remove('visible'); // BUG-029
+});
+
+el.ocrPanel.querySelector('#ocr-panel-close').addEventListener('click', () => {
+  el.ocrPanel.classList.remove('open');
+});
+
+$('theme-btn').addEventListener('click', () => setTheme(state.theme === 'dark' ? 'light' : 'dark'));
+
+$('empty-btn-scan').addEventListener('click', startLocalScan);
+$('empty-btn-json').addEventListener('click', loadJsonIndex);
+
+$('ocr-btn-all').addEventListener('click',    () => startExtraction('all'));
+$('ocr-btn-images').addEventListener('click', () => startExtraction('images'));
+$('ocr-btn-pdfs').addEventListener('click',   () => startExtraction('pdfs'));
+$('ocr-btn-docs').addEventListener('click',   () => startExtraction('docs'));
+
+el.ocrBtnStop.addEventListener('click', async () => {
+  state.stopExtraction = true;
+  // BUG-013: terminate Tesseract immediately to interrupt OCR mid-image
+  await terminateTesseract();
+  showToast('Stopping extraction…', 'info');
+});
+
+$('ocr-btn-export-content').addEventListener('click', exportJson);
+
+$('ocr-btn-clear').addEventListener('click', () => {
+  if (!confirm('Clear all extracted content index? This cannot be undone.')) return;
+  state.contentIndex = {};
+  state.extractionQueue = [];
+  // BUG-026: reset chip to "All Files"
+  document.querySelectorAll('.type-chip').forEach(c => c.classList.remove('active'));
+  document.querySelector('.type-chip[data-type=""]').classList.add('active');
+  state.typeFilter = '';
+  saveContentIndex();
+  renderQueue();
+  updateOcrStats();
+  el.ocrProgressBar.style.width = '0%';
+  lastRange = [-1, -1];
+  renderVisibleRows();
+  applySearch();
+  showToast('Content index cleared', 'ok');
+});
+
+// Close help panel on outside click
+document.addEventListener('click', e => {
+  if (el.helpPanel.classList.contains('visible') &&
+      !el.helpPanel.contains(e.target) &&
+      e.target !== $('btn-help')) {
+    el.helpPanel.classList.remove('visible');
+  }
+});
+
+/* ══════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════ */
+(async function init() {
+  const t = localStorage.getItem(LS_THEME) || 'dark';
+  setTheme(t);
+
+  const isFileProtocol = window.location.protocol === 'file:';
+
+  // ── Case 1: opened as file:// — browser blocks fetch to localhost ──
+  if (isFileProtocol) {
+    // Still try the ping — some browsers (older Chrome) allow it
+    let serverRunning = false;
+    try {
+      const r = await fetch(`${SERVER_BASE}/ping`, {
+        signal: AbortSignal.timeout(600),
+        mode: 'cors',
+      });
+      serverRunning = r.ok;
+    } catch { serverRunning = false; }
+
+    if (serverRunning) {
+      // Server IS running but page opened as file:// — show redirect banner
+      $('wrong-open-banner').classList.add('visible');
+      // Still let them use file:// features as fallback
+    } else {
+      // Server not running, opened as file:// — use File System Access API
+      if (!window.showDirectoryPicker) {
+        el.apiWarning.classList.add('visible');
+        const btn = $('btn-scan');
+        btn.style.opacity = '.4';
+        btn.disabled = true;
+        btn.title = 'Run launch.bat or use Load JSON mode';
+      }
+    }
+    // Restore session
+    const loaded = loadFromStorage();
+    if (loaded && state.allFiles.length) {
+      el.btnExport.style.display = 'flex';
+      if (state.mode === 'local') el.btnRescan.style.display = 'flex';
+      applySearch();
+      showToast(`↑ Restored ${state.allFiles.length.toLocaleString()} files from last session`, 'info');
+    }
+    return;
+  }
+
+  // ── Case 2: opened via http://localhost (correct way via launch.bat) ──
+  try {
+    const r = await fetch(`${SERVER_BASE}/ping`, {signal: AbortSignal.timeout(800)});
+    if (r.ok) {
+      const info = await r.json();
+      state.serverAvailable = true;
+      state.currentFolder = info.root;
+      if ($('folder-path-text')) $('folder-path-text').textContent = info.root;
+      el.apiWarning.classList.remove('visible');
+      showToast(`🟢 Server connected — ${info.root}`, 'ok');
+    }
+  } catch { /* server not reachable */ }
+
+  // Fallback: if served via http but server ping failed
+  if (!state.serverAvailable && !window.showDirectoryPicker) {
+    el.apiWarning.classList.add('visible');
+    const btn = $('btn-scan');
+    btn.style.opacity = '.4';
+    btn.disabled = true;
+    btn.title = 'Run launch.bat or use Load JSON mode';
+  }
+
+  const loaded = loadFromStorage();
+  if (loaded && state.allFiles.length) {
+    el.btnExport.style.display = 'flex';
+    if (state.mode === 'local') el.btnRescan.style.display = 'flex';
+    applySearch();
+    showToast(`↑ Restored ${state.allFiles.length.toLocaleString()} files from last session`, 'info');
+  }
+})();
+</script>
+</body>
+</html>

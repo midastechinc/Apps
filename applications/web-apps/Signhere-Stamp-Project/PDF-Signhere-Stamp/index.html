@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF Sign Here Stamp — Midas Tech Inc.</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cyan:#00AEEF;--blue:#0072BC;--dark:#0b1120;--panel:#111927;
+  --card:#162032;--border:rgba(0,174,239,0.14);--b2:rgba(255,255,255,0.06);
+  --text:#dde6f5;--muted:#5a6a8a;--orange:#E8603A;--green:#00c98d;--warn:#ffa500;
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--text);display:flex;flex-direction:column}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;gap:9px;padding:0 14px;height:50px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0}
+.logo{display:flex;align-items:center;gap:8px}
+.logo-m{width:30px;height:30px;background:linear-gradient(135deg,#0c62a0,#0ab2fc);border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:#fff}
+.logo-label{font-family:'Syne',sans-serif;font-size:12px;font-weight:700}
+.logo-label span{color:var(--muted);font-weight:400;margin-left:3px}
+.vsep{width:1px;height:24px;background:var(--b2)}
+.app-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--cyan)}
+.sp{flex:1}
+.tbtn{display:inline-flex;align-items:center;gap:5px;padding:6px 11px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap}
+.tbtn:hover{border-color:var(--cyan);color:var(--cyan)}
+.tbtn.pri{background:linear-gradient(135deg,var(--blue),var(--cyan));border-color:transparent;color:#fff}
+.tbtn.pri:hover{box-shadow:0 3px 14px rgba(0,174,239,.3);transform:translateY(-1px)}
+.tbtn.grn{border-color:rgba(0,201,141,.3);color:var(--green)}
+.tbtn.grn:hover{background:rgba(0,201,141,.1)}
+.tbtn:disabled{opacity:.35;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+
+/* TABS */
+.tab-bar{display:flex;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0}
+.tab{padding:9px 18px;font-size:11px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);transition:all .2s;display:flex;align-items:center;gap:6px}
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan)}
+.tab-badge{background:rgba(0,174,239,.15);color:var(--cyan);border-radius:9px;padding:1px 7px;font-size:9px;font-weight:700}
+
+/* WORKSPACE */
+.workspace{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:258px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sb{padding:11px 12px;border-bottom:1px solid var(--border)}
+.sb.grow{flex:1;overflow-y:auto;border-bottom:none}
+.sbl{font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--cyan);margin-bottom:8px}
+
+/* Drop zone */
+.dz{border:2px dashed var(--border);border-radius:10px;padding:18px 12px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(0,174,239,.02)}
+.dz:hover,.dz.over{border-color:var(--cyan);background:rgba(0,174,239,.06)}
+.dz-ic{font-size:22px;margin-bottom:5px}
+.dz h4{font-size:11px;font-weight:600;margin-bottom:2px}
+.dz p{font-size:9px;color:var(--muted)}
+.dz p span{color:var(--cyan)}
+#fileInput{display:none}
+
+/* File chip */
+.fchip{display:none;align-items:center;gap:7px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 9px}
+.fchip.show{display:flex}
+.fc-ic{width:26px;height:26px;background:linear-gradient(135deg,var(--orange),#f07a5a);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.fc-m{flex:1;min-width:0}
+.fc-n{font-size:10px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fc-s{font-size:9px;color:var(--muted)}
+.fc-x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;transition:color .2s}
+.fc-x:hover{color:var(--orange)}
+
+/* Stamp size */
+.sz-row{display:flex;align-items:center;gap:7px}
+.sz-row label{font-size:9px;color:var(--muted);flex-shrink:0}
+input[type=range]{flex:1;-webkit-appearance:none;height:3px;background:var(--border);border-radius:2px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;background:var(--cyan);border-radius:50%;cursor:pointer}
+.sz-val{font-size:10px;color:var(--cyan);font-weight:600;min-width:28px;text-align:right}
+
+/* Page nav */
+.pnav{display:flex;align-items:center;gap:6px}
+.pnb{width:24px;height:24px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font-size:11px;transition:all .2s;display:flex;align-items:center;justify-content:center}
+.pnb:hover{border-color:var(--cyan);color:var(--cyan)}
+.pnb:disabled{opacity:.3;cursor:not-allowed}
+.pni{flex:1;text-align:center;font-size:10px;color:var(--muted)}
+
+/* Stamp list */
+.sentries{display:flex;flex-direction:column;gap:4px}
+.sentry{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:10px}
+.se-dot{width:6px;height:6px;border-radius:50%;background:var(--orange);flex-shrink:0}
+.se-lbl{flex:1;color:var(--muted)}
+.se-pg{color:var(--cyan);font-weight:600}
+.se-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:0 2px;transition:color .2s}
+.se-del:hover{color:var(--orange)}
+.no-stamps{font-size:10px;color:var(--muted);text-align:center;padding:6px 0;line-height:1.6}
+
+/* Template list */
+.tlist{display:flex;flex-direction:column;gap:4px}
+.ti{display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--border);border-radius:7px;padding:7px 9px;cursor:pointer;transition:all .2s}
+.ti:hover{border-color:var(--cyan)}
+.ti-ic{font-size:13px;flex-shrink:0}
+.ti-m{flex:1;min-width:0}
+.ti-n{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ti-i{font-size:9px;color:var(--muted);margin-top:1px}
+.ti-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:10px;padding:4px;transition:color .2s}
+.ti-del:hover{color:var(--orange)}
+.no-tpl{font-size:10px;color:var(--muted);text-align:center;padding:10px 0;line-height:1.7}
+
+/* Template storage section */
+.tpl-store{display:flex;flex-direction:column;gap:6px}
+.tpl-store-path{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:7px;padding:6px 9px}
+.tsp-label{flex:1;font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tsp-label strong{color:var(--text);font-size:10px}
+.tpl-store-btns{display:flex;gap:5px}
+
+/* EDITOR AREA */
+.editor-area{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#090e1a}
+.match-banner{display:none;align-items:center;gap:8px;padding:8px 14px;background:rgba(0,201,141,.08);border-bottom:1px solid rgba(0,201,141,.2);font-size:11px;flex-shrink:0}
+.match-banner.show{display:flex}
+.mb-txt{flex:1}.mb-txt strong{color:var(--green)}
+.mb-btn{padding:4px 9px;border-radius:5px;border:1px solid rgba(0,201,141,.4);background:rgba(0,201,141,.1);color:var(--green);font-size:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
+.prev-tb{display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0}
+.chint{font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.chint .dot{width:5px;height:5px;border-radius:50%;background:var(--orange);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.zctrls{display:flex;align-items:center;gap:4px;margin-left:auto}
+.zb{width:24px;height:24px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font-size:12px;transition:all .2s;display:flex;align-items:center;justify-content:center}
+.zb:hover{border-color:var(--cyan);color:var(--cyan)}
+.zlbl{font-size:10px;color:var(--muted);min-width:36px;text-align:center}
+.canvas-scroll{flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:20px}
+.canvas-wrap{position:relative;display:inline-block;box-shadow:0 8px 60px rgba(0,0,0,.7);border-radius:3px;cursor:crosshair;flex-shrink:0}
+#pdfCanvas{display:block}
+#OL{position:absolute;inset:0;pointer-events:none}
+.empty-prev{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--muted)}
+.ep-ic{font-size:50px;opacity:.2}
+.empty-prev h3{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text);opacity:.35}
+.empty-prev p{font-size:11px;text-align:center;line-height:1.7;max-width:220px}
+
+/* STAMP OVERLAY */
+.sov{position:absolute;pointer-events:auto;user-select:none;cursor:move}
+.sov .sov-del{position:absolute;top:-7px;right:-7px;width:15px;height:15px;background:var(--orange);border:2px solid white;border-radius:50%;color:white;font-size:8px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .15s;z-index:10}
+.sov:hover .sov-del{opacity:1}
+.sov .sov-rsz{position:absolute;bottom:-5px;right:-5px;width:12px;height:12px;background:white;border:2px solid var(--orange);border-radius:2px;cursor:se-resize;opacity:0;transition:opacity .15s;z-index:10}
+.sov:hover .sov-rsz{opacity:1}
+/* ── Date stamp overlay ── */
+.sov.date-sov .sov-rsz{border-color:var(--blue)}
+/* ── Stamp type toggle ── */
+.type-toggle{display:flex;gap:5px;margin-bottom:0}
+.type-btn{flex:1;padding:6px 4px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;cursor:pointer;transition:all .2s;text-align:center}
+.type-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.type-btn.active-sign{background:rgba(232,96,58,.15);border-color:var(--orange);color:var(--orange)}
+.type-btn.active-date{background:rgba(0,114,188,.15);border-color:var(--blue);color:var(--cyan)}
+/* Date stamp format & colour row */
+.date-opts{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.date-opts label{font-size:9px;color:var(--muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.date-opts select{width:100%;padding:5px 8px;background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;outline:none;cursor:pointer}
+.date-opts select:focus{border-color:var(--cyan)}
+.date-colour-row{display:flex;align-items:center;gap:8px}
+.date-colour-row label{font-size:9px;color:var(--muted);flex:1}
+input[type=color]{width:32px;height:24px;border:1px solid var(--border);border-radius:5px;cursor:pointer;background:none;padding:1px}
+/* Date stamp overlay box */
+.date-sov-inner{border-radius:4px;display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-family:'Arial Black',Impact,sans-serif;font-weight:900;color:white;text-align:center;line-height:1.1;letter-spacing:.3px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.4))}
+/* Sidebar dot for date stamps */
+.se-dot.date{background:var(--cyan)}
+
+/* BATCH PANEL */
+.batch-panel{flex:1;display:none;flex-direction:column;overflow:hidden}
+.batch-panel.active{display:flex}
+.batch-inner{flex:1;overflow-y:auto;padding:20px 24px}
+.bdrop{border:2px dashed var(--border);border-radius:13px;padding:36px 26px;text-align:center;cursor:pointer;transition:all .25s;background:rgba(0,174,239,.02);margin-bottom:20px}
+.bdrop:hover,.bdrop.over{border-color:var(--cyan);background:rgba(0,174,239,.06)}
+.bd-ic{font-size:40px;margin-bottom:10px}
+.bdrop h3{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:5px}
+.bdrop p{font-size:12px;color:var(--muted);line-height:1.6}
+.bdrop p strong{color:var(--cyan)}
+#folderInput{display:none}
+
+/* Batch progress */
+.bprog{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px;display:none}
+.bprog.show{display:block}
+.bp-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.bp-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:700}
+.bp-cnt{font-size:10px;color:var(--cyan);font-weight:600}
+.pbar{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.pfill{height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan));border-radius:3px;transition:width .3s;width:0}
+.bp-msg{font-size:9px;color:var(--muted);margin-top:5px}
+
+/* Batch summary */
+.bsum{display:none;gap:9px;margin-bottom:16px;flex-wrap:wrap}
+.bsum.show{display:flex}
+.sum-pill{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:9px 14px;display:flex;align-items:center;gap:8px;flex:1;min-width:90px}
+.sum-n{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;line-height:1}
+.sum-l{font-size:9px;color:var(--muted)}
+
+/* Batch file list */
+.bfh{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.bfh h3{font-family:'Syne',sans-serif;font-size:13px;font-weight:700}
+.bactions{display:flex;gap:6px}
+.btable{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.bt-head{display:grid;grid-template-columns:1fr 75px 120px 95px 44px;padding:8px 13px;background:rgba(0,174,239,.06);border-bottom:1px solid var(--border);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--cyan);gap:8px}
+.bt-row{display:grid;grid-template-columns:1fr 75px 120px 95px 44px;padding:9px 13px;border-bottom:1px solid rgba(0,174,239,.05);align-items:center;transition:background .15s;gap:8px}
+.bt-row:last-child{border-bottom:none}
+.bt-row:hover{background:rgba(0,174,239,.03)}
+.bt-nm{font-size:10px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px}
+.bt-sz{font-size:9px;color:var(--muted)}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700;white-space:nowrap}
+.badge.pend{background:rgba(90,106,138,.15);border:1px solid rgba(90,106,138,.3);color:var(--muted)}
+.badge.match{background:rgba(0,174,239,.12);border:1px solid rgba(0,174,239,.3);color:var(--cyan)}
+.badge.nomatch{background:rgba(255,165,0,.12);border:1px solid rgba(255,165,0,.3);color:var(--warn)}
+.badge.done{background:rgba(0,201,141,.12);border:1px solid rgba(0,201,141,.3);color:var(--green)}
+.badge.err{background:rgba(232,25,44,.12);border:1px solid rgba(232,25,44,.3);color:#ff4757}
+.badge.proc{background:rgba(0,174,239,.1);border:1px solid rgba(0,174,239,.2);color:var(--cyan);animation:pulse .9s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* Save-to button per row */
+.save-to-btn{min-width:34px;max-width:130px;height:22px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:10px;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.save-to-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.save-to-btn:disabled{opacity:.25;cursor:not-allowed}
+.save-to-btn.has-folder{border-color:rgba(0,201,141,.4);color:var(--green);background:rgba(0,201,141,.07)}
+.fs-api-note{font-size:9px;color:var(--muted);line-height:1.5;margin-top:4px;padding:6px 8px;background:rgba(0,174,239,.05);border:1px solid var(--border);border-radius:6px}
+
+.dl-all-btn{width:100%;padding:12px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--cyan));border:none;color:#fff;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;display:none;align-items:center;justify-content:center;gap:8px}
+.dl-all-btn:hover{box-shadow:0 4px 18px rgba(0,174,239,.3);transform:translateY(-1px)}
+.dl-all-btn.show{display:flex}
+
+/* MODALS */
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center}
+.mbg.show{display:flex}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px;width:360px;max-width:92vw;animation:fadeUp .2s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.modal h3{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;margin-bottom:5px}
+.modal p{font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6}
+.minput{width:100%;padding:9px 11px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;margin-bottom:14px;transition:border-color .2s}
+.minput:focus{border-color:var(--cyan)}
+.mact{display:flex;gap:8px;justify-content:flex-end}
+.mbtn{padding:7px 14px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;cursor:pointer;transition:all .2s}
+.mbtn:hover{border-color:var(--muted)}
+.mbtn.ok{background:linear-gradient(135deg,var(--blue),var(--cyan));border-color:transparent;color:#fff}
+
+/* TOAST */
+.toast{position:fixed;bottom:16px;right:16px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;font-size:11px;z-index:300;transform:translateY(60px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);max-width:270px;box-shadow:0 6px 24px rgba(0,0,0,.4)}
+.toast.show{transform:translateY(0);opacity:1}
+.t-ic{font-size:14px;flex-shrink:0}
+.t-ti{font-weight:600;margin-bottom:1px}
+.t-su{font-size:9px;color:var(--muted)}
+.toast.success{border-color:rgba(0,201,141,.3)}
+.toast.warn{border-color:rgba(255,165,0,.3)}
+.toast.info{border-color:rgba(0,174,239,.3)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo"><div class="logo-m">M</div><div class="logo-label">Midas Tech <span>Sign Stamper</span></div></div>
+  <div class="vsep"></div><div class="app-title">v5</div>
+  <div class="sp"></div>
+  <button class="tbtn" id="autoBtn" disabled>🔍 Auto-Detect</button>
+  <button class="tbtn" id="clearPgBtn" disabled>🗑 Clear Page</button>
+  <button class="tbtn" id="saveTplBtn" disabled>📋 Save Template</button>
+  <button class="tbtn pri" id="genBtn" disabled>⬇ Download PDF</button>
+</div>
+
+<div class="tab-bar">
+  <div class="tab active" id="tabE" onclick="switchTab('editor')">✏️ Editor <span class="tab-badge" id="edgBadge">0 stamps</span></div>
+  <div class="tab" id="tabB" onclick="switchTab('batch')">📁 Batch Folder <span class="tab-badge" id="batchBadge">0 files</span></div>
+</div>
+
+<div class="workspace">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb">
+      <div class="sbl">Document</div>
+      <div class="dz" id="dz"><div class="dz-ic">📂</div><h4>Drop PDF here</h4><p>or <span>click to browse</span></p></div>
+      <input type="file" id="fileInput" accept=".pdf">
+      <div class="fchip" id="fchip">
+        <div class="fc-ic">📄</div>
+        <div class="fc-m"><div class="fc-n" id="fcN">—</div><div class="fc-s" id="fcS">—</div></div>
+        <button class="fc-x" id="fcX">✕</button>
+      </div>
+    </div>
+
+    <div class="sb" id="pnSec" style="display:none">
+      <div class="sbl">Pages</div>
+      <div class="pnav">
+        <button class="pnb" id="pp">◀</button>
+        <div class="pni" id="pni">— / —</div>
+        <button class="pnb" id="np">▶</button>
+      </div>
+    </div>
+
+    <div class="sb" id="typeSec" style="display:none">
+      <div class="sbl">Stamp Type</div>
+      <div class="type-toggle">
+        <button class="type-btn active-sign" id="typeSignBtn" onclick="setStampType('sign')">✍ Sign Here</button>
+        <button class="type-btn" id="typeDateBtn" onclick="setStampType('date')">📅 Date</button>
+      </div>
+      <div class="date-opts" id="dateOpts" style="display:none">
+        <label>Date Format</label>
+        <select id="dateFmt">
+          <option value="YYYY/MM/DD">2026/03/31</option>
+          <option value="YYYY-MM-DD">2026-03-31</option>
+          <option value="MM/DD/YYYY">03/31/2026</option>
+          <option value="DD/MM/YYYY">31/03/2026</option>
+          <option value="MMM D, YYYY">Mar 31, 2026</option>
+          <option value="MMMM D, YYYY">March 31, 2026</option>
+          <option value="D MMM YYYY">31 Mar 2026</option>
+        </select>
+        <input type="color" id="dateColour" value="#0072BC" style="display:none" aria-hidden="true">
+      </div>
+    </div>
+
+    <div class="sb" id="szSec" style="display:none">
+      <div class="sbl">Stamp Size</div>
+      <div class="sz-row">
+        <label>Width</label>
+        <input type="range" id="szSlider" min="70" max="220" value="130">
+        <span class="sz-val" id="szVal">130 pt</span>
+      </div>
+    </div>
+
+    <div class="sb" id="stSec" style="display:none">
+      <div class="sbl">Stamps Placed</div>
+      <div class="sentries" id="sentries"><div class="no-stamps">Click document to place stamps</div></div>
+    </div>
+
+    <div class="sb">
+      <div class="sbl">Saved Templates</div>
+      <div class="tlist" id="tlist"><div class="no-tpl">No templates yet.</div></div>
+    </div>
+
+    <div class="sb grow">
+      <div class="sbl">Template Storage</div>
+      <div class="tpl-store">
+        <div class="tpl-store-path">
+          <div class="tsp-label" id="tplPathLabel"><strong>Browser storage</strong> (default)</div>
+        </div>
+        <div class="tpl-store-btns">
+          <button class="tbtn" id="exportTplBtn" style="flex:1;justify-content:center">📤 Export</button>
+          <button class="tbtn grn" id="importTplBtn" style="flex:1;justify-content:center">📥 Import</button>
+        </div>
+        <input type="file" id="importFileInput" accept=".json" style="display:none">
+        <p style="font-size:9px;color:var(--muted);line-height:1.5;margin-top:4px">
+          Export saves templates to a <strong style="color:var(--text)">mt_templates.json</strong> file. Import loads them back. Save the file to <em style="color:var(--cyan)">C:\Document_StampFolder\</em> and import from there each session — or set up auto-load below.
+        </p>
+        <label style="display:flex;align-items:center;gap:7px;font-size:10px;color:var(--muted);cursor:pointer;margin-top:4px">
+          <input type="checkbox" id="autoExportChk" style="accent-color:var(--cyan)">
+          Auto-export templates after every save
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDITOR -->
+  <div class="editor-area" id="editorPanel">
+    <div class="match-banner" id="matchBanner">
+      <span style="font-size:14px">✨</span>
+      <div class="mb-txt">Matched: <strong id="matchName">—</strong> — stamps applied!</div>
+      <button class="mb-btn" onclick="document.getElementById('matchBanner').classList.remove('show')">×</button>
+    </div>
+    <div class="prev-tb" id="prevTb" style="display:none">
+      <div class="chint"><div class="dot"></div> Click to place stamp · Drag to move · Corner to resize · <span id="hintType" style="color:var(--orange)">Sign Here</span> mode</div>
+      <div class="vsep"></div>
+      <div class="zctrls">
+        <button class="zb" id="zOut">−</button>
+        <div class="zlbl" id="zlbl">100%</div>
+        <button class="zb" id="zIn">+</button>
+        <button class="zb" id="zFit">⊡</button>
+      </div>
+    </div>
+    <div class="empty-prev" id="emptyPrev">
+      <div class="ep-ic">📋</div>
+      <h3>No Document Loaded</h3>
+      <p>Upload a PDF to start placing Sign Here stamps</p>
+    </div>
+    <div class="canvas-scroll" id="canvScroll" style="display:none">
+      <div class="canvas-wrap" id="cw">
+        <canvas id="pdfCanvas"></canvas>
+        <div id="OL" style="position:absolute;inset:0;pointer-events:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BATCH -->
+  <div class="batch-panel" id="batchPanel">
+    <div class="batch-inner">
+      <div class="bdrop" id="bdrop">
+        <div class="bd-ic">📁</div>
+        <h3>Drop a Folder of PDFs</h3>
+        <p>Or <strong>click to select multiple PDF files</strong><br>Templates matched automatically · Unmatched files skipped.</p>
+      </div>
+      <input type="file" id="folderInput" accept=".pdf" multiple>
+
+      <div class="bprog" id="bprog">
+        <div class="bp-top"><div class="bp-title">Processing…</div><div class="bp-cnt" id="bpCnt">0 / 0</div></div>
+        <div class="pbar"><div class="pfill" id="pfill"></div></div>
+        <div class="bp-msg" id="bpMsg">Starting…</div>
+      </div>
+
+      <div class="bsum" id="bsum">
+        <div class="sum-pill"><div class="sum-n" id="sTotal" style="color:var(--cyan)">0</div><div class="sum-l">Total</div></div>
+        <div class="sum-pill"><div class="sum-n" id="sDone" style="color:var(--green)">0</div><div class="sum-l">Stamped</div></div>
+        <div class="sum-pill"><div class="sum-n" id="sSkip" style="color:var(--warn)">0</div><div class="sum-l">Skipped</div></div>
+        <div class="sum-pill"><div class="sum-n" id="sErr" style="color:var(--orange)">0</div><div class="sum-l">Errors</div></div>
+      </div>
+
+      <div id="bfw" style="display:none">
+        <div class="bfh">
+          <h3 id="bfTitle">Files</h3>
+          <div class="bactions">
+            <button class="tbtn" id="clrBatch">✕ Clear</button>
+            <button class="tbtn" id="setAllFolderBtn" onclick="setGlobalSaveFolder()" title="Pick one folder to save ALL stamped PDFs">📁 Set Folder for All</button>
+            <button class="tbtn pri" id="runBatch">▶ Process All</button>
+          </div>
+        </div>
+        <div class="btable">
+          <div class="bt-head"><span>Filename</span><span>Size</span><span>Template</span><span>Status</span><span>Save</span></div>
+          <div id="btBody"></div>
+        </div>
+        <div class="fs-api-note">
+          <strong style="color:var(--text)">📁 Saving to folders:</strong> Click <strong>📁 Set Folder for All</strong> to browse and pick one output folder for all files.
+          Or click the <strong>📁</strong> icon next to each file individually to set different folders per file.
+          Click 📂 on a file that already has a folder to clear it. Files without a folder save to your Downloads folder as usual.<br>
+          <span style="color:var(--cyan)">Requires Chrome or Edge (File System Access API).</span>
+        </div>
+        <button class="dl-all-btn" id="dlAll">📦 Download All Stamped PDFs</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Save Template Modal -->
+<div class="mbg" id="saveMod">
+  <div class="modal">
+    <h3>💾 Save as Template</h3>
+    <p>Name this stamp layout. Matching documents will be auto-stamped in future.</p>
+    <input class="minput" id="tplNameIn" placeholder="e.g. MSA Agreement, NDA, SLA…" maxlength="60">
+    <div class="mact">
+      <button class="mbtn" id="cancelSave">Cancel</button>
+      <button class="mbtn ok" id="confirmSave">Save Template</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <div class="t-ic" id="tic"></div>
+  <div><div class="t-ti" id="tti">—</div><div class="t-su" id="tsu"></div></div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const {PDFDocument,rgb,StandardFonts}=PDFLib;
+
+// ─── STATE ───
+let pdfJsDoc=null, pdfRawBytes=null, currentFile=null;
+let curStampType='sign'; // 'sign' | 'date'
+
+function setStampType(t){
+  curStampType=t;
+  G('typeSignBtn').className='type-btn '+(t==='sign'?'active-sign':'');
+  G('typeDateBtn').className='type-btn '+(t==='date'?'active-date':'');
+  G('dateOpts').style.display=t==='date'?'flex':'none';
+  G('dateOpts').style.flexDirection='column';
+  G('dateOpts').style.gap='6px';
+  G('hintType').textContent=t==='sign'?'Sign Here':'Date';
+  G('hintType').style.color=t==='sign'?'var(--orange)':'var(--cyan)';
+  G('chint').querySelector('.dot').style.background=t==='sign'?'var(--orange)':'var(--cyan)';
+  renderOverlays();
+}
+
+function fmtDate(fmt){
+  const d=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const mon3=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  // Replace longest tokens first to avoid partial replacements
+  return fmt
+    .replace('MMMM', months[d.getMonth()])
+    .replace('MMM',  mon3[d.getMonth()])
+    .replace('YYYY', d.getFullYear())
+    .replace('MM',   pad(d.getMonth()+1))
+    .replace('DD',   pad(d.getDate()))
+    .replace('D',    String(d.getDate()));
+}
+let curPage=1, totPages=0, zoom=1.0, renderTask=null;
+let stamps={};      // stamps[pg] = [{x,y,w,h}] — PDF points, bottom-left origin
+let templates=[];
+let batchFiles=[];  // [{file, fp, tpl, status, bytes, err, saveFolder}]
+let stampW=130;
+
+// Stamp height from width — different ratios per type
+const ASPECT_SIGN=0.36;   // sign-here arrow: taller
+const ASPECT_DATE=0.20;   // date: flat like a filled field
+function sH(w){
+  return Math.max(14, Math.round(w*(curStampType==='date'?ASPECT_DATE:ASPECT_SIGN)));
+}
+
+// ─── TEMPLATE STORAGE ───
+function loadTpls(){
+  try{templates=JSON.parse(localStorage.getItem('mt_v5_tpls')||'[]')}catch{templates=[]}
+}
+function saveTpls(){
+  localStorage.setItem('mt_v5_tpls',JSON.stringify(templates));
+  if(document.getElementById('autoExportChk').checked) exportTemplates();
+}
+loadTpls(); renderTplList();
+
+// Export templates to JSON file
+function exportTemplates(){
+  const blob=new Blob([JSON.stringify(templates,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='mt_templates.json'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+
+// Import templates from JSON file
+document.getElementById('exportTplBtn').addEventListener('click',()=>{
+  if(!templates.length){toast('warn','No templates','Save at least one template first');return}
+  exportTemplates();
+  toast('success','Templates exported','Save mt_templates.json to your stamp folder');
+});
+document.getElementById('importTplBtn').addEventListener('click',()=>document.getElementById('importFileInput').click());
+document.getElementById('importFileInput').addEventListener('change',async e=>{
+  const f=e.target.files[0]; if(!f)return;
+  try{
+    const txt=await f.text();
+    const imported=JSON.parse(txt);
+    if(!Array.isArray(imported))throw new Error('Invalid format');
+    // Merge: keep existing, add new ones by id
+    imported.forEach(t=>{if(!templates.find(x=>x.id===t.id))templates.push(t)});
+    saveTpls(); renderTplList();
+    toast('success',`${imported.length} templates imported`,`Total: ${templates.length}`);
+    batchRefreshMatch();
+  }catch(ex){toast('warn','Import failed',ex.message)}
+  e.target.value='';
+});
+
+// ─── TABS ───
+function switchTab(t){
+  document.getElementById('tabE').classList.toggle('active',t==='editor');
+  document.getElementById('tabB').classList.toggle('active',t==='batch');
+  document.getElementById('editorPanel').style.display=t==='editor'?'flex':'none';
+  document.getElementById('batchPanel').classList.toggle('active',t==='batch');
+  const show=t==='editor';
+  ['autoBtn','clearPgBtn','saveTplBtn','genBtn'].forEach(id=>document.getElementById(id).style.display=show?'':'none');
+}
+
+// ─── STAMP SIZE SLIDER ───
+document.getElementById('szSlider').addEventListener('input',e=>{
+  stampW=+e.target.value;
+  document.getElementById('szVal').textContent=stampW+' pt';
+  renderOverlays();
+});
+
+// ─── UPLOAD ───
+const dz=document.getElementById('dz');
+const fi=document.getElementById('fileInput');
+dz.addEventListener('click',()=>fi.click());
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');
+  const f=[...e.dataTransfer.files].find(f=>f.name.toLowerCase().endsWith('.pdf'));
+  if(f)loadFile(f);
+});
+fi.addEventListener('change',()=>{if(fi.files[0])loadFile(fi.files[0])});
+document.getElementById('fcX').addEventListener('click',clearDoc);
+
+async function loadFile(file){
+  currentFile=file;
+  const ab=await file.arrayBuffer();
+  pdfRawBytes=new Uint8Array(ab);
+  pdfJsDoc=await pdfjsLib.getDocument({data:pdfRawBytes.slice(0)}).promise;
+  totPages=pdfJsDoc.numPages; curPage=1; stamps={};
+  document.getElementById('fcN').textContent=file.name;
+  document.getElementById('fcS').textContent=`${(file.size/1024).toFixed(1)} KB · ${totPages} pg`;
+  document.getElementById('fchip').classList.add('show');
+  dz.style.display='none';
+  G('emptyPrev').style.display='none'; G('canvScroll').style.display='flex';
+  G('prevTb').style.display='flex'; G('pnSec').style.display='block';
+  G('typeSec').style.display='block'; G('szSec').style.display='block'; G('stSec').style.display='block';
+  G('matchBanner').classList.remove('show');
+  updateBtns(); await renderPage(curPage); fitZoom();
+  // fingerprint AFTER renderPage so cw._pw/_ph are populated
+  const fp=await fingerprint(pdfJsDoc);
+  const m=templates.find(t=>t.fp===fp);
+  if(m){
+    // Small delay to ensure renderPage has fully written cw._pw/_ph
+    await new Promise(r=>setTimeout(r,50));
+    applyTpl(m);
+    G('matchName').textContent=m.name;
+    G('matchBanner').classList.add('show');
+    toast('success','Template Matched!',`"${m.name}" applied`);
+  } else {
+    toast('info','New document type','Place stamps, then save as template');
+  }
+}
+
+function clearDoc(){
+  pdfJsDoc=null;pdfRawBytes=null;currentFile=null;stamps={};
+  G('fchip').classList.remove('show'); dz.style.display='';
+  G('emptyPrev').style.display='flex'; G('canvScroll').style.display='none';
+  G('prevTb').style.display='none'; G('pnSec').style.display='none';
+  G('typeSec').style.display='none'; G('szSec').style.display='none'; G('stSec').style.display='none';
+  G('matchBanner').classList.remove('show');
+  G('OL').innerHTML=''; updateSideStamps(); updateBtns(); fi.value='';
+}
+
+function G(id){return document.getElementById(id)}
+
+// ─── RENDER PAGE ───
+async function renderPage(num){
+  if(!pdfJsDoc)return;
+  if(renderTask){try{renderTask.cancel()}catch{}}
+  const page=await pdfJsDoc.getPage(num);
+  const vp=page.getViewport({scale:zoom});
+  const canvas=G('pdfCanvas');
+  canvas.width=vp.width; canvas.height=vp.height;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,vp.width,vp.height);
+  renderTask=page.render({canvasContext:ctx,viewport:vp});
+  await renderTask.promise;
+  const vp1=page.getViewport({scale:1});
+  G('cw')._pw=vp1.width; G('cw')._ph=vp1.height;
+  G('pni').textContent=`${num} / ${totPages}`;
+  G('pp').disabled=num<=1; G('np').disabled=num>=totPages;
+  renderOverlays();
+}
+
+function fitZoom(){
+  const sc=G('canvScroll'), avail=sc.clientWidth-44;
+  const pw=G('cw')._pw||600;
+  zoom=Math.min(1.8,avail/pw);
+  G('zlbl').textContent=Math.round(zoom*100)+'%';
+  renderPage(curPage);
+}
+
+G('zIn').addEventListener('click',()=>{zoom=Math.min(3,zoom+.15);G('zlbl').textContent=Math.round(zoom*100)+'%';renderPage(curPage)});
+G('zOut').addEventListener('click',()=>{zoom=Math.max(.3,zoom-.15);G('zlbl').textContent=Math.round(zoom*100)+'%';renderPage(curPage)});
+G('zFit').addEventListener('click',fitZoom);
+G('pp').addEventListener('click',()=>{if(curPage>1){curPage--;renderPage(curPage);updateSideStamps()}});
+G('np').addEventListener('click',()=>{if(curPage<totPages){curPage++;renderPage(curPage);updateSideStamps()}});
+
+// ─── PLACE STAMP ON CLICK ───
+G('cw').addEventListener('click',e=>{
+  if(!pdfJsDoc)return;
+  const cw=G('cw'), canvas=G('pdfCanvas');
+  const wr=cw.getBoundingClientRect();
+  const cx=e.clientX-wr.left, cy=e.clientY-wr.top;
+  const scX=cw._pw/canvas.width, scY=cw._ph/canvas.height;
+  const h=sH(stampW);
+  const px=cx*scX-stampW/2;
+  const py=cw._ph-(cy*scY)-h/2;
+  const pxC=Math.max(0,Math.min(px,cw._pw-stampW));
+  const pyC=Math.max(0,Math.min(py,cw._ph-h));
+  if(!stamps[curPage])stamps[curPage]=[];
+  const sType=curStampType;
+  const sFmt=G('dateFmt').value||'YYYY/MM/DD';
+  const sDate=sType==='date'?fmtDate(sFmt):'';
+  const sColour=sType==='date'?G('dateColour').value:'';
+  stamps[curPage].push({x:pxC,y:pyC,w:stampW,h:h,type:sType,dateText:sDate,colour:sColour,dateFmt:sFmt});
+  renderOverlays(); updateSideStamps(); updateBtns();
+});
+
+// ─── RENDER OVERLAYS ───
+function renderOverlays(){
+  const OL=G('OL'); OL.innerHTML='';
+  const ps=stamps[curPage]||[];
+  const canvas=G('pdfCanvas'), cw=G('cw');
+  if(!cw._pw)return;
+  const scX=canvas.width/cw._pw, scY=canvas.height/cw._ph;
+
+  ps.forEach((s,i)=>{
+    const sw=s.w*scX, sh=s.h*scY;
+    const sx=s.x*scX, sy=canvas.height-(s.y+s.h)*scY;
+    const el=document.createElement('div');
+    el.className='sov';
+    el.style.cssText=`left:${sx}px;top:${sy}px;width:${sw}px;height:${sh}px`;
+    const isDate=s.type==='date';
+    el.className='sov'+(isDate?' date-sov':'');
+    el.innerHTML=`${isDate?makeDateSVG(sw,sh,s.dateText,s.colour):makeArrowSVG(sw,sh)}<div class="sov-del" onclick="delStamp(${i},event)">×</div><div class="sov-rsz" onmousedown="startResize(${i},event)"></div>`;
+    el.addEventListener('mousedown',ev=>startDrag(i,ev));
+    OL.appendChild(el);
+  });
+  OL.style.pointerEvents=ps.length?'auto':'none';
+  updateEdgBadge();
+}
+
+// ─── ARROW SVG — exact shape matching the screenshot ───
+// Shape: left-pointing arrow (chevron tip on left, rounded corners on right)
+// Text fits inside body with padding, clipping prevented by measuring available width
+function makeArrowSVG(w,h){
+  // tip = how far right the chevron point is (from left edge)
+  const tip=Math.round(h*0.50);
+  const rr=Math.round(h*0.26); // corner radius right side
+  const bodyW=w-tip;           // width of rectangular body portion
+
+  // SVG path
+  const path=`M0,${h/2} L${tip},0 L${w-rr},0 Q${w},0 ${w},${rr} L${w},${h-rr} Q${w},${h} ${w-rr},${h} L${tip},${h} Z`;
+
+  // Font size: fit "SIGN HERE" (9 chars) inside body with left+right padding
+  // Available width = bodyW - padding (12px each side)
+  const padH=8;
+  const availW=bodyW-padH*2;
+  // Each char roughly 0.65× font size wide in bold italic
+  const maxFsByWidth=availW/(9*0.62);
+  const maxFsByHeight=h*0.48;
+  const fs=Math.max(6,Math.min(maxFsByWidth,maxFsByHeight));
+
+  // Text center X = tip + bodyW/2
+  const tx=tip+bodyW/2;
+  const ty=h/2+fs*0.37;
+
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible;filter:drop-shadow(0 2px 5px rgba(0,0,0,.4))">
+  <clipPath id="cp${Math.random().toString(36).slice(2,7)}"><path d="${path}"/></clipPath>
+  <path d="${path}" fill="#E8603A"/>
+  <rect x="${tip}" y="0" width="${bodyW}" height="${h*0.42}" fill="rgba(255,255,255,0.13)" clip-path="url(#cp)"/>
+  <text x="${tx}" y="${ty}" text-anchor="middle" dominant-baseline="auto"
+    font-family="'Arial Black','Arial Bold',Impact,sans-serif"
+    font-size="${fs}" font-weight="900" font-style="italic"
+    fill="white" letter-spacing="-0.3"
+    paint-order="stroke" stroke="rgba(100,20,0,0.5)" stroke-width="0.6" stroke-linejoin="round">SIGN HERE</text>
+</svg>`;
+}
+
+// ─── DATE STAMP SVG ───
+function makeDateSVG(w,h,dateText){
+  // Transparent stamp — bold black date text, sized to fill the stamp width
+  // Fit font size: try to fill ~88% of width
+  const txt=dateText||'Date';
+  // Approximate char width at size 1 for bold arial = ~0.60
+  const fs=Math.max(10, Math.min(h*0.65, (w*0.88)/(txt.length*0.60)));
+  const tx=w/2;
+  // Vertically centre the text in the stamp box
+  const ty=h*0.50+fs*0.35;
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="display:block">
+  <text x="${tx}" y="${ty}" text-anchor="middle"
+    font-family="'Arial Black','Arial Bold',Arial,sans-serif"
+    font-size="${fs}" font-weight="900"
+    fill="#000000">${txt}</text>
+</svg>`;
+}
+
+// ─── DRAG ───
+function startDrag(idx,ev){
+  if(ev.target.classList.contains('sov-del')||ev.target.classList.contains('sov-rsz'))return;
+  ev.preventDefault();
+  const canvas=G('pdfCanvas'), cw=G('cw');
+  const scX=cw._pw/canvas.width, scY=cw._ph/canvas.height;
+  const sx=ev.clientX, sy=ev.clientY;
+  const orig={...stamps[curPage][idx]};
+  function onMove(e){
+    const s=stamps[curPage][idx];
+    const dx=(e.clientX-sx)*scX, dy=-(e.clientY-sy)*scY;
+    s.x=Math.max(0,Math.min(orig.x+dx,cw._pw-s.w));
+    s.y=Math.max(0,Math.min(orig.y+dy,cw._ph-s.h));
+    renderOverlays();
+  }
+  function onUp(){document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp)}
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('mouseup',onUp);
+}
+
+// ─── RESIZE ───
+function startResize(idx,ev){
+  ev.preventDefault(); ev.stopPropagation();
+  const canvas=G('pdfCanvas'), cw=G('cw');
+  const scX=cw._pw/canvas.width;
+  const sx=ev.clientX, origW=stamps[curPage][idx].w;
+  function onMove(e){
+    const newW=Math.max(70,Math.min(280,origW+(e.clientX-sx)*scX));
+    stamps[curPage][idx].w=newW;
+    // Use the stamp's own type to maintain correct aspect on resize
+    const _t=stamps[curPage][idx].type||'sign';
+    stamps[curPage][idx].h=Math.max(14,Math.round(newW*(_t==='date'?ASPECT_DATE:ASPECT_SIGN)));
+    renderOverlays();
+  }
+  function onUp(){document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);updateSideStamps();updateBtns()}
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('mouseup',onUp);
+}
+
+function delStamp(i,e){
+  e.stopPropagation();
+  stamps[curPage]?.splice(i,1);
+  if(!stamps[curPage]?.length)delete stamps[curPage];
+  renderOverlays();updateSideStamps();updateBtns();
+}
+
+function updateSideStamps(){
+  const el=G('sentries');
+  const all=[];
+  Object.keys(stamps).sort((a,b)=>+a-+b).forEach(pg=>stamps[pg].forEach((s,i)=>all.push({pg:+pg,i,s})));
+  if(!all.length){el.innerHTML='<div class="no-stamps">Click document to place stamps</div>';return}
+  el.innerHTML=all.map(a=>`<div class="sentry"><div class="se-dot ${a.s.type==='date'?'date':''}"></div><div class="se-lbl">Pg <span class="se-pg">${a.pg}</span> · ${a.s.type==='date'?'📅':'✍'} #${a.i+1} <span style="color:var(--text)">${Math.round(a.s.w)}pt</span></div><button class="se-del" onclick="delStampG(${a.pg},${a.i})">×</button></div>`).join('');
+}
+function delStampG(pg,i){
+  stamps[pg]?.splice(i,1);
+  if(!stamps[pg]?.length)delete stamps[pg];
+  if(curPage===pg)renderOverlays();
+  updateSideStamps();updateBtns();
+}
+
+function totStamps(){return Object.values(stamps).reduce((a,b)=>a+b.length,0)}
+function updateEdgBadge(){const n=totStamps();G('edgBadge').textContent=`${n} stamp${n!==1?'s':''}`}
+function updateBtns(){
+  const has=!!pdfJsDoc,hasS=totStamps()>0;
+  G('autoBtn').disabled=!has; G('clearPgBtn').disabled=!has||!stamps[curPage]?.length;
+  G('saveTplBtn').disabled=!has||!hasS; G('genBtn').disabled=!has||!hasS;
+  updateEdgBadge();
+}
+
+// ─── CLEAR PAGE ───
+G('clearPgBtn').addEventListener('click',()=>{delete stamps[curPage];renderOverlays();updateSideStamps();updateBtns()});
+
+// ─── AUTO DETECT ───
+G('autoBtn').addEventListener('click',async()=>{
+  if(!pdfJsDoc)return;
+  const KW=['sign here','signature','authorized signature','client signature','sign below','please sign','sign:','signature:','signed by','witness'];
+  const DATE_KW=['date:','dated:','date signed','signing date','today\'s date'];
+  let found=0;
+  for(let pg=1;pg<=totPages;pg++){
+    const page=await pdfJsDoc.getPage(pg);
+    const tc=await page.getTextContent();
+    const vp1=page.getViewport({scale:1});
+    const pw=vp1.width,ph=vp1.height;
+    const items=tc.items;
+    for(let i=0;i<items.length;i++){
+      const str=items[i].str,tx=items[i].transform[4],ty=items[i].transform[5];
+      let hit=/_{3,}/.test(str)||/\u2014{3,}/.test(str);
+      if(!hit){let w='';for(let j=i;j<Math.min(i+5,items.length);j++)w+=items[j].str.toLowerCase()+' ';hit=KW.some(k=>w.includes(k))}
+      if(hit){
+        const dup=(stamps[pg]||[]).some(r=>Math.abs(r.x-tx)<60&&Math.abs(r.y-ty)<30);
+        if(!dup){
+          if(!stamps[pg])stamps[pg]=[];
+          const h=sH(stampW);
+          // Check if this hit is a date keyword
+          let win2='';for(let j=i;j<Math.min(i+5,items.length);j++)win2+=items[j].str.toLowerCase()+' ';
+          const isDateHit=DATE_KW.some(k=>win2.includes(k));
+          const sType2=isDateHit?'date':'sign';
+          const sDate2=isDateHit?fmtDate(G('dateFmt').value):'';
+          const sCol2=isDateHit?G('dateColour').value:'';
+          const h2=Math.max(14,Math.round(stampW*(sType2==='date'?ASPECT_DATE:ASPECT_SIGN)));
+          stamps[pg].push({x:Math.max(0,Math.min(tx-10,pw-stampW)),y:Math.max(0,Math.min(ty-4,ph-h2)),w:stampW,h:h2,type:sType2,dateText:sDate2,colour:sCol2});
+          found++;
+        }
+      }
+    }
+  }
+  renderOverlays();updateSideStamps();updateBtns();
+  found?toast('success',`${found} stamp${found!==1?'s':''} detected`,'Drag to adjust positions'):toast('warn','Nothing detected','Place stamps manually');
+});
+
+// ─── FINGERPRINT ───
+async function fingerprint(doc){
+  let s='';
+  const pgs=Math.min(doc.numPages,3);
+  for(let p=1;p<=pgs;p++){
+    const pg=await doc.getPage(p);
+    const tc=await pg.getTextContent();
+    s+=tc.items.slice(0,30).map(i=>i.str).join('').replace(/\s+/g,'').substring(0,80);
+  }
+  s+=`|${doc.numPages}`;
+  let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0}
+  return Math.abs(h).toString(36);
+}
+
+// ─── TEMPLATES ───
+function tplFromStamps(pw,ph){
+  const out={};
+  Object.keys(stamps).forEach(pg=>{
+    out[pg]=stamps[pg].map(s=>({
+      xP:s.x/pw, yP:s.y/ph, wP:s.w/pw, hP:s.h/ph,
+      type:s.type||'sign',
+      dateText:s.dateText||'',
+      colour:s.colour||'',
+      dateFmt:s.dateFmt||G('dateFmt').value||'YYYY/MM/DD'
+    }));
+  });
+  return out;
+}
+function stampsFromTpl(tplStamps,pw,ph){
+  const out={};
+  Object.keys(tplStamps).forEach(pg=>{
+    out[+pg]=tplStamps[pg].map(s=>({
+      x:s.xP*pw, y:s.yP*ph, w:s.wP*pw, h:s.hP*ph,
+      type:s.type||'sign',
+      dateText:s.dateText||'',
+      colour:s.colour||'',
+      dateFmt:s.dateFmt||G('dateFmt').value||'YYYY/MM/DD'
+    }));
+  });
+  return out;
+}
+
+function applyTpl(tpl){
+  const cw=G('cw');
+  // Use cw._pw/_ph (set after renderPage) or fall back to saved template page size
+  const pw=cw._pw||tpl.pw||612;
+  const ph=cw._ph||tpl.ph||792;
+  stamps=stampsFromTpl(tpl.stamps,pw,ph);
+  renderOverlays();updateSideStamps();updateBtns();
+}
+
+function renderTplList(){
+  const el=G('tlist');
+  if(!templates.length){el.innerHTML='<div class="no-tpl">No templates yet.</div>';return}
+  el.innerHTML=templates.map(t=>`
+    <div class="ti" onclick="clickTpl('${t.id}')">
+      <div class="ti-ic">📋</div>
+      <div class="ti-m">
+        <div class="ti-n">${esc(t.name)}</div>
+        <div class="ti-i">${cntTpl(t)} stamp${cntTpl(t)!==1?'s':''} · ${t.pages} pg</div>
+      </div>
+      <button class="ti-del" onclick="delTpl('${t.id}',event)">🗑</button>
+    </div>`).join('');
+}
+function cntTpl(t){return Object.values(t.stamps).reduce((a,b)=>a+b.length,0)}
+function clickTpl(id){
+  const t=templates.find(x=>x.id===id);
+  if(!t||!pdfJsDoc){toast('info','Load a document first','');return}
+  applyTpl(t); toast('success',`"${t.name}" applied`,`${cntTpl(t)} stamps placed`);
+}
+function delTpl(id,e){
+  e.stopPropagation();
+  templates=templates.filter(t=>t.id!==id);
+  saveTpls(); renderTplList(); toast('info','Template deleted','');
+}
+
+// ─── SAVE TEMPLATE ───
+G('saveTplBtn').addEventListener('click',()=>{
+  G('saveMod').classList.add('show');
+  G('tplNameIn').value='';
+  setTimeout(()=>G('tplNameIn').focus(),80);
+});
+G('cancelSave').addEventListener('click',()=>G('saveMod').classList.remove('show'));
+G('saveMod').addEventListener('click',e=>{if(e.target.id==='saveMod')G('cancelSave').click()});
+G('tplNameIn').addEventListener('keydown',e=>{
+  if(e.key==='Enter')G('confirmSave').click();
+  if(e.key==='Escape')G('cancelSave').click();
+});
+G('confirmSave').addEventListener('click',async()=>{
+  const name=G('tplNameIn').value.trim(); if(!name)return;
+  const cw=G('cw');
+  const fp=await fingerprint(pdfJsDoc);
+  const tplStamps=tplFromStamps(cw._pw,cw._ph);
+  const ei=templates.findIndex(t=>t.fp===fp);
+  const tpl={id:ei>=0?templates[ei].id:Date.now().toString(36),name,fp,pages:totPages,pw:cw._pw,ph:cw._ph,stamps:tplStamps};
+  if(ei>=0)templates[ei]=tpl; else templates.push(tpl);
+  saveTpls(); renderTplList();
+  G('saveMod').classList.remove('show');
+  toast('success','Template saved!',`"${name}" will auto-apply to matching docs`);
+  batchRefreshMatch();
+});
+
+// ─── GENERATE SINGLE PDF ───
+G('genBtn').addEventListener('click',async()=>{
+  if(!pdfRawBytes||!totStamps())return;
+  const btn=G('genBtn'); btn.disabled=true; btn.textContent='⏳…';
+  try{
+    const bytes=await stampPDF(pdfRawBytes,stamps);
+    dlBytes(bytes,currentFile.name.replace(/\.pdf$/i,'')+'_signed.pdf');
+    toast('success','PDF ready!',`${totStamps()} stamps embedded`);
+  }catch(e){toast('warn','Error generating PDF',e.message);console.error(e)}
+  btn.disabled=false; btn.textContent='⬇ Download PDF'; updateBtns();
+});
+
+// ─── CORE: STAMP PDF ───
+// Uses ONLY drawRectangle + drawText (public pdf-lib API, works in all 1.x versions).
+// The arrow tip is built from stacked slim rectangles — clean, reliable, no drawSvgPath.
+async function stampPDF(srcBytes,stampMap){
+  const doc=await PDFDocument.load(srcBytes);
+  const pages=doc.getPages();
+  const font=await doc.embedFont(StandardFonts.HelveticaBoldOblique);
+  for(const pg of Object.keys(stampMap)){
+    const pdfPage=pages[+pg-1]; if(!pdfPage) continue;
+    const {width:pw,height:ph}=pdfPage.getSize();
+    for(const s of stampMap[pg]){
+      if(s.type==='date') drawDateStamp(pdfPage,s,pw,ph,font);
+      else drawStamp(pdfPage,s,pw,ph,font);
+    }
+  }
+  return await doc.save();
+}
+
+function drawStamp(page,s,pw,ph,font){
+  let {x,y,w,h}=s;
+  // Clamp to page bounds
+  w=Math.min(w,pw); h=Math.min(h,ph);
+  x=Math.max(0,Math.min(x,pw-w));
+  y=Math.max(0,Math.min(y,ph-h));
+
+  // Coral colour
+  const CR=0.910, CG=0.376, CB=0.227;
+  const coral=rgb(CR,CG,CB);
+  const white=rgb(1,1,1);
+
+  // Arrow geometry
+  const tip=Math.round(h*0.50);  // horizontal depth of left-pointing chevron
+  const bodyX=x+tip;             // left edge of rectangular body
+  const bodyW=w-tip;             // width of rectangular body
+
+  // 1) White background (ensures stamp is always visible over any PDF content)
+  page.drawRectangle({x:x-0.5, y:y-0.5, width:w+1, height:h+1,
+    color:white, opacity:1});
+
+  // 2) Coral rectangular body
+  page.drawRectangle({x:bodyX, y, width:bodyW, height:h, color:coral, opacity:1});
+
+  // 3) Chevron tip — built from stacked horizontal slice rectangles.
+  //    At horizontal offset d from bodyX going left (d runs 0..tip),
+  //    the visible slice height is: sliceH = (1 - d/tip) * h, centred on y+h/2.
+  //    We step in 1-point increments for smooth edges.
+  const SLICES=Math.ceil(tip)+1;
+  for(let i=0;i<SLICES;i++){
+    const d0= i   *(tip/SLICES);
+    const d1=(i+1)*(tip/SLICES);
+    const sliceH=((tip-d0)/tip)*h;
+    const sliceY=y+(h-sliceH)/2;
+    page.drawRectangle({
+      x:bodyX-d1, y:sliceY,
+      width:(d1-d0)+0.6,   // slight overlap to avoid hairline gaps
+      height:sliceH,
+      color:coral, opacity:1
+    });
+  }
+
+  // 4) Top-highlight strip (subtle bevel effect matching screenshot)
+  page.drawRectangle({x:bodyX, y:y+h*0.60, width:bodyW, height:h*0.34,
+    color:white, opacity:0.14});
+
+  // 5) "SIGN HERE" text — fit precisely inside body
+  //    font.widthOfTextAtSize() gives exact width from embedded font metrics
+  const padX=bodyW*0.06;
+  const availW=bodyW-padX*2;
+  let fs=availW/font.widthOfTextAtSize("SIGN HERE",1);
+  fs=Math.min(fs, h*0.46);   // cap at ~46% of stamp height
+  fs=Math.max(5, fs);
+  const textW=font.widthOfTextAtSize("SIGN HERE",fs);
+  const textX=bodyX+(bodyW-textW)/2;
+  // Baseline: HelveticaBoldOblique ascent ~0.72*fs, centre it in h
+  const textY=y+(h-fs*0.72)/2+fs*0.04;
+
+  // Drop shadow (depth)
+  page.drawText("SIGN HERE",{x:textX+0.6, y:textY-0.6, size:fs, font,
+    color:rgb(0.30,0.06,0.01), opacity:0.55});
+  // Main white text
+  page.drawText("SIGN HERE",{x:textX, y:textY, size:fs, font, color:white, opacity:1});
+}
+
+function drawDateStamp(page,s,pw,ph,font){
+  let {x,y,w,h,dateText}=s;
+  w=Math.min(w,pw); h=Math.min(h,ph);
+  x=Math.max(0,Math.min(x,pw-w));
+  y=Math.max(0,Math.min(y,ph-h));
+
+  // Transparent stamp — no background, just bold black date text
+  const txt=dateText||new Date().toLocaleDateString();
+
+  // Size: fill ~88% of stamp width, cap at 65% of height
+  // font.widthOfTextAtSize gives exact metric for HelveticaBoldOblique
+  let fs=Math.min(h*0.65, (w*0.88)/font.widthOfTextAtSize(txt,1));
+  fs=Math.max(7, fs);
+
+  const textW=font.widthOfTextAtSize(txt,fs);
+  const textX=x+(w-textW)/2;
+
+  // Vertically centre: pdf baseline = bottom of text, ascent ~0.72*fs
+  // Centre of stamp = y+h/2, so baseline = y + h/2 - fs*0.72/2 + small tweak
+  const textY=y+(h/2)-(fs*0.72/2)+fs*0.04;
+
+  // Solid black text — max opacity, no shadow needed for a clean date stamp
+  page.drawText(txt,{
+    x:textX, y:textY,
+    size:fs, font,
+    color:rgb(0,0,0),
+    opacity:1
+  });
+}
+
+function dlBytes(bytes,name){
+  const blob=new Blob([bytes],{type:'application/pdf'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=name;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
+}
+
+// ═══════════════════════════
+//  BATCH PROCESSING
+// ═══════════════════════════
+const bdrop=G('bdrop'), foldIn=G('folderInput');
+bdrop.addEventListener('click',()=>foldIn.click());
+bdrop.addEventListener('dragover',e=>{e.preventDefault();bdrop.classList.add('over')});
+bdrop.addEventListener('dragleave',()=>bdrop.classList.remove('over'));
+bdrop.addEventListener('drop',async e=>{
+  e.preventDefault();bdrop.classList.remove('over');
+  const files=[...e.dataTransfer.files].filter(f=>f.name.toLowerCase().endsWith('.pdf'));
+  if(files.length)await initBatch(files);
+});
+foldIn.addEventListener('change',async()=>{
+  const files=[...foldIn.files].filter(f=>f.name.toLowerCase().endsWith('.pdf'));
+  if(files.length)await initBatch(files);
+});
+
+G('clrBatch').addEventListener('click',()=>{
+  batchFiles=[];
+  G('bfw').style.display='none'; G('bsum').classList.remove('show');
+  G('bprog').classList.remove('show'); G('dlAll').classList.remove('show');
+  G('batchBadge').textContent='0 files'; foldIn.value='';
+});
+G('runBatch').addEventListener('click',runBatch);
+G('dlAll').addEventListener('click',downloadAll);
+
+async function initBatch(files){
+  batchFiles=files.map(f=>({file:f,fp:null,tpl:null,status:'pend',bytes:null,err:'',dirHandle:null,dirName:null,_bytes:null}));
+  G('batchBadge').textContent=`${files.length} file${files.length!==1?'s':''}`;
+  G('bfw').style.display='block'; G('bfTitle').textContent=`Matching ${files.length} files…`;
+  G('bsum').classList.remove('show'); G('dlAll').classList.remove('show');
+  renderBTable();
+  for(let i=0;i<batchFiles.length;i++){
+    const bf=batchFiles[i];
+    try{
+      const ab=await bf.file.arrayBuffer();
+      bf._bytes=new Uint8Array(ab);
+      const doc=await pdfjsLib.getDocument({data:bf._bytes.slice(0)}).promise;
+      bf.fp=await fingerprint(doc);
+      bf.tpl=templates.find(t=>t.fp===bf.fp)||null;
+      bf.status=bf.tpl?'match':'nomatch';
+    }catch(e){bf.status='err';bf.err=e.message}
+    renderBTable();
+  }
+  const m=batchFiles.filter(f=>f.tpl).length;
+  G('bfTitle').textContent=`${files.length} Files — ${m} matched`;
+  toast('info','Files loaded',`${m} / ${files.length} templates matched`);
+}
+
+function batchRefreshMatch(){
+  batchFiles.forEach(bf=>{
+    if(bf.status==='nomatch'&&bf.fp){
+      bf.tpl=templates.find(t=>t.fp===bf.fp)||null;
+      if(bf.tpl)bf.status='match';
+    }
+  });
+  if(batchFiles.length)renderBTable();
+}
+
+function renderBTable(){
+  G('btBody').innerHTML=batchFiles.map((bf,i)=>`
+    <div class="bt-row">
+      <div class="bt-nm"><span>📄</span><span title="${esc(bf.file.name)}">${esc(bf.file.name)}</span></div>
+      <div class="bt-sz">${(bf.file.size/1024).toFixed(0)} KB</div>
+      <div>${bf.tpl?`<span class="badge match">✓ ${esc(bf.tpl.name)}</span>`:`<span class="badge nomatch">⚠ No match</span>`}</div>
+      <div>${sBadge(bf.status,bf.err)}</div>
+      <div>
+        <button class="save-to-btn ${bf.dirHandle?'has-folder':''}"
+          title="${bf.dirHandle?'📂 '+bf.dirName:'Browse to save folder'}"
+          onclick="setSaveFolder(${i})">
+          ${bf.dirHandle?'📂':'📁'}
+        </button>
+      </div>
+    </div>`).join('');
+}
+
+function sBadge(s,err){
+  const map={pend:'<span class="badge pend">Pending</span>',match:'<span class="badge match">Ready</span>',nomatch:'<span class="badge nomatch">Skip</span>',proc:'<span class="badge proc">⏳ …</span>',done:'<span class="badge done">✓ Done</span>',err:`<span class="badge err" title="${esc(err||'')}">✕ Error</span>`};
+  return map[s]||'';
+}
+
+// Save-to folder: browser can't pick folders directly, so we use a text input in a mini modal
+// File System Access API — browse for a real folder
+async function setSaveFolder(idx){
+  const bf=batchFiles[idx];
+  // If already has a folder, clicking again clears it (toggle)
+  if(bf.dirHandle){
+    bf.dirHandle=null; bf.dirName=null;
+    renderBTable();
+    toast('info','Save folder cleared','Files will download to your Downloads folder');
+    return;
+  }
+  if(!window.showDirectoryPicker){
+    toast('warn','Browser not supported','Use Chrome or Edge for folder picking');
+    return;
+  }
+  try{
+    const dirHandle=await window.showDirectoryPicker({mode:'readwrite'});
+    bf.dirHandle=dirHandle;
+    bf.dirName=dirHandle.name;
+    renderBTable();
+    toast('success','Folder selected',`Files will save to: ${dirHandle.name}`);
+  }catch(e){
+    if(e.name!=='AbortError') toast('warn','Folder not selected',e.message);
+  }
+}
+
+// Set a single folder for ALL files at once
+async function setGlobalSaveFolder(){
+  if(!window.showDirectoryPicker){
+    toast('warn','Browser not supported','Use Chrome or Edge for folder picking');
+    return;
+  }
+  try{
+    const dirHandle=await window.showDirectoryPicker({mode:'readwrite'});
+    batchFiles.forEach(bf=>{bf.dirHandle=dirHandle;bf.dirName=dirHandle.name});
+    renderBTable();
+    toast('success','Folder set for all files',`Saving to: ${dirHandle.name}`);
+  }catch(e){
+    if(e.name!=='AbortError') toast('warn','Cancelled','No folder selected');
+  }
+}
+
+async function runBatch(){
+  const toProc=batchFiles.filter(bf=>bf.tpl);
+  if(!toProc.length){toast('warn','No matched files','Import templates or save templates first');return}
+  const prog=G('bprog'); prog.classList.add('show');
+  G('runBatch').disabled=true; G('clrBatch').disabled=true;
+  let done=0,errs=0;
+
+  for(let i=0;i<batchFiles.length;i++){
+    const bf=batchFiles[i];
+    if(!bf.tpl){bf.status='nomatch';renderBTable();continue}
+    bf.status='proc'; renderBTable();
+    G('bpMsg').textContent=`Processing: ${bf.file.name}`;
+    try{
+      // Get page dimensions from pdf-lib (reliable)
+      const srcBytes=bf._bytes||new Uint8Array(await bf.file.arrayBuffer());
+      // Load once; get page sizes per-page for accurate stamp placement
+      const docLib=await PDFDocument.load(srcBytes);
+      // Build a per-page stamp map using actual page dimensions
+      const stampMap={};
+      const tplPages=docLib.getPages();
+      for(const pgKey of Object.keys(bf.tpl.stamps)){
+        const pgIdx=+pgKey-1;
+        const tplPage=tplPages[pgIdx];
+        if(!tplPage) continue;
+        const {width:pgW,height:pgH}=tplPage.getSize();
+        stampMap[pgKey]=bf.tpl.stamps[pgKey].map(s=>({
+          x:s.xP*pgW, y:s.yP*pgH, w:s.wP*pgW, h:s.hP*pgH,
+          type:s.type||'sign',
+          // Always use today's date when batch-stamping — not the saved template date
+          dateText:s.type==='date'
+            ? (()=>{
+                const d=new Date();
+                const pad=n=>String(n).padStart(2,'0');
+                // Use YYYY/MM/DD by default; template stores format hint if available
+                const fmt=s.dateFmt||'YYYY/MM/DD';
+                const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+                const mon3=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                return fmt
+                  .replace('MMMM',months[d.getMonth()])
+                  .replace('MMM',mon3[d.getMonth()])
+                  .replace('YYYY',d.getFullYear())
+                  .replace('MM',pad(d.getMonth()+1))
+                  .replace('DD',pad(d.getDate()))
+                  .replace('D',String(d.getDate()));
+              })()
+            : '',
+          colour:s.colour||''
+        }));
+      }
+      bf.bytes=await stampPDF(srcBytes,stampMap);
+      bf.status='done'; done++;
+    }catch(e){
+      console.error('Batch error',bf.file.name,e);
+      bf.status='err'; bf.err=e.message; errs++;
+    }
+    G('bpCnt').textContent=`${i+1} / ${batchFiles.length}`;
+    G('pfill').style.width=`${Math.round(((i+1)/batchFiles.length)*100)}%`;
+    renderBTable();
+    await new Promise(r=>setTimeout(r,20)); // yield to UI
+  }
+
+  prog.classList.remove('show');
+  G('runBatch').disabled=false; G('clrBatch').disabled=false;
+  const skipped=batchFiles.filter(f=>f.status==='nomatch').length;
+  G('sTotal').textContent=batchFiles.length;
+  G('sDone').textContent=done;
+  G('sSkip').textContent=skipped;
+  G('sErr').textContent=errs;
+  G('bsum').classList.add('show');
+  if(done>0)G('dlAll').classList.add('show');
+  toast(done>0?'success':'warn',`${done} PDF${done!==1?'s':''} stamped`,`${skipped} skipped · ${errs} errors`);
+  // After done, show individual download buttons too
+  renderBTable();
+}
+
+async function downloadAll(){
+  const done=batchFiles.filter(f=>f.status==='done'&&f.bytes);
+  if(!done.length) return;
+
+  // Check if any have a directory handle
+  const withFolder=done.filter(f=>f.dirHandle);
+  const withoutFolder=done.filter(f=>!f.dirHandle);
+
+  let savedCount=0, dlCount=0;
+
+  // Save files with a chosen folder directly into that folder via FS API
+  for(const bf of withFolder){
+    try{
+      const baseName=bf.file.name.replace(/\.pdf$/i,'');
+      const fileName=baseName+'_signed.pdf';
+      const fileHandle=await bf.dirHandle.getFileHandle(fileName,{create:true});
+      const writable=await fileHandle.createWritable();
+      await writable.write(bf.bytes);
+      await writable.close();
+      savedCount++;
+    }catch(e){
+      console.error('FS write error',bf.file.name,e);
+      // Fall back to regular download
+      dlBytes(bf.bytes,bf.file.name.replace(/\.pdf$/i,'')+ '_signed.pdf');
+      dlCount++;
+    }
+  }
+
+  // Files without a folder — regular browser download
+  for(let i=0;i<withoutFolder.length;i++){
+    if(i>0) await new Promise(r=>setTimeout(r,280));
+    const bf=withoutFolder[i];
+    dlBytes(bf.bytes,bf.file.name.replace(/\.pdf$/i,'')+ '_signed.pdf');
+    dlCount++;
+  }
+
+  const parts=[];
+  if(savedCount) parts.push(`${savedCount} saved to folder`);
+  if(dlCount) parts.push(`${dlCount} to Downloads`);
+  toast('success',`${done.length} PDF${done.length!==1?'s':''}  done`,parts.join(' · '));
+}
+
+// ─── UTILS ───
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+let tTimer=null;
+function toast(type,title,sub){
+  const el=G('toast');
+  const ic={success:'✅',warn:'⚠️',info:'ℹ️'};
+  G('tic').textContent=ic[type]||'ℹ️';
+  G('tti').textContent=title;
+  G('tsu').textContent=sub||'';
+  el.className=`toast ${type}`;
+  setTimeout(()=>el.classList.add('show'),10);
+  if(tTimer)clearTimeout(tTimer);
+  tTimer=setTimeout(()=>el.classList.remove('show'),4200);
+}
+
+// ─── INIT ───
+switchTab('editor');
+window.addEventListener('resize',()=>{if(pdfJsDoc)fitZoom()});
+</script>
+</body>
+</html>
