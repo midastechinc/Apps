@@ -27,7 +27,7 @@
         },
         {
           "label": "Local Files",
-          "url": "applications/web-apps/Search Tool/",
+          "url": "file:///C:/Users/AliJaffar/OneDrive - Midas Tech/_MY Companys/Midas Tech/Midastech Introduction/My Application/applications/web-apps/Search Tool/",
           "type": "folder"
         }
       ]
@@ -70,7 +70,7 @@
         },
         {
           "label": "Local Files",
-          "url": "applications/web-apps/",
+          "url": "file:///C:/Users/AliJaffar/OneDrive - Midas Tech/_MY Companys/Midas Tech/Midastech Introduction/My Application/applications/web-apps/",
           "type": "folder"
         }
       ]
@@ -108,7 +108,7 @@
         },
         {
           "label": "Local Source",
-          "url": "../../../Codex/portfolio/",
+          "url": "file:///C:/Users/AliJaffar/OneDrive - Midas Tech/_MY Companys/Midas Tech/Midastech Introduction/Codex/portfolio/",
           "type": "folder"
         },
         {
@@ -140,7 +140,7 @@
         },
         {
           "label": "Local Source",
-          "url": "../../../Codex/studiob-home-post-studio/",
+          "url": "file:///C:/Users/AliJaffar/OneDrive - Midas Tech/_MY Companys/Midas Tech/Midastech Introduction/Codex/studiob-home-post-studio/",
           "type": "folder"
         },
         {
@@ -166,7 +166,7 @@
         },
         {
           "label": "Local Files",
-          "url": "applications/web-apps/Signhere-Stamp-Project/",
+          "url": "file:///C:/Users/AliJaffar/OneDrive - Midas Tech/_MY Companys/Midas Tech/Midastech Introduction/My Application/applications/web-apps/Signhere-Stamp-Project/",
           "type": "folder"
         },
         {
@@ -198,7 +198,7 @@
         },
         {
           "label": "Local Files",
-          "url": "applications/desktop-apps/Issue Tracker/",
+          "url": "file:///C:/Users/AliJaffar/OneDrive - Midas Tech/_MY Companys/Midas Tech/Midastech Introduction/My Application/applications/desktop-apps/Issue Tracker/",
           "type": "folder"
         },
         {
@@ -230,7 +230,7 @@
         },
         {
           "label": "Local Files",
-          "url": "applications/desktop-apps/Payroll Project/",
+          "url": "file:///C:/Users/AliJaffar/OneDrive - Midas Tech/_MY Companys/Midas Tech/Midastech Introduction/My Application/applications/desktop-apps/Payroll Project/",
           "type": "folder"
         },
         {
@@ -300,7 +300,7 @@
         },
         {
           "label": "Local Files",
-          "url": "applications/web-apps/LeadTracker/",
+          "url": "file:///C:/Users/AliJaffar/OneDrive - Midas Tech/_MY Companys/Midas Tech/Midastech Introduction/My Application/applications/web-apps/LeadTracker/",
           "type": "folder"
         },
         {
@@ -327,7 +327,7 @@
       "links": [
         {
           "label": "Local Files",
-          "url": "applications/scripts/scansnap-daily-processor/",
+          "url": "file:///C:/Users/AliJaffar/OneDrive - Midas Tech/_MY Companys/Midas Tech/Midastech Introduction/My Application/applications/scripts/scansnap-daily-processor/",
           "type": "folder"
         },
         {
@@ -354,7 +354,7 @@
       "links": [
         {
           "label": "Local Files",
-          "url": "applications/scripts/Codex Project/",
+          "url": "file:///C:/Users/AliJaffar/OneDrive - Midas Tech/_MY Companys/Midas Tech/Midastech Introduction/My Application/applications/scripts/Codex Project/",
           "type": "folder"
         }
       ]
@@ -387,7 +387,7 @@
       "links": [
         {
           "label": "Local Files",
-          "url": "applications/workflows/",
+          "url": "file:///C:/Users/AliJaffar/OneDrive - Midas Tech/_MY Companys/Midas Tech/Midastech Introduction/My Application/applications/workflows/",
           "type": "folder"
         }
       ]
