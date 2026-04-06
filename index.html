@@ -74,9 +74,9 @@
 
         <section class="tab-shell">
             <div class="tabs" role="tablist" aria-label="Dashboard sections">
-                <button class="tab-button active" type="button" role="tab" aria-selected="true" aria-controls="appsTab" data-tab="apps">Applications</button>
-                <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="apisTab" data-tab="apis">APIs</button>
-                <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="databasesTab" data-tab="databases">Databases</button>
+                <button id="applications-tab" class="tab-button active" type="button" role="tab" aria-selected="true" aria-controls="appsTab" data-tab="apps">Applications</button>
+                <button id="apis-tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="apisTab" data-tab="apis">APIs</button>
+                <button id="databases-tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="databasesTab" data-tab="databases">Databases</button>
             </div>
 
             <section id="appsTab" class="tab-content active" role="tabpanel" aria-labelledby="applications-tab">
@@ -89,7 +89,7 @@
                 </div>
             </section>
 
-            <section id="apisTab" class="tab-content" role="tabpanel">
+            <section id="apisTab" class="tab-content" role="tabpanel" aria-labelledby="apis-tab">
                 <div class="section-intro">
                     <h2>API Overview</h2>
                     <p>Shared services used across the current application inventory.</p>
@@ -97,7 +97,7 @@
                 <div id="apisGrid" class="services-grid"></div>
             </section>
 
-            <section id="databasesTab" class="tab-content" role="tabpanel">
+            <section id="databasesTab" class="tab-content" role="tabpanel" aria-labelledby="databases-tab">
                 <div class="section-intro">
                     <h2>Database Overview</h2>
                     <p>Local and cloud storage systems referenced by the current application inventory.</p>
