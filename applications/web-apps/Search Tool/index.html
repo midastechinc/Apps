@@ -452,6 +452,10 @@ mark{background:rgba(0,174,239,.25);color:var(--cyan);border-radius:2px;padding:
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
       <span>Select Folder</span>
     </button>
+    <button class="hdr-btn" id="btn-add-files" onclick="openLooseFileImport()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>Add Files</span>
+    </button>
     <button class="hdr-btn" id="btn-load-json">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       <span>Load JSON</span>
@@ -562,8 +566,12 @@ mark{background:rgba(0,174,239,.25);color:var(--cyan);border-radius:2px;padding:
     <div id="empty-state">
       <div class="empty-icon">🗂️</div>
       <div class="empty-title">No files loaded yet</div>
-      <div class="empty-sub">Select a local folder to scan, or load an <code>index.json</code> from OneDrive / SharePoint. Then use the OCR &amp; Content panel to index file contents for full-text search.</div>
+      <div class="empty-sub">Add files from OneDrive, Google Drive, or your device, select a local folder to scan, or load an <code>index.json</code>. Then use the OCR &amp; Content panel to index file contents for full-text search.</div>
       <div class="empty-actions">
+        <button class="empty-btn p" id="empty-btn-files">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Add Files
+        </button>
         <button class="empty-btn p" id="empty-btn-scan">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
           Select Folder
@@ -690,6 +698,10 @@ mark{background:rgba(0,174,239,.25);color:var(--cyan);border-radius:2px;padding:
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
       Import Files Instead
     </button>
+    <button id="btn-add-cloud-files" onclick="openLooseFileImport()" style="display:none;width:100%;padding:14px;margin:-4px 0 14px;background:rgba(0,174,239,.08);border:1px solid var(--cyan);border-radius:var(--radius);color:var(--cyan);font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font-ui);transition:all var(--transition);align-items:center;justify-content:center;gap:10px">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"/><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/></svg>
+      Add Files from OneDrive / Google Drive
+    </button>
     <div id="folder-path-section">
       <textarea id="folder-modal-input" rows="4" placeholder="C:\Users\Ali\Documents&#10;C:\MidasTech\Clients&#10;C:\Users\Ali\OneDrive - MidasTech\Projects"></textarea>
       <div id="folder-modal-hint" style="font-size:12px;color:var(--text3);margin-bottom:18px;line-height:1.7"></div>
@@ -737,6 +749,7 @@ mark{background:rgba(0,174,239,.25);color:var(--cyan);border-radius:2px;padding:
 <!-- Hidden inputs -->
 <input type="file" id="json-input" accept=".json" style="display:none"/>
 <input type="file" id="folder-files-input" webkitdirectory directory multiple style="display:none"/>
+<input type="file" id="loose-files-input" multiple style="display:none"/>
 
 <script>
 'use strict';
@@ -845,6 +858,7 @@ const el = {
   scanOverlay:$('scan-overlay'), scanMsg:$('scan-msg'), scanCount:$('scan-count'),
   toast:$('toast'), helpPanel:$('help-panel'), jsonInput:$('json-input'),
   folderFilesInput:$('folder-files-input'),
+  looseFilesInput:$('loose-files-input'),
   btnExport:$('btn-export'), btnRescan:$('btn-rescan'),
   themeIconDark:$('theme-icon-dark'), themeIconLight:$('theme-icon-light'),
   ocrPanel:$('ocr-panel'), ocrQueue:$('ocr-queue'),
@@ -855,6 +869,8 @@ const el = {
   apiWarning:$('api-warning'),
   wrongOpenBanner:$('wrong-open-banner'),
 };
+
+const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
 
 /* ══════════════════════════════════════════════════════
    UTILITIES
@@ -874,6 +890,25 @@ function fmtDate(iso) {
   try {
     return new Date(iso).toLocaleDateString('en-CA', {year:'numeric',month:'short',day:'numeric'});
   } catch { return iso.slice(0,10); }
+}
+
+function setScanButtonLabel(text) {
+  const btn = $('btn-scan');
+  if (!btn) return;
+  const span = btn.querySelector('span');
+  if (span) span.textContent = text;
+}
+
+function updateInputLabelsForDevice() {
+  if (IS_MOBILE) {
+    setScanButtonLabel('Folder or Files');
+    const folderPathText = $('folder-path-text');
+    if (folderPathText && folderPathText.textContent === 'No folder loaded') folderPathText.textContent = 'No files or folder loaded';
+    const emptyScan = $('empty-btn-scan');
+    if (emptyScan) emptyScan.innerHTML = `${emptyScan.querySelector('svg').outerHTML}Select Folder`;
+    const emptyFiles = $('empty-btn-files');
+    if (emptyFiles) emptyFiles.innerHTML = `${emptyFiles.querySelector('svg').outerHTML}Add Files`;
+  }
 }
 
 function getExt(name) {
@@ -1367,15 +1402,24 @@ function openFolderModal() {
   const hintMsg = $('folder-modal-hint');
   const browseBtn = $('btn-browse-folder');
   const importBtn = $('btn-import-folder-files');
+  const cloudBtn = $('btn-add-cloud-files');
 
   if (state.serverAvailable) {
     if (modeMsg) modeMsg.innerHTML = 'Enter one or more folder paths — one per line.<br>Server is running — files will be indexed automatically.';
     if (hintMsg) hintMsg.innerHTML = '&#x1F4A1; <strong>Tip:</strong> Open folder in Windows Explorer &rarr; click the address bar &rarr; Ctrl+C &rarr; paste here.<br>&#x2601;&#xFE0F; <strong>Cloud drives:</strong> Paste the local sync path (e.g. C:\Users\Ali\OneDrive - MidasTech)';
     if (browseBtn) browseBtn.style.display = 'none';
     if (importBtn) importBtn.style.display = 'none';
+    if (cloudBtn) cloudBtn.style.display = 'none';
   } else if (window.showDirectoryPicker) {
-    if (modeMsg) modeMsg.innerHTML = 'Click <strong>Browse Folder</strong> to pick a folder using your browser file picker.<br>If your browser blocks a protected location like Downloads, use <strong>Import Files Instead</strong>.';
-    if (hintMsg) hintMsg.innerHTML = '&#x2139;&#xFE0F; You can pick one folder at a time. Click Browse multiple times to add more.<br>&#x1F4F1; Some mobile browsers block the root Downloads folder for security. A subfolder inside Downloads usually works.';
+    if (IS_MOBILE) {
+      if (modeMsg) modeMsg.innerHTML = 'On mobile, <strong>Add Files</strong> is the best option for OneDrive, Google Drive, and Downloads.<br>Use <strong>Browse Folder</strong> only when your browser offers the folder you want.';
+      if (hintMsg) hintMsg.innerHTML = '&#x1F4F1; Mobile browsers often block protected folders and may only show limited folder sources.<br>&#x2601;&#xFE0F; Use <strong>Add Files from OneDrive / Google Drive</strong> to pick cloud files through the system document picker.';
+      if (cloudBtn) cloudBtn.style.display = 'inline-flex';
+    } else {
+      if (modeMsg) modeMsg.innerHTML = 'Click <strong>Browse Folder</strong> to pick a folder using your browser file picker.<br>If your browser blocks a protected location like Downloads, use <strong>Import Files Instead</strong>.';
+      if (hintMsg) hintMsg.innerHTML = '&#x2139;&#xFE0F; You can pick one folder at a time. Click Browse multiple times to add more.<br>&#x1F4F1; Some mobile browsers block the root Downloads folder for security. A subfolder inside Downloads usually works.';
+      if (cloudBtn) cloudBtn.style.display = 'none';
+    }
     if (browseBtn) browseBtn.style.display = 'inline-flex';
     if (importBtn) importBtn.style.display = 'inline-flex';
   } else {
@@ -1383,6 +1427,7 @@ function openFolderModal() {
     if (hintMsg) hintMsg.innerHTML = '';
     if (browseBtn) browseBtn.style.display = 'none';
     if (importBtn) importBtn.style.display = 'none';
+    if (cloudBtn) cloudBtn.style.display = IS_MOBILE ? 'inline-flex' : 'none';
   }
 
   setTimeout(() => inp.focus(), 50);
@@ -1423,6 +1468,36 @@ function openFolderFileImport() {
   if (!el.folderFilesInput) { showToast('File import is not available', 'err'); return; }
   el.folderFilesInput.value = '';
   el.folderFilesInput.click();
+}
+
+function openLooseFileImport() {
+  if (!el.looseFilesInput) { showToast('File picker is not available', 'err'); return; }
+  el.looseFilesInput.value = '';
+  el.looseFilesInput.click();
+}
+
+function createImportedEntries(files, opts={}) {
+  const {preferRelativePaths=false, rootLabel='Imported Files'} = opts;
+  const pathCounts = new Map();
+  return files.map(file => {
+    const rawPath = preferRelativePaths
+      ? ((file.webkitRelativePath || file.name).replace(/\\/g, '/'))
+      : `${rootLabel}/${file.name}`;
+    const seen = pathCounts.get(rawPath) || 0;
+    pathCounts.set(rawPath, seen + 1);
+    const path = seen === 0 ? rawPath : `${rawPath} (${seen + 1})`;
+    const ext = getExt(file.name);
+    return {
+      name: file.name,
+      path,
+      size: file.size,
+      ext,
+      type: ext,
+      modified: new Date(file.lastModified || Date.now()).toISOString(),
+      url: null,
+      handle: makeFakeHandle(file, file.name),
+    };
+  });
 }
 
 function closeFolderModal() {
@@ -1483,25 +1558,11 @@ async function importFilesFromFolder(fileList) {
   el.scanCount.textContent = '0 files found';
 
   try {
-    const imported = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const rel = (file.webkitRelativePath || file.name).replace(/\\/g, '/');
-      const ext = getExt(file.name);
-      imported.push({
-        name: file.name,
-        path: rel,
-        size: file.size,
-        ext,
-        type: ext,
-        modified: new Date(file.lastModified || Date.now()).toISOString(),
-        url: null,
-        handle: makeFakeHandle(file, file.name),
-      });
-      if ((i + 1) % CHUNK_SIZE === 0) {
-        el.scanCount.textContent = `${(i + 1).toLocaleString()} files found`;
-        await new Promise(r => setTimeout(r, 0));
-      }
+    const imported = createImportedEntries(files, {preferRelativePaths:true, rootLabel:'Imported Folder'});
+    for (let i = 0; i < imported.length; i += CHUNK_SIZE) {
+      const count = Math.min(imported.length, i + CHUNK_SIZE);
+      el.scanCount.textContent = `${count.toLocaleString()} files found`;
+      await new Promise(r => setTimeout(r, 0));
     }
 
     state.allFiles = imported;
@@ -1518,6 +1579,46 @@ async function importFilesFromFolder(fileList) {
     showToast(`✓ Imported ${imported.length.toLocaleString()} files from ${rootName}`, 'ok');
   } catch (e) {
     showToast('Import failed: ' + e.message, 'err');
+  } finally {
+    el.scanOverlay.classList.remove('visible');
+  }
+}
+
+async function importLooseFiles(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+
+  closeFolderModal();
+  state.lastDirHandle = null;
+  state.extractionQueue = [];
+  state.contentIndex = {};
+  saveContentIndex();
+  el.ocrProgressBar.style.width = '0%';
+
+  el.scanOverlay.classList.add('visible');
+  el.scanMsg.textContent = 'Adding selected files…';
+  el.scanCount.textContent = '0 files found';
+
+  try {
+    const imported = createImportedEntries(files, {rootLabel:'Selected Files'});
+    for (let i = 0; i < imported.length; i += CHUNK_SIZE) {
+      const count = Math.min(imported.length, i + CHUNK_SIZE);
+      el.scanCount.textContent = `${count.toLocaleString()} files found`;
+      await new Promise(r => setTimeout(r, 0));
+    }
+
+    state.allFiles = imported;
+    state.mode = 'local-import';
+    state.currentFolder = 'Selected Files';
+    if ($('folder-path-text')) $('folder-path-text').textContent = 'Selected Files';
+
+    saveIndex();
+    el.btnExport.style.display = 'flex';
+    el.btnRescan.style.display = 'none';
+    applySearch();
+    showToast(`✓ Added ${imported.length.toLocaleString()} files`, 'ok');
+  } catch (e) {
+    showToast('Could not add files: ' + e.message, 'err');
   } finally {
     el.scanOverlay.classList.remove('visible');
   }
@@ -1703,6 +1804,10 @@ el.jsonInput.addEventListener('change', e => {
 
 if (el.folderFilesInput) {
   el.folderFilesInput.addEventListener('change', e => importFilesFromFolder(e.target.files));
+}
+
+if (el.looseFilesInput) {
+  el.looseFilesInput.addEventListener('change', e => importLooseFiles(e.target.files));
 }
 
 // BUG-027: filename includes ISO date
@@ -2590,6 +2695,7 @@ el.ocrPanel.querySelector('#ocr-panel-close').addEventListener('click', () => {
 $('theme-btn').addEventListener('click', () => setTheme(state.theme === 'dark' ? 'light' : 'dark'));
 
 $('empty-btn-scan').addEventListener('click', startLocalScan);
+$('empty-btn-files').addEventListener('click', openLooseFileImport);
 $('empty-btn-json').addEventListener('click', loadJsonIndex);
 
 $('ocr-btn-all').addEventListener('click',    () => startExtraction('all'));
@@ -2639,6 +2745,7 @@ document.addEventListener('click', e => {
 (async function init() {
   const t = localStorage.getItem(LS_THEME) || 'dark';
   setTheme(t);
+  updateInputLabelsForDevice();
 
   const isFileProtocol = window.location.protocol === 'file:';
 
