@@ -747,7 +747,7 @@ mark{background:rgba(0,174,239,.25);color:var(--cyan);border-radius:2px;padding:
 </div>
 
 <!-- Hidden inputs -->
-<input type="file" id="json-input" accept=".json" style="display:none"/>
+<input type="file" id="json-input" accept=".json,application/json,text/json,text/plain" style="display:none"/>
 <input type="file" id="folder-files-input" webkitdirectory directory multiple style="display:none"/>
 <input type="file" id="loose-files-input" multiple style="display:none"/>
 
@@ -1761,11 +1761,23 @@ async function scanChunked(dh, pfx, col, onSkip) {
 /* ══════════════════════════════════════════════════════
    JSON LOAD / EXPORT
 ══════════════════════════════════════════════════════ */
-function loadJsonIndex() { el.jsonInput.value = ''; el.jsonInput.click(); }
+function loadJsonIndex() {
+  el.jsonInput.value = '';
+  // Mobile document providers often fail to expose selectable .json files with a strict accept filter.
+  el.jsonInput.accept = IS_MOBILE ? '.json,application/json,text/json,text/plain,*/*' : '.json,application/json,text/json,text/plain';
+  el.jsonInput.click();
+}
 
 el.jsonInput.addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
+  const lowerName = (file.name || '').toLowerCase();
+  const jsonLike = lowerName.endsWith('.json') || /json/i.test(file.type || '');
+  if (!jsonLike) {
+    showToast('Please choose an index.json file', 'err');
+    el.jsonInput.value = '';
+    return;
+  }
   const reader = new FileReader();
   reader.onload = evt => {
     try {
