@@ -38,3 +38,8 @@ applications/workflows/*
 applications/workflows/Powerautomade Flow/*
 !applications/workflows/Powerautomade Flow/MidasTechDocumentScanFlow_20260326005922.zip
 !applications/workflows/Powerautomade Flow/MidasTechMasterCategoriesFlow_20260326010536.zip
+!applications/scripts/
+applications/scripts/*
+!applications/scripts/Codex Project/
+applications/scripts/Codex Project/*
+!applications/scripts/Codex Project/*.ps1

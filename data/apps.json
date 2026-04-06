@@ -340,14 +340,104 @@
       ]
     },
     {
-      "name": "Codex Project Scripts",
+      "name": "Computer Audit",
       "category": "Scripts",
-      "description": "Collection of PowerShell and utility scripts for Midas Tech operations, signatures, reporting, and documentation tasks.",
+      "description": "PowerShell audit script for collecting detailed workstation information, hardware details, software footprint, network settings, and security posture checks.",
       "status": "Active",
-      "lastUpdated": "2026-04-06",
+      "lastUpdated": "2026-04-04",
       "notes": [
-        "A local source package has been prepared from the top-level script set.",
-        "Source currently lives in the Apps repository."
+        "Best run locally with PowerShell on the target Windows machine.",
+        "Separate card replaces the old bundled script archive."
+      ],
+      "apis": [],
+      "databases": [],
+      "links": [
+        {
+          "label": "Start Locally",
+          "url": "applications/scripts/Codex Project/ComputerAudit.ps1",
+          "type": "start"
+        },
+        {
+          "label": "Download Script",
+          "url": "applications/scripts/Codex Project/ComputerAudit.ps1",
+          "type": "download"
+        },
+        {
+          "label": "GitHub",
+          "url": "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Codex%20Project/ComputerAudit.ps1",
+          "type": "github"
+        }
+      ]
+    },
+    {
+      "name": "Build Migration Sheet",
+      "category": "Scripts",
+      "description": "Generates migration reporting output for the application inventory, including spreadsheet-ready CSV files and migration summaries.",
+      "status": "Active",
+      "lastUpdated": "2026-03-22",
+      "notes": [
+        "Designed for local PowerShell execution.",
+        "Useful when updating the migration-report output in the Codex Project folder."
+      ],
+      "apis": [],
+      "databases": [],
+      "links": [
+        {
+          "label": "Start Locally",
+          "url": "applications/scripts/Codex Project/build-migration-sheet.ps1",
+          "type": "start"
+        },
+        {
+          "label": "Download Script",
+          "url": "applications/scripts/Codex Project/build-migration-sheet.ps1",
+          "type": "download"
+        },
+        {
+          "label": "GitHub",
+          "url": "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Codex%20Project/build-migration-sheet.ps1",
+          "type": "github"
+        }
+      ]
+    },
+    {
+      "name": "Check Compromise Indicators",
+      "category": "Scripts",
+      "description": "Security-focused PowerShell script that checks for compromise indicators and produces incident report output for follow-up analysis.",
+      "status": "Active",
+      "lastUpdated": "2026-03-23",
+      "notes": [
+        "Intended for local security review workflows.",
+        "Incident report output is generated outside the dashboard card itself."
+      ],
+      "apis": [],
+      "databases": [],
+      "links": [
+        {
+          "label": "Start Locally",
+          "url": "applications/scripts/Codex Project/Check-CompromiseIndicators.ps1",
+          "type": "start"
+        },
+        {
+          "label": "Download Script",
+          "url": "applications/scripts/Codex Project/Check-CompromiseIndicators.ps1",
+          "type": "download"
+        },
+        {
+          "label": "GitHub",
+          "url": "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Codex%20Project/Check-CompromiseIndicators.ps1",
+          "type": "github"
+        }
+      ]
+    },
+    {
+      "name": "Generate ScanSnap Power Automate Doc",
+      "category": "Scripts",
+      "description": "Builds PowerShell-generated documentation for the ScanSnap and Power Automate setup process.",
+      "status": "Active",
+      "lastUpdated": "2026-03-23",
+      "notes": [
+        "Paired with generated documentation outputs in the same project folder.",
+        "Best used when refreshing setup documentation."
       ],
       "apis": [
         {
@@ -360,13 +450,175 @@
       "databases": [],
       "links": [
         {
-          "label": "Download Repo",
-          "url": "https://github.com/midastechinc/Apps/archive/refs/heads/main.zip",
+          "label": "Start Locally",
+          "url": "applications/scripts/Codex Project/generate_scansnap_power_automate_doc.ps1",
+          "type": "start"
+        },
+        {
+          "label": "Download Script",
+          "url": "applications/scripts/Codex Project/generate_scansnap_power_automate_doc.ps1",
           "type": "download"
         },
         {
           "label": "GitHub",
-          "url": "https://github.com/midastechinc/Apps",
+          "url": "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Codex%20Project/generate_scansnap_power_automate_doc.ps1",
+          "type": "github"
+        }
+      ]
+    },
+    {
+      "name": "Generate ScanSnap Search Addendum",
+      "category": "Scripts",
+      "description": "Creates the ScanSnap search system addendum and related documentation updates from PowerShell.",
+      "status": "Active",
+      "lastUpdated": "2026-03-23",
+      "notes": [
+        "Documentation-oriented script for the ScanSnap search workflow.",
+        "Separate card replaces the old shared script bundle."
+      ],
+      "apis": [
+        {
+          "name": "Power Automate API",
+          "type": "Microsoft 365",
+          "cost": "Included in M365 Business",
+          "url": "https://learn.microsoft.com/en-us/power-automate/"
+        }
+      ],
+      "databases": [],
+      "links": [
+        {
+          "label": "Start Locally",
+          "url": "applications/scripts/Codex Project/generate_scansnap_search_addendum.ps1",
+          "type": "start"
+        },
+        {
+          "label": "Download Script",
+          "url": "applications/scripts/Codex Project/generate_scansnap_search_addendum.ps1",
+          "type": "download"
+        },
+        {
+          "label": "GitHub",
+          "url": "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Codex%20Project/generate_scansnap_search_addendum.ps1",
+          "type": "github"
+        }
+      ]
+    },
+    {
+      "name": "Run Midas Signature Workflow",
+      "category": "Scripts",
+      "description": "Lightweight PowerShell launcher for the Midas email signature workflow.",
+      "status": "Active",
+      "lastUpdated": "2026-03-19",
+      "notes": [
+        "Best used on a Windows workstation with Outlook installed.",
+        "Kept separate so it can be launched directly from the dashboard."
+      ],
+      "apis": [],
+      "databases": [],
+      "links": [
+        {
+          "label": "Start Locally",
+          "url": "applications/scripts/Codex Project/Run-MidasSignatureWorkflow.ps1",
+          "type": "start"
+        },
+        {
+          "label": "Download Script",
+          "url": "applications/scripts/Codex Project/Run-MidasSignatureWorkflow.ps1",
+          "type": "download"
+        },
+        {
+          "label": "GitHub",
+          "url": "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Codex%20Project/Run-MidasSignatureWorkflow.ps1",
+          "type": "github"
+        }
+      ]
+    },
+    {
+      "name": "Set Midas Outlook Signature",
+      "category": "Scripts",
+      "description": "Configures the Midas Outlook signature setup locally through PowerShell automation.",
+      "status": "Active",
+      "lastUpdated": "2026-03-19",
+      "notes": [
+        "Focused on local Outlook configuration tasks.",
+        "Works best as a directly runnable local script card."
+      ],
+      "apis": [],
+      "databases": [],
+      "links": [
+        {
+          "label": "Start Locally",
+          "url": "applications/scripts/Codex Project/Set-MidasOutlookSignature.ps1",
+          "type": "start"
+        },
+        {
+          "label": "Download Script",
+          "url": "applications/scripts/Codex Project/Set-MidasOutlookSignature.ps1",
+          "type": "download"
+        },
+        {
+          "label": "GitHub",
+          "url": "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Codex%20Project/Set-MidasOutlookSignature.ps1",
+          "type": "github"
+        }
+      ]
+    },
+    {
+      "name": "Set Outlook Signature All Classic Versions",
+      "category": "Scripts",
+      "description": "PowerShell helper for applying Outlook signature settings across classic Outlook versions.",
+      "status": "Active",
+      "lastUpdated": "2026-03-19",
+      "notes": [
+        "Useful for broader compatibility across older Outlook installs.",
+        "Presented as its own card instead of staying inside a script ZIP."
+      ],
+      "apis": [],
+      "databases": [],
+      "links": [
+        {
+          "label": "Start Locally",
+          "url": "applications/scripts/Codex Project/Set-OutlookSignature-AllClassicVersions.ps1",
+          "type": "start"
+        },
+        {
+          "label": "Download Script",
+          "url": "applications/scripts/Codex Project/Set-OutlookSignature-AllClassicVersions.ps1",
+          "type": "download"
+        },
+        {
+          "label": "GitHub",
+          "url": "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Codex%20Project/Set-OutlookSignature-AllClassicVersions.ps1",
+          "type": "github"
+        }
+      ]
+    },
+    {
+      "name": "Unblock Outlook Signature Settings",
+      "category": "Scripts",
+      "description": "Small remediation PowerShell script for unblocking Outlook signature settings on a local Windows machine.",
+      "status": "Active",
+      "lastUpdated": "2026-03-19",
+      "notes": [
+        "Targeted fix script for local Outlook signature configuration issues.",
+        "Best launched directly on the affected workstation."
+      ],
+      "apis": [],
+      "databases": [],
+      "links": [
+        {
+          "label": "Start Locally",
+          "url": "applications/scripts/Codex Project/Unblock-OutlookSignatureSettings.ps1",
+          "type": "start"
+        },
+        {
+          "label": "Download Script",
+          "url": "applications/scripts/Codex Project/Unblock-OutlookSignatureSettings.ps1",
+          "type": "download"
+        },
+        {
+          "label": "GitHub",
+          "url": "https://github.com/midastechinc/Apps/blob/main/applications/scripts/Codex%20Project/Unblock-OutlookSignatureSettings.ps1",
           "type": "github"
         }
       ]
