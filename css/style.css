@@ -581,6 +581,17 @@ a {
     transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
+.service-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    padding-top: 0.1rem;
+}
+
+.service-link {
+    width: fit-content;
+}
+
 .service-head {
     display: flex;
     justify-content: space-between;
@@ -691,7 +702,8 @@ a {
     }
 
     .launcher-action,
-    .launcher-folder-link {
+    .launcher-folder-link,
+    .service-link {
         width: 100%;
     }
 }

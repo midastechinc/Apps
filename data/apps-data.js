@@ -14,12 +14,14 @@ window.MIDAS_APPS_DATA = {
         {
           "name": "File System Access API",
           "type": "Browser API",
-          "cost": "Free"
+          "cost": "Free",
+          "url": "https://developer.mozilla.org/en-US/docs/Web/API/File_System_API"
         },
         {
           "name": "Google Fonts API",
           "type": "Web Service",
-          "cost": "Free"
+          "cost": "Free",
+          "url": "https://developers.google.com/fonts"
         }
       ],
       "databases": [],
@@ -55,19 +57,22 @@ window.MIDAS_APPS_DATA = {
         {
           "name": "Supabase API",
           "type": "Backend as a Service",
-          "cost": "$25/month (Pro plan)"
+          "cost": "$25/month (Pro plan)",
+          "url": "https://supabase.com/"
         },
         {
           "name": "Google Fonts API",
           "type": "Web Service",
-          "cost": "Free"
+          "cost": "Free",
+          "url": "https://developers.google.com/fonts"
         }
       ],
       "databases": [
         {
           "name": "Supabase PostgreSQL",
           "type": "Cloud",
-          "cost": "Included in Supabase Pro"
+          "cost": "Included in Supabase Pro",
+          "url": "https://supabase.com/database"
         }
       ],
       "links": [
@@ -97,7 +102,8 @@ window.MIDAS_APPS_DATA = {
         {
           "name": "Google Fonts API",
           "type": "Web Service",
-          "cost": "Free"
+          "cost": "Free",
+          "url": "https://developers.google.com/fonts"
         }
       ],
       "databases": [],
@@ -154,7 +160,8 @@ window.MIDAS_APPS_DATA = {
         {
           "name": "SQLite",
           "type": "Local",
-          "cost": "Free"
+          "cost": "Free",
+          "url": "https://www.sqlite.org/index.html"
         }
       ],
       "links": [
@@ -190,7 +197,8 @@ window.MIDAS_APPS_DATA = {
         {
           "name": "SQLite",
           "type": "Local",
-          "cost": "Free"
+          "cost": "Free",
+          "url": "https://www.sqlite.org/index.html"
         }
       ],
       "links": [
@@ -225,12 +233,14 @@ window.MIDAS_APPS_DATA = {
         {
           "name": "Capacitor Camera API",
           "type": "Native Bridge",
-          "cost": "Free"
+          "cost": "Free",
+          "url": "https://capacitorjs.com/docs/apis/camera"
         },
         {
           "name": "Capacitor Filesystem API",
           "type": "Native Bridge",
-          "cost": "Free"
+          "cost": "Free",
+          "url": "https://capacitorjs.com/docs/apis/filesystem"
         }
       ],
       "databases": [],
@@ -256,19 +266,22 @@ window.MIDAS_APPS_DATA = {
         {
           "name": "Supabase API",
           "type": "Backend as a Service",
-          "cost": "$25/month (Pro plan)"
+          "cost": "$25/month (Pro plan)",
+          "url": "https://supabase.com/"
         }
       ],
       "databases": [
         {
           "name": "SQLite",
           "type": "Local",
-          "cost": "Free"
+          "cost": "Free",
+          "url": "https://www.sqlite.org/index.html"
         },
         {
           "name": "Supabase PostgreSQL",
           "type": "Cloud",
-          "cost": "Included in Supabase Pro"
+          "cost": "Included in Supabase Pro",
+          "url": "https://supabase.com/database"
         }
       ],
       "links": [
@@ -308,7 +321,8 @@ window.MIDAS_APPS_DATA = {
         {
           "name": "Power Automate API",
           "type": "Microsoft 365",
-          "cost": "Included in M365 Business"
+          "cost": "Included in M365 Business",
+          "url": "https://learn.microsoft.com/en-us/power-automate/"
         }
       ],
       "databases": [],
@@ -339,7 +353,8 @@ window.MIDAS_APPS_DATA = {
         {
           "name": "Power Automate API",
           "type": "Microsoft 365",
-          "cost": "Included in M365 Business"
+          "cost": "Included in M365 Business",
+          "url": "https://learn.microsoft.com/en-us/power-automate/"
         }
       ],
       "databases": [],
@@ -370,19 +385,22 @@ window.MIDAS_APPS_DATA = {
         {
           "name": "Power Automate API",
           "type": "Microsoft 365",
-          "cost": "Included in M365 Business"
+          "cost": "Included in M365 Business",
+          "url": "https://learn.microsoft.com/en-us/power-automate/"
         },
         {
           "name": "SharePoint REST API",
           "type": "Microsoft 365",
-          "cost": "Included in M365 Business"
+          "cost": "Included in M365 Business",
+          "url": "https://learn.microsoft.com/en-us/sharepoint/dev/sp-add-ins/get-to-know-the-sharepoint-rest-service"
         }
       ],
       "databases": [
         {
           "name": "SharePoint Lists",
           "type": "Cloud",
-          "cost": "Included in M365 Business"
+          "cost": "Included in M365 Business",
+          "url": "https://support.microsoft.com/en-us/office/introduction-to-lists-8b3f8dde-ecfd-4992-9388-611b9f99c15a"
         }
       ],
       "links": [

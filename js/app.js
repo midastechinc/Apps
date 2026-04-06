@@ -130,6 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         name: api.name,
                         type: api.type,
                         cost: api.cost,
+                        url: api.url || '',
                         apps: []
                     });
                 }
@@ -143,6 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         name: database.name,
                         type: database.type,
                         cost: database.cost,
+                        url: database.url || '',
                         apps: []
                     });
                 }
@@ -318,6 +320,9 @@ document.addEventListener('DOMContentLoaded', () => {
             .sort((left, right) => left.localeCompare(right))
             .map(appName => `<span class="app-tag">${escapeHtml(appName)}</span>`)
             .join('');
+        const websiteMarkup = service.url
+            ? `<div class="service-actions"><a class="app-link secondary service-link" href="${escapeAttribute(service.url)}" target="_blank" rel="noopener noreferrer">Website</a></div>`
+            : '';
 
         card.innerHTML = `
             <div class="service-head">
@@ -331,6 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <p class="services-label">Used By</p>
                 <div class="app-tags">${usedByMarkup}</div>
             </div>
+            ${websiteMarkup}
         `;
 
         return card;
