@@ -24,6 +24,12 @@
     </header>
 
     <main>
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('apps')">Applications</button>
+            <button class="tab-button" onclick="showTab('apis')">APIs</button>
+            <button class="tab-button" onclick="showTab('databases')">Databases</button>
+        </div>
+
         <div id="stats">
             <div class="stat-card">
                 <h3>Total Apps</h3>
@@ -39,8 +45,30 @@
             </div>
         </div>
 
-        <div id="appsGrid" class="apps-grid">
-            <!-- Apps will be loaded here -->
+        <div id="appsTab" class="tab-content active">
+            <div id="appsGrid" class="apps-grid">
+                <!-- Apps will be loaded here -->
+            </div>
+        </div>
+
+        <div id="apisTab" class="tab-content">
+            <div class="section-header">
+                <h2>API Usage Overview</h2>
+                <p>External APIs and services used across all applications</p>
+            </div>
+            <div id="apisGrid" class="services-grid">
+                <!-- APIs will be loaded here -->
+            </div>
+        </div>
+
+        <div id="databasesTab" class="tab-content">
+            <div class="section-header">
+                <h2>Database Usage Overview</h2>
+                <p>Database systems and storage solutions used across all applications</p>
+            </div>
+            <div id="databasesGrid" class="services-grid">
+                <!-- Databases will be loaded here -->
+            </div>
         </div>
     </main>
 
