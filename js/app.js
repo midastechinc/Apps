@@ -9,6 +9,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const localToolsEl = document.getElementById('localTools');
     const sourceLinksEl = document.getElementById('sourceLinks');
     const tabButtons = Array.from(document.querySelectorAll('.tab-button'));
+    const launcherDialog = createLauncherDialog();
+    const launcherTitle = launcherDialog.querySelector('[data-launcher-title]');
+    const launcherPath = launcherDialog.querySelector('[data-launcher-path]');
+    const launcherCommand = launcherDialog.querySelector('[data-launcher-command]');
+    const launcherFolder = launcherDialog.querySelector('[data-launcher-folder]');
+    const launcherCopyPath = launcherDialog.querySelector('[data-launcher-copy-path]');
+    const launcherCopyCommand = launcherDialog.querySelector('[data-launcher-copy-command]');
 
     let apps = [];
     let apis = [];
@@ -25,6 +32,24 @@ document.addEventListener('DOMContentLoaded', () => {
             button.addEventListener('click', () => {
                 setActiveTab(button.dataset.tab || 'apps');
             });
+        });
+
+        document.addEventListener('click', event => {
+            const trigger = event.target.closest('[data-launcher-trigger]');
+
+            if (!trigger) {
+                return;
+            }
+
+            openLauncherDialog(trigger.dataset.appName || 'Local tool', trigger.dataset.scriptUrl || '');
+        });
+
+        launcherCopyPath.addEventListener('click', () => {
+            copyLauncherText(launcherPath.textContent || '', launcherCopyPath, 'Path copied');
+        });
+
+        launcherCopyCommand.addEventListener('click', () => {
+            copyLauncherText(launcherCommand.textContent || '', launcherCopyCommand, 'Command copied');
         });
     }
 
@@ -230,6 +255,22 @@ document.addEventListener('DOMContentLoaded', () => {
             return `<span class="${classes.join(' ')} app-link-disabled" title="This local action only works when the dashboard is opened from your computer">${safeLabel}</span>`;
         }
 
+        if (link.type === 'start' || assetType === 'local-launch') {
+            const absoluteUrl = resolveAbsoluteUrl(link.url);
+
+            return `
+                <button
+                    type="button"
+                    class="${classes.join(' ')}"
+                    data-launcher-trigger="true"
+                    data-app-name="${escapeAttribute(link.label || 'Local tool')}"
+                    data-script-url="${escapeAttribute(absoluteUrl)}"
+                >
+                    ${safeLabel}
+                </button>
+            `;
+        }
+
         const href = isRepoAsset ? encodeURI(link.url) : escapeAttribute(link.url);
         const attributes = [`href="${href}"`];
 
@@ -318,6 +359,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return typeof url === 'string' && !/^https?:\/\//i.test(url) && !/^mailto:/i.test(url);
     }
 
+    function resolveAbsoluteUrl(url) {
+        try {
+            return new URL(url, window.location.href).href;
+        } catch (error) {
+            console.warn('Unable to resolve local launcher URL:', url, error);
+            return String(url || '');
+        }
+    }
+
     function getRepoAssetType(url) {
         const normalized = String(url || '').toLowerCase();
 
@@ -365,5 +415,105 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function escapeAttribute(value) {
         return escapeHtml(value);
+    }
+
+    function createLauncherDialog() {
+        const dialog = document.createElement('dialog');
+        dialog.className = 'launcher-dialog';
+        dialog.innerHTML = `
+            <form method="dialog" class="launcher-dialog-panel">
+                <div class="launcher-dialog-head">
+                    <div>
+                        <p class="launcher-kicker">Local Launcher</p>
+                        <h2 data-launcher-title>Start locally</h2>
+                    </div>
+                    <button type="submit" class="launcher-close" aria-label="Close local launcher help">Close</button>
+                </div>
+                <p class="launcher-body">
+                    Browsers cannot run batch files directly, so the dashboard now gives you the exact Windows path and launch command instead.
+                </p>
+                <div class="launcher-block">
+                    <p class="launcher-label">Script Path</p>
+                    <code class="launcher-code" data-launcher-path></code>
+                    <button type="button" class="app-link secondary launcher-action" data-launcher-copy-path>Copy Path</button>
+                </div>
+                <div class="launcher-block">
+                    <p class="launcher-label">PowerShell Command</p>
+                    <code class="launcher-code" data-launcher-command></code>
+                    <button type="button" class="app-link start launcher-action" data-launcher-copy-command>Copy Command</button>
+                </div>
+                <div class="launcher-footer">
+                    <a class="app-link secondary launcher-folder-link" data-launcher-folder target="_blank" rel="noopener noreferrer">Open Folder</a>
+                </div>
+            </form>
+        `;
+
+        document.body.appendChild(dialog);
+        return dialog;
+    }
+
+    function openLauncherDialog(appName, scriptUrl) {
+        const scriptPath = fileUrlToWindowsPath(scriptUrl);
+        const folderUrl = getParentFolderUrl(scriptUrl);
+        const command = buildPowerShellCommand(scriptPath);
+
+        launcherTitle.textContent = appName;
+        launcherPath.textContent = scriptPath;
+        launcherCommand.textContent = command;
+        launcherFolder.setAttribute('href', folderUrl);
+
+        if (typeof launcherDialog.showModal === 'function') {
+            launcherDialog.showModal();
+        } else {
+            launcherDialog.setAttribute('open', 'open');
+        }
+    }
+
+    function fileUrlToWindowsPath(scriptUrl) {
+        if (!/^file:/i.test(scriptUrl)) {
+            return scriptUrl;
+        }
+
+        try {
+            const parsed = new URL(scriptUrl);
+            const pathname = decodeURIComponent(parsed.pathname || '').replace(/^\/+/, '');
+            return pathname.replace(/\//g, '\\');
+        } catch (error) {
+            console.warn('Unable to parse file URL for launcher:', scriptUrl, error);
+            return scriptUrl;
+        }
+    }
+
+    function getParentFolderUrl(scriptUrl) {
+        try {
+            return new URL('./', scriptUrl).href;
+        } catch (error) {
+            console.warn('Unable to resolve launcher folder:', scriptUrl, error);
+            return scriptUrl;
+        }
+    }
+
+    function buildPowerShellCommand(scriptPath) {
+        const escapedPath = String(scriptPath || '').replace(/'/g, "''");
+        return `Start-Process -FilePath '${escapedPath}'`;
+    }
+
+    function copyLauncherText(text, button, successLabel) {
+        if (!navigator.clipboard || !text) {
+            return;
+        }
+
+        navigator.clipboard.writeText(text)
+            .then(() => {
+                const originalLabel = button.textContent;
+                button.textContent = successLabel;
+
+                window.setTimeout(() => {
+                    button.textContent = originalLabel;
+                }, 1400);
+            })
+            .catch(error => {
+                console.warn('Unable to copy launcher text:', error);
+            });
     }
 });

@@ -456,6 +456,7 @@ a {
     font-size: 0.9rem;
     font-weight: 800;
     transition: transform 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+    cursor: pointer;
 }
 
 .app-link:hover {
@@ -482,6 +483,95 @@ a {
     background: #9d9388;
     color: rgba(255, 255, 255, 0.9);
     box-shadow: none;
+}
+
+.launcher-dialog {
+    max-width: min(40rem, calc(100vw - 2rem));
+    width: 100%;
+    border: none;
+    padding: 0;
+    background: transparent;
+}
+
+.launcher-dialog::backdrop {
+    background: rgba(17, 11, 5, 0.58);
+    backdrop-filter: blur(4px);
+}
+
+.launcher-dialog-panel {
+    display: grid;
+    gap: 1rem;
+    padding: 1.4rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line);
+    background: var(--surface-strong);
+    box-shadow: var(--shadow-md);
+}
+
+.launcher-dialog-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.launcher-kicker,
+.launcher-label {
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.76rem;
+    font-weight: 800;
+    color: var(--ink-faint);
+}
+
+.launcher-dialog-head h2 {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 1.35rem;
+}
+
+.launcher-close {
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface-muted);
+    color: var(--ink);
+    padding: 0.7rem 1rem;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.launcher-body {
+    color: var(--ink-soft);
+}
+
+.launcher-block {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.launcher-code {
+    display: block;
+    padding: 0.85rem 0.95rem;
+    border-radius: var(--radius-sm);
+    background: #20170f;
+    color: #fff4df;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.launcher-action {
+    width: fit-content;
+}
+
+.launcher-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.launcher-folder-link {
+    width: fit-content;
 }
 
 .service-card {
@@ -597,6 +687,11 @@ a {
     }
 
     .app-link {
+        width: 100%;
+    }
+
+    .launcher-action,
+    .launcher-folder-link {
         width: 100%;
     }
 }
