@@ -272,6 +272,14 @@ main {
     background: #64748b;
 }
 
+.app-link .link-note,
+.app-link.app-link-disabled .link-note {
+    display: block;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.85);
+    margin-top: 0.15rem;
+}
+
 footer {
     text-align: center;
     padding: 2rem;

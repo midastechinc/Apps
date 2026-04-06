@@ -135,10 +135,16 @@ document.addEventListener('DOMContentLoaded', function() {
             const titleText = `Local path: ${link.url}`;
 
             if (canOpenLocalFolder) {
-                return `<a href="${link.url}" class="app-link" target="_blank" title="${titleText}">${link.label}</a>`;
+                return `<a href="${link.url}" class="app-link app-link-local" target="_blank" title="${titleText}">
+                            <span>${link.label}</span>
+                            <span class="link-note">local folder</span>
+                        </a>`;
             }
 
-            return `<span class="app-link app-link-disabled" title="${titleText}\nOpen the dashboard locally to enable this folder link">${link.label} (local only)</span>`;
+            return `<span class="app-link app-link-disabled" title="${titleText}\nOpen the dashboard locally to enable this folder link">
+                        <span>${link.label}</span>
+                        <span class="link-note">local only</span>
+                    </span>`;
         }
 
         const classes = ['app-link'];
