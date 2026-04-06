@@ -1,0 +1,179 @@
+{
+  "apps": [
+    {
+      "name": "Search Tool",
+      "category": "Web App",
+      "description": "Local file search engine with OCR support (Tesseract). Serves files over HTTP from a folder.",
+      "status": "Active",
+      "lastUpdated": "2026-04-06",
+      "links": [
+        {
+          "label": "Launch",
+          "url": "https://midastechinc.github.io/Search-Tool/",
+          "type": "app"
+        },
+        {
+          "label": "GitHub",
+          "url": "https://github.com/midastechinc/Search-Tool",
+          "type": "github"
+        }
+      ]
+    },
+    {
+      "name": "StudioB Complaint Tracker",
+      "category": "Web App",
+      "description": "Case management tracker for complaint logging and tracking with SharePoint integration.",
+      "status": "Active",
+      "lastUpdated": "2026-04-06",
+      "links": [
+        {
+          "label": "Launch",
+          "url": "https://midastechinc.github.io/Complaint-Tracker/",
+          "type": "app"
+        },
+        {
+          "label": "GitHub",
+          "url": "https://github.com/midastechinc/Complaint-Tracker",
+          "type": "github"
+        }
+      ]
+    },
+    {
+      "name": "Midas Portfolio",
+      "category": "Web App",
+      "description": "Investment dashboard and portfolio tracker for Midas Tech with Supabase backend.",
+      "status": "Active",
+      "lastUpdated": "2026-04-06",
+      "links": [
+        {
+          "label": "Launch",
+          "url": "https://midastechinc.github.io/portfolio/",
+          "type": "app"
+        },
+        {
+          "label": "GitHub",
+          "url": "https://github.com/midastechinc/portfolio",
+          "type": "github"
+        }
+      ]
+    },
+    {
+      "name": "Studio B Post Designer",
+      "category": "Web App",
+      "description": "Luxury Instagram post designer for Studio B.",
+      "status": "Active",
+      "lastUpdated": "2026-04-06",
+      "links": [
+        {
+          "label": "Launch",
+          "url": "https://midastechinc.github.io/studiob-home-post-studio/",
+          "type": "app"
+        },
+        {
+          "label": "GitHub",
+          "url": "https://github.com/midastechinc/studiob-home-post-studio",
+          "type": "github"
+        }
+      ]
+    },
+    {
+      "name": "PDF Sign Here Stamp",
+      "category": "Web App",
+      "description": "Professional PDF signing tool with auto-placement of signature stamps.",
+      "status": "Active",
+      "lastUpdated": "2026-04-06",
+      "links": [
+        {
+          "label": "Launch",
+          "url": "https://midastechinc.github.io/PDF-Signhere-Stamp/",
+          "type": "app"
+        },
+        {
+          "label": "GitHub",
+          "url": "https://github.com/midastechinc/PDF-Signhere-Stamp",
+          "type": "github"
+        }
+      ]
+    },
+    {
+      "name": "StudioB Issue Tracker",
+      "category": "Desktop App",
+      "description": "Desktop-based issue/case tracking system with user authentication and SQLite database.",
+      "status": "Active",
+      "lastUpdated": "2026-04-06",
+      "links": [
+        {
+          "label": "Download",
+          "url": "https://github.com/midastechinc/Issue-Tracker/releases",
+          "type": "app"
+        },
+        {
+          "label": "GitHub",
+          "url": "https://github.com/midastechinc/Issue-Tracker",
+          "type": "github"
+        }
+      ]
+    },
+    {
+      "name": "Midas Payroll Desktop",
+      "category": "Desktop App",
+      "description": "Ontario payroll processing and compliance desktop application.",
+      "status": "Active",
+      "lastUpdated": "2026-04-06",
+      "links": [
+        {
+          "label": "Download",
+          "url": "https://github.com/midastechinc/Cursor/releases",
+          "type": "app"
+        },
+        {
+          "label": "GitHub",
+          "url": "https://github.com/midastechinc/Cursor",
+          "type": "github"
+        }
+      ]
+    },
+    {
+      "name": "Midas Tech Gallery",
+      "category": "Mobile App",
+      "description": "Photo gallery app for Android with Capacitor framework.",
+      "status": "Development",
+      "lastUpdated": "2026-04-06",
+      "links": [
+        {
+          "label": "GitHub",
+          "url": "https://github.com/midastechinc/MidasTechGallery",
+          "type": "github"
+        }
+      ]
+    },
+    {
+      "name": "Lead Tracker",
+      "category": "Scripts",
+      "description": "LinkedIn lead scraping script with Supabase database storage.",
+      "status": "Active",
+      "lastUpdated": "2026-04-06",
+      "links": [
+        {
+          "label": "GitHub",
+          "url": "https://github.com/midastechinc/LeadTracker",
+          "type": "github"
+        }
+      ]
+    },
+    {
+      "name": "ScanSnap Daily Processor",
+      "category": "Scripts",
+      "description": "Automated daily processor for ScanSnap document handling.",
+      "status": "Active",
+      "lastUpdated": "2026-04-06",
+      "links": [
+        {
+          "label": "GitHub",
+          "url": "https://github.com/midastechinc/ScanSnap-Daily-Processor",
+          "type": "github"
+        }
+      ]
+    }
+  ]
+}

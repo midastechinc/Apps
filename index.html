@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Midas Tech Apps Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <h1>Midas Tech Applications Dashboard</h1>
+        <p>Organized collection of all Midas Tech web applications</p>
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search applications...">
+            <select id="categoryFilter">
+                <option value="all">All Categories</option>
+                <option value="web">Web Apps</option>
+                <option value="desktop">Desktop Apps</option>
+                <option value="mobile">Mobile Apps</option>
+                <option value="scripts">Scripts</option>
+            </select>
+        </div>
+    </header>
+
+    <main>
+        <div id="stats">
+            <div class="stat-card">
+                <h3>Total Apps</h3>
+                <span id="totalApps">0</span>
+            </div>
+            <div class="stat-card">
+                <h3>Web Apps</h3>
+                <span id="webApps">0</span>
+            </div>
+            <div class="stat-card">
+                <h3>Active</h3>
+                <span id="activeApps">0</span>
+            </div>
+        </div>
+
+        <div id="appsGrid" class="apps-grid">
+            <!-- Apps will be loaded here -->
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Midas Tech Inc. | <a href="https://github.com/midastechinc/Apps" target="_blank">View on GitHub</a></p>
+    </footer>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
