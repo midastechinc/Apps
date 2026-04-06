@@ -22,13 +22,13 @@
       "links": [
         {
           "label": "Launch",
-          "url": "https://midastechinc.github.io/Search-Tool/",
+          "url": "applications/web-apps/Search Tool/index.html",
           "type": "app"
         },
         {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/Search-Tool",
-          "type": "github"
+          "label": "Local Files",
+          "url": "applications/web-apps/Search Tool/",
+          "type": "folder"
         }
       ]
     },
@@ -65,13 +65,13 @@
       "links": [
         {
           "label": "Launch",
-          "url": "https://midastechinc.github.io/Complaint-Tracker/",
+          "url": "applications/web-apps/studiob-complaint-tracker.html",
           "type": "app"
         },
         {
-          "label": "GitHub",
-          "url": "https://github.com/midastechinc/Complaint-Tracker",
-          "type": "github"
+          "label": "Local Files",
+          "url": "applications/web-apps/",
+          "type": "folder"
         }
       ]
     },
@@ -107,6 +107,11 @@
           "type": "app"
         },
         {
+          "label": "Local Source",
+          "url": "../../../Codex/portfolio/",
+          "type": "folder"
+        },
+        {
           "label": "GitHub",
           "url": "https://github.com/midastechinc/portfolio",
           "type": "github"
@@ -134,6 +139,11 @@
           "type": "app"
         },
         {
+          "label": "Local Source",
+          "url": "../../../Codex/studiob-home-post-studio/",
+          "type": "folder"
+        },
+        {
           "label": "GitHub",
           "url": "https://github.com/midastechinc/studiob-home-post-studio",
           "type": "github"
@@ -151,8 +161,13 @@
       "links": [
         {
           "label": "Launch",
-          "url": "https://midastechinc.github.io/PDF-Signhere-Stamp/",
+          "url": "applications/web-apps/Signhere-Stamp-Project/PDF-Signhere-Stamp/index.html",
           "type": "app"
+        },
+        {
+          "label": "Local Files",
+          "url": "applications/web-apps/Signhere-Stamp-Project/",
+          "type": "folder"
         },
         {
           "label": "GitHub",
@@ -177,9 +192,14 @@
       ],
       "links": [
         {
-          "label": "Download",
-          "url": "https://github.com/midastechinc/Issue-Tracker/releases",
+          "label": "Launch",
+          "url": "applications/desktop-apps/Issue Tracker/RUN.bat",
           "type": "app"
+        },
+        {
+          "label": "Local Files",
+          "url": "applications/desktop-apps/Issue Tracker/",
+          "type": "folder"
         },
         {
           "label": "GitHub",
@@ -204,9 +224,14 @@
       ],
       "links": [
         {
-          "label": "Download",
-          "url": "https://github.com/midastechinc/Cursor/releases",
+          "label": "Launch",
+          "url": "applications/desktop-apps/Payroll Project/Start Payroll Desktop.bat",
           "type": "app"
+        },
+        {
+          "label": "Local Files",
+          "url": "applications/desktop-apps/Payroll Project/",
+          "type": "folder"
         },
         {
           "label": "GitHub",
@@ -244,7 +269,7 @@
     },
     {
       "name": "Lead Tracker",
-      "category": "Scripts",
+      "category": "Web App",
       "description": "LinkedIn lead scraping script with Supabase database storage.",
       "status": "Active",
       "lastUpdated": "2026-04-06",
@@ -269,6 +294,16 @@
       ],
       "links": [
         {
+          "label": "Launch",
+          "url": "applications/web-apps/LeadTracker/index.html",
+          "type": "app"
+        },
+        {
+          "label": "Local Files",
+          "url": "applications/web-apps/LeadTracker/",
+          "type": "folder"
+        },
+        {
           "label": "GitHub",
           "url": "https://github.com/midastechinc/LeadTracker",
           "type": "github"
@@ -291,9 +326,69 @@
       "databases": [],
       "links": [
         {
+          "label": "Local Files",
+          "url": "applications/scripts/scansnap-daily-processor/",
+          "type": "folder"
+        },
+        {
           "label": "GitHub",
           "url": "https://github.com/midastechinc/ScanSnap-Daily-Processor",
           "type": "github"
+        }
+      ]
+    },
+    {
+      "name": "Codex Project Scripts",
+      "category": "Scripts",
+      "description": "Collection of PowerShell scripts for Midas Tech operations including signature workflows, audit reports, and system administration.",
+      "status": "Active",
+      "lastUpdated": "2026-04-06",
+      "apis": [
+        {
+          "name": "Power Automate API",
+          "type": "Microsoft 365",
+          "cost": "Included in M365 Business"
+        }
+      ],
+      "databases": [],
+      "links": [
+        {
+          "label": "Local Files",
+          "url": "applications/scripts/Codex Project/",
+          "type": "folder"
+        }
+      ]
+    },
+    {
+      "name": "Power Automate Workflows",
+      "category": "Workflows",
+      "description": "Microsoft Power Automate flows for document management and business process automation.",
+      "status": "Active",
+      "lastUpdated": "2026-04-06",
+      "apis": [
+        {
+          "name": "Power Automate API",
+          "type": "Microsoft 365",
+          "cost": "Included in M365 Business"
+        },
+        {
+          "name": "SharePoint REST API",
+          "type": "Microsoft 365",
+          "cost": "Included in M365 Business"
+        }
+      ],
+      "databases": [
+        {
+          "name": "SharePoint Lists",
+          "type": "Cloud",
+          "cost": "Included in M365 Business"
+        }
+      ],
+      "links": [
+        {
+          "label": "Local Files",
+          "url": "applications/workflows/",
+          "type": "folder"
         }
       ]
     }
