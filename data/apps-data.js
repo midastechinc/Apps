@@ -624,14 +624,14 @@ window.MIDAS_APPS_DATA = {
       ]
     },
     {
-      "name": "Power Automate Workflows",
+      "name": "Document Scan Flow",
       "category": "Workflows",
-      "description": "Microsoft Power Automate flows for document management and business process automation, with export packages stored locally in the dashboard repo.",
+      "description": "Power Automate export package for the Midas document scan processing workflow.",
       "status": "Active",
-      "lastUpdated": "2026-04-06",
+      "lastUpdated": "2026-03-25",
       "notes": [
-        "Local workflow export packages are available for download.",
-        "Source currently lives in the Apps repository."
+        "Export package is stored in the dashboard repo.",
+        "Use this card when you want the scan-processing flow specifically."
       ],
       "apis": [
         {
@@ -657,12 +657,52 @@ window.MIDAS_APPS_DATA = {
       ],
       "links": [
         {
-          "label": "Download Scan Flow",
+          "label": "Download Flow",
           "url": "applications/workflows/Powerautomade Flow/MidasTechDocumentScanFlow_20260326005922.zip",
           "type": "download"
         },
         {
-          "label": "Download Categories Flow",
+          "label": "GitHub",
+          "url": "https://github.com/midastechinc/Apps",
+          "type": "github"
+        }
+      ]
+    },
+    {
+      "name": "Master Categories Flow",
+      "category": "Workflows",
+      "description": "Power Automate export package for the Midas master categories and document classification workflow.",
+      "status": "Active",
+      "lastUpdated": "2026-03-25",
+      "notes": [
+        "Export package is stored in the dashboard repo.",
+        "Use this card when you want the categories flow specifically."
+      ],
+      "apis": [
+        {
+          "name": "Power Automate API",
+          "type": "Microsoft 365",
+          "cost": "Included in M365 Business",
+          "url": "https://learn.microsoft.com/en-us/power-automate/"
+        },
+        {
+          "name": "SharePoint REST API",
+          "type": "Microsoft 365",
+          "cost": "Included in M365 Business",
+          "url": "https://learn.microsoft.com/en-us/sharepoint/dev/sp-add-ins/get-to-know-the-sharepoint-rest-service"
+        }
+      ],
+      "databases": [
+        {
+          "name": "SharePoint Lists",
+          "type": "Cloud",
+          "cost": "Included in M365 Business",
+          "url": "https://support.microsoft.com/en-us/office/introduction-to-lists-8b3f8dde-ecfd-4992-9388-611b9f99c15a"
+        }
+      ],
+      "links": [
+        {
+          "label": "Download Flow",
           "url": "applications/workflows/Powerautomade Flow/MidasTechMasterCategoriesFlow_20260326010536.zip",
           "type": "download"
         },
