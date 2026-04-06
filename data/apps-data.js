@@ -48,8 +48,8 @@ window.MIDAS_APPS_DATA = {
       "status": "Active",
       "lastUpdated": "2026-04-06",
       "notes": [
-        "Live deployment verified on GitHub Pages.",
-        "Standalone GitHub repository verified."
+        "Primary live deployment verified on Vercel.",
+        "GitHub repository verified."
       ],
       "apis": [
         {
@@ -104,7 +104,7 @@ window.MIDAS_APPS_DATA = {
       "links": [
         {
           "label": "Launch",
-          "url": "https://midastechinc.github.io/studiob-home-post-studio/",
+          "url": "https://studiob-home-post-studio.vercel.app/",
           "type": "app"
         },
         {
