@@ -265,6 +265,13 @@ main {
     background: #475569;
 }
 
+.app-link.app-link-disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+    pointer-events: none;
+    background: #64748b;
+}
+
 footer {
     text-align: center;
     padding: 2rem;

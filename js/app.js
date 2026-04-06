@@ -122,12 +122,28 @@ document.addEventListener('DOMContentLoaded', function() {
                     <span class="app-date">Updated: ${app.lastUpdated}</span>
                 </div>
                 <div class="app-links">
-                    ${app.links.map(link => `<a href="${link.url}" class="app-link ${link.type === 'github' ? 'secondary' : ''}" target="_blank">${link.label}</a>`).join('')}
+                    ${app.links.map(link => createAppLink(link, window.location.protocol === 'file:')).join('')}
                 </div>
             </div>
         `;
 
         return card;
+    }
+
+    function createAppLink(link, canOpenLocalFolder) {
+        if (link.type === 'folder') {
+            if (canOpenLocalFolder) {
+                return `<a href="${link.url}" class="app-link" target="_blank">${link.label}</a>`;
+            }
+            return `<span class="app-link app-link-disabled" title="Open the dashboard locally to enable this folder link">${link.label}</span>`;
+        }
+
+        const classes = ['app-link'];
+        if (link.type === 'github') {
+            classes.push('secondary');
+        }
+
+        return `<a href="${link.url}" class="${classes.join(' ')}" target="_blank">${link.label}</a>`;
     }
 
     function renderAPIs(apisToRender) {
