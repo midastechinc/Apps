@@ -845,16 +845,17 @@
                      "category":  "Mobile App",
                      "folderPath":  "applications/mobile-apps/Business Card Depot",
                      "description":  "Mobile app to scan business cards, extract contact information, review the parsed fields, and save the result into phone contacts.",
-                     "status":  "Development",
-                     "lastUpdated":  "2026-04-06",
+                     "status":  "Testing",
+                     "lastUpdated":  "2026-04-07",
                      "manual":  [
-                                    "Use the GitHub repo to track source and upcoming releases.",
-                                    "Build the first Android APK and upload it to GitHub Releases before adding the download link.",
-                                    "Use the app to capture cards from the camera, imported images, or screenshots, then review and save contacts."
+                                    "Download the Android APK from GitHub Releases and install it on your phone.",
+                                    "Use the app to capture cards from the camera, imported images, or screenshots, then review and save contacts.",
+                                    "Open Admin from the header if you want optional Google Sheets sync through an Apps Script webhook URL."
                                 ],
                      "notes":  [
                                    "Registered with register-dashboard-app.ps1.",
-                                   "APK download link will be added after the first GitHub Release is published."
+                                   "APK is published from GitHub Releases tag v0.1.0.",
+                                   "Current release is intended for live device testing."
                                ],
                      "apis":  [
 
@@ -867,6 +868,16 @@
                                        "label":  "GitHub",
                                        "url":  "https://github.com/midastechinc/business-card-depot",
                                        "type":  "github"
+                                   },
+                                   {
+                                       "label":  "Download APK",
+                                       "url":  "https://github.com/midastechinc/business-card-depot/releases/download/v0.1.0/Business-Card-Depot-v0.1.0.apk",
+                                       "type":  "download"
+                                   },
+                                   {
+                                       "label":  "Release Notes",
+                                       "url":  "https://github.com/midastechinc/business-card-depot/releases/tag/v0.1.0",
+                                       "type":  "release"
                                    }
                                ]
                  }
