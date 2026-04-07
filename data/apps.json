@@ -854,8 +854,8 @@
                                 ],
                      "notes":  [
                                    "Registered with register-dashboard-app.ps1.",
-                                   "APK is published from GitHub Releases tag v0.1.0.",
-                                   "Current release is intended for live device testing."
+                                   "APK is published from GitHub Releases tag v0.1.1.",
+                                   "Current release includes branded app icons and updated Android packaging."
                                ],
                      "apis":  [
 
@@ -871,12 +871,12 @@
                                    },
                                    {
                                        "label":  "Download APK",
-                                       "url":  "https://github.com/midastechinc/business-card-depot/releases/download/v0.1.0/Business-Card-Depot-v0.1.0.apk",
+                                       "url":  "https://github.com/midastechinc/business-card-depot/releases/download/v0.1.1/Business-Card-Depot-v0.1.1.apk",
                                        "type":  "download"
                                    },
                                    {
                                        "label":  "Release Notes",
-                                       "url":  "https://github.com/midastechinc/business-card-depot/releases/tag/v0.1.0",
+                                       "url":  "https://github.com/midastechinc/business-card-depot/releases/tag/v0.1.1",
                                        "type":  "release"
                                    }
                                ]
