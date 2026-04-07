@@ -854,8 +854,8 @@
                                 ],
                      "notes":  [
                                    "Registered with register-dashboard-app.ps1.",
-                                   "APK is published from GitHub Releases tag v0.1.2.",
-                                   "Current release adds the optional AI verification engine and reusable field validators."
+                                   "APK is published from GitHub Releases tag v0.1.3.",
+                                   "Current release adds the compact capture buttons and combined review-and-fix comparison layout."
                                ],
                      "apis":  [
 
@@ -871,12 +871,12 @@
                                    },
                                    {
                                        "label":  "Download APK",
-                                       "url":  "https://github.com/midastechinc/business-card-depot/releases/download/v0.1.2/Business-Card-Depot-v0.1.2.apk",
+                                       "url":  "https://github.com/midastechinc/business-card-depot/releases/download/v0.1.3/Business-Card-Depot-v0.1.3.apk",
                                        "type":  "download"
                                    },
                                    {
                                        "label":  "Release Notes",
-                                       "url":  "https://github.com/midastechinc/business-card-depot/releases/tag/v0.1.2",
+                                       "url":  "https://github.com/midastechinc/business-card-depot/releases/tag/v0.1.3",
                                        "type":  "release"
                                    }
                                ]
