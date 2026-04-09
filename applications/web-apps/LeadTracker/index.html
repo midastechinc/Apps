@@ -476,6 +476,80 @@
     .empty-workspace .big { font-size: 40px; margin-bottom: 12px; }
     .empty-workspace strong { display: block; font-size: 16px; color: var(--gray-600); margin-bottom: 6px; }
 
+    .social-post-list { display: grid; gap: 14px; }
+    .social-post-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(249,244,235,0.92));
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: var(--shadow-sm);
+      display: grid;
+      gap: 12px;
+    }
+    .social-post-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .social-post-title { font-size: 18px; font-weight: 800; color: var(--gray-900); }
+    .social-post-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      font-size: 11px;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+    .social-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.72);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gray-600);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .social-post-caption {
+      font-size: 14px;
+      color: var(--gray-700);
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+    .social-post-tags {
+      font-size: 12px;
+      color: var(--blue);
+      white-space: pre-wrap;
+      line-height: 1.5;
+    }
+    .social-post-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .social-post-thumb {
+      width: 100%;
+      max-width: 320px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      background: rgba(255,255,255,0.72);
+    }
+    .social-post-thumb img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
     /* ── Modals ── */
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(18,15,11,0.50); z-index: 1000; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(6px); }
     .modal-overlay.active { display: flex; }
@@ -1046,6 +1120,7 @@
         <button class="view-tab active" onclick="switchView('admin')">All Leads</button>
         <button class="view-tab" onclick="switchView('workspace')">My Workspace</button>
         <button class="view-tab" id="linkedinTab" onclick="switchView('linkedin')">🔗 LinkedIn</button>
+        <button class="view-tab" onclick="switchView('social')">📣 Social Posts</button>
       </div>
       <div class="user-badge">
         <strong id="userDisplay">—</strong>
@@ -1272,6 +1347,28 @@
     </div><!-- /li-wrap -->
   </div>
 
+  <!-- ══════════════════════════════
+       SOCIAL POSTS VIEW
+  ══════════════════════════════ -->
+  <div class="view" id="view-social">
+    <div class="workspace">
+      <div class="workspace-header">
+        <div>
+          <div class="workspace-title">Social Posts</div>
+          <div class="workspace-sub">Drafts saved from the LinkedIn Post Creator through shared Supabase storage.</div>
+        </div>
+        <div class="social-post-actions">
+          <button class="btn btn-secondary" onclick="loadSocialPosts()">↻ Refresh Drafts</button>
+          <button class="btn btn-primary" onclick="window.open('../LinkedIn Post creator/midas-social-generator.html','_blank','noopener')">Open Post Creator</button>
+        </div>
+      </div>
+
+      <div class="social-post-list" id="socialPostList">
+        <div class="empty-workspace"><div class="big">📣</div><strong>No saved posts yet</strong><p>Save a generated post from the LinkedIn Post Creator and it will appear here.</p></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ Log Activity Modal ══ -->
   <div class="modal-overlay" id="activityModal">
     <div class="modal">
@@ -1325,6 +1422,7 @@
       <div class="modal-actions">
         <button class="btn btn-secondary" onclick="closeModal('detailModal')">Close</button>
         <button class="btn btn-secondary" id="detailEditBtn" onclick="openEditLead()">Edit Lead</button>
+        <button class="btn btn-secondary" id="detailPostBtn" onclick="openLeadPostCreator(currentLeadId)">Generate Post</button>
         <button class="btn btn-primary" id="detailLogBtn">Log Activity</button>
       </div>
     </div>
@@ -2037,10 +2135,11 @@
       document.querySelectorAll(".view").forEach(el => el.classList.remove("active"));
       document.querySelectorAll(".view-tab").forEach(el => el.classList.remove("active"));
       document.getElementById(`view-${v}`).classList.add("active");
-      const tabIndex = v === "admin" ? 0 : v === "workspace" ? 1 : 2;
+      const tabIndex = v === "admin" ? 0 : v === "workspace" ? 1 : v === "linkedin" ? 2 : 3;
       document.querySelectorAll(".view-tab")[tabIndex].classList.add("active");
       if (v === "workspace") renderWorkspace();
       if (v === "linkedin") loadLinkedInDashboard();
+      if (v === "social") loadSocialPosts();
     };
 
     function refreshLeadViews() {
@@ -2049,6 +2148,51 @@
       updateFilterDropdowns();
       if (activeView === "workspace") renderWorkspace();
     }
+
+    function inferPostAudienceForLead(lead) {
+      const haystack = [
+        lead?.industry,
+        lead?.title,
+        lead?.company,
+        lead?.address
+      ].filter(Boolean).join(" ").toLowerCase();
+      if (/account|cpa|tax|bookkeep|finance/.test(haystack)) return "accounting";
+      if (/clinic|medical|health|dental|pharma|physio/.test(haystack)) return "healthcare";
+      if (/warehouse|logistics|distribution|shipping|transport|inventory/.test(haystack)) return "warehouses";
+      if (/operation|office manager|admin|administrator/.test(haystack)) return "operations";
+      return "business_owners";
+    }
+
+    function buildLeadPostTopic(lead) {
+      const parts = [];
+      if (lead?.company) parts.push(`${lead.company}`);
+      if (lead?.title || lead?.industry) parts.push(`${lead.title || lead.industry}`);
+      if (lead?.city || lead?.country) parts.push([lead.city, lead.country].filter(Boolean).join(", "));
+      const leadContext = parts.length ? parts.join(" | ") : (lead?.name || "this lead");
+      return `Create a LinkedIn post for ${leadContext} focused on cybersecurity risk, data protection, business continuity, and how Midas Tech can help.`;
+    }
+
+    function buildLeadPostCreatorUrl(lead) {
+      const params = new URLSearchParams({
+        mode: "manual",
+        topic: buildLeadPostTopic(lead),
+        audience: inferPostAudienceForLead(lead),
+        voice: "premium",
+        style: "alert",
+        platform_context: "leadtracker"
+      });
+      if (lead?.id) params.set("lead_id", lead.id);
+      if (lead?.company) params.set("company", lead.company);
+      if (lead?.name) params.set("lead_name", lead.name);
+      return `../LinkedIn Post creator/midas-social-generator.html?${params.toString()}`;
+    }
+
+    window.openLeadPostCreator = function (leadId) {
+      const lead = allLeads[leadId];
+      if (!lead) return showToast("Lead not found","error");
+      if (!isLeadVisibleToCurrentUser(lead)) return showToast("This lead is assigned to another rep","error");
+      window.open(buildLeadPostCreatorUrl(lead), "_blank", "noopener");
+    };
 
     // ── METRICS ────────────────────────────────────────────────────
     function updateMetrics() {
@@ -2145,6 +2289,7 @@
           <td><div class="actions">
             ${webBtn}${liBtn}
             <button class="icon-btn" onclick="openActivity('${l.id}')" title="Log activity">📝</button>
+            <button class="icon-btn" onclick="openLeadPostCreator('${l.id}')" title="Generate post">📣</button>
             <button class="icon-btn" onclick="openDetail('${l.id}')"  title="View details">👁</button>
           </div></td>
         </tr>`;
@@ -2258,6 +2403,7 @@
           </div>
           <div class="card-actions">
             <button class="btn btn-primary btn-sm"   onclick="openActivity('${l.id}')">Log Activity</button>
+            <button class="btn btn-secondary btn-sm" onclick="openLeadPostCreator('${l.id}')">Generate Post</button>
             <button class="btn btn-secondary btn-sm" onclick="openDetail('${l.id}')">View Details</button>
             <div class="card-last">${lastC ? `Last: ${lastC}` : "<span style='color:var(--red);font-weight:600'>Never contacted</span>"}</div>
           </div>
@@ -3205,6 +3351,7 @@
     let liSentData     = [];
     let liAcceptedData = [];
     let liCatchUpData  = [];
+    let socialPostsData = [];
     let liMsgFilter    = "all";   // "all" | "unread" | "inbound"
     let liLoaded       = false;
 
@@ -3267,6 +3414,82 @@
         liSetError("Failed to load LinkedIn data: " + (err.message || err));
       }
     };
+
+    window.loadSocialPosts = async function() {
+      const list = document.getElementById("socialPostList");
+      const db2 = getLiClient();
+      if (!list) return;
+      if (!db2) {
+        list.innerHTML = `<div class="empty-workspace"><div class="big">⚠️</div><strong>Supabase unavailable</strong><p>Check that the CDN script loaded correctly.</p></div>`;
+        return;
+      }
+
+      list.innerHTML = `<div class="li-loading"><div class="li-spinner"></div>Loading drafts…</div>`;
+      try {
+        const { data, error } = await db2
+          .from("social_posts")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (error) throw error;
+        socialPostsData = data || [];
+        renderSocialPosts();
+      } catch (err) {
+        list.innerHTML = `<div class="empty-workspace"><div class="big">⚠️</div><strong>Could not load social posts</strong><p>${esc(err.message || err)}</p></div>`;
+      }
+    };
+
+    function renderSocialPosts() {
+      const list = document.getElementById("socialPostList");
+      if (!list) return;
+      if (!socialPostsData.length) {
+        list.innerHTML = `<div class="empty-workspace"><div class="big">📣</div><strong>No saved posts yet</strong><p>Save a generated post from the LinkedIn Post Creator and it will appear here.</p></div>`;
+        return;
+      }
+
+      list.innerHTML = socialPostsData.map(post => {
+        const created = post.created_at ? new Date(post.created_at) : null;
+        const createdLabel = created && !Number.isNaN(created.getTime()) ? created.toLocaleString() : "Unknown";
+        const img = post.image_url ? `<div class="social-post-thumb"><img src="${esc(post.image_url)}" alt="${esc(post.headline || "Saved post image")}"></div>` : "";
+        const caption = esc(post.caption || "");
+        const hashtags = esc(post.hashtags || "");
+        const topic = esc(post.source_topic || "General");
+        const audience = esc(post.target_audience || "Default audience");
+        const voice = esc(post.brand_voice || "Default voice");
+        const payload = JSON.stringify(post.post_payload || {});
+        return `
+          <div class="social-post-card">
+            <div class="social-post-head">
+              <div>
+                <div class="social-post-title">${esc(post.headline || "Untitled post")}</div>
+                <div class="social-post-meta">
+                  <span>${esc(post.platform || "unknown")}</span>
+                  <span>${esc(post.category || "general")}</span>
+                  <span>${createdLabel}</span>
+                </div>
+              </div>
+              <div class="social-post-actions">
+                <span class="social-pill">${esc(post.status || "draft")}</span>
+                <span class="social-pill">${esc(post.image_style || "alert")}</span>
+                <span class="social-pill">${esc(post.image_engine || "canvas")}</span>
+              </div>
+            </div>
+            ${img}
+            <div class="detail-grid">
+              <div class="detail-field"><div class="df-label">Topic</div><div class="df-value">${topic}</div></div>
+              <div class="detail-field"><div class="df-label">Audience</div><div class="df-value">${audience}</div></div>
+              <div class="detail-field full"><div class="df-label">Brand Voice</div><div class="df-value">${voice}</div></div>
+            </div>
+            <div class="social-post-caption">${caption}</div>
+            <div class="social-post-tags">${hashtags}</div>
+            <div class="social-post-actions">
+              <button class="btn btn-secondary btn-sm" onclick='navigator.clipboard.writeText(${JSON.stringify((post.caption || "") + "\n\n" + (post.hashtags || ""))})'>Copy Post</button>
+              <button class="btn btn-secondary btn-sm" onclick='window.open("../LinkedIn Post creator/midas-social-generator.html?draft=${encodeURIComponent(String(post.id))}","_blank","noopener")'>Open Creator</button>
+              <button class="btn btn-secondary btn-sm" onclick='window.open(${JSON.stringify(post.image_url || "")},"_blank","noopener")' ${post.image_url ? "" : "disabled"}>Open Image</button>
+            </div>
+          </div>`;
+      }).join("");
+    }
 
     function setLiLoading(loading) {
       const cols = ["liColInvites", "liColMsgs", "liColSent", "liColAccepted", "liColCatchUp"];
