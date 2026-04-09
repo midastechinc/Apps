@@ -1359,7 +1359,7 @@
         </div>
         <div class="social-post-actions">
           <button class="btn btn-secondary" onclick="loadSocialPosts()">↻ Refresh Drafts</button>
-          <button class="btn btn-primary" onclick="window.open('../LinkedIn Post creator/midas-social-generator.html','_blank','noopener')">Open Post Creator</button>
+          <button class="btn btn-primary" onclick="window.open(getLeadTrackerPostCreatorBaseUrl(),'_blank','noopener')">Open Post Creator</button>
         </div>
       </div>
 
@@ -2172,6 +2172,10 @@
       return `Create a LinkedIn post for ${leadContext} focused on cybersecurity risk, data protection, business continuity, and how Midas Tech can help.`;
     }
 
+    function getLeadTrackerPostCreatorBaseUrl() {
+      return "./midas-social-generator.html";
+    }
+
     function buildLeadPostCreatorUrl(lead) {
       const params = new URLSearchParams({
         mode: "manual",
@@ -2184,7 +2188,7 @@
       if (lead?.id) params.set("lead_id", lead.id);
       if (lead?.company) params.set("company", lead.company);
       if (lead?.name) params.set("lead_name", lead.name);
-      return `../LinkedIn Post creator/midas-social-generator.html?${params.toString()}`;
+      return `${getLeadTrackerPostCreatorBaseUrl()}?${params.toString()}`;
     }
 
     window.openLeadPostCreator = function (leadId) {
@@ -3484,7 +3488,7 @@
             <div class="social-post-tags">${hashtags}</div>
             <div class="social-post-actions">
               <button class="btn btn-secondary btn-sm" onclick='navigator.clipboard.writeText(${JSON.stringify((post.caption || "") + "\n\n" + (post.hashtags || ""))})'>Copy Post</button>
-              <button class="btn btn-secondary btn-sm" onclick='window.open("../LinkedIn Post creator/midas-social-generator.html?draft=${encodeURIComponent(String(post.id))}","_blank","noopener")'>Open Creator</button>
+              <button class="btn btn-secondary btn-sm" onclick='window.open(`${getLeadTrackerPostCreatorBaseUrl()}?draft=${encodeURIComponent(String(post.id))}`,"_blank","noopener")'>Open Creator</button>
               <button class="btn btn-secondary btn-sm" onclick='window.open(${JSON.stringify(post.image_url || "")},"_blank","noopener")' ${post.image_url ? "" : "disabled"}>Open Image</button>
             </div>
           </div>`;
