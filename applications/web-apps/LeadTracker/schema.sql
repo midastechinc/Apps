@@ -62,6 +62,28 @@ create table if not exists public.linkedin_catch_up (
   pulled_at        timestamptz not null default now()
 );
 
+create table if not exists public.social_posts (
+  id               bigint generated always as identity primary key,
+  platform         text not null default '',
+  headline         text not null default '',
+  category         text not null default '',
+  caption          text not null default '',
+  hashtags         text not null default '',
+  cta              text not null default '',
+  notes            text not null default '',
+  status           text not null default 'draft',
+  image_engine     text not null default 'canvas',
+  image_style      text not null default 'alert',
+  image_url        text not null default '',
+  attachment_image_url text not null default '',
+  attachment_image_name text not null default '',
+  source_topic     text not null default '',
+  target_audience  text not null default '',
+  brand_voice      text not null default '',
+  post_payload     jsonb not null default '{}'::jsonb,
+  created_at       timestamptz not null default now()
+);
+
 create index if not exists linkedin_received_invites_pulled_at_idx
   on public.linkedin_received_invites(pulled_at desc);
 
@@ -80,11 +102,72 @@ create index if not exists linkedin_accepted_invites_connected_on_date_idx
 create index if not exists linkedin_catch_up_pulled_at_idx
   on public.linkedin_catch_up(pulled_at desc);
 
+create index if not exists social_posts_created_at_idx
+  on public.social_posts(created_at desc);
+
+create index if not exists social_posts_status_idx
+  on public.social_posts(status);
+
+alter table public.social_posts
+  add column if not exists notes text not null default '',
+  add column if not exists attachment_image_url text not null default '',
+  add column if not exists attachment_image_name text not null default '';
+
+insert into storage.buckets (id, name, public)
+values ('social-post-images', 'social-post-images', true)
+on conflict (id) do update
+set name = excluded.name,
+    public = true;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'Public read social post images'
+  ) then
+    create policy "Public read social post images"
+      on storage.objects for select
+      using (bucket_id = 'social-post-images');
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'Public insert social post images'
+  ) then
+    create policy "Public insert social post images"
+      on storage.objects for insert
+      with check (bucket_id = 'social-post-images');
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'Public update social post images'
+  ) then
+    create policy "Public update social post images"
+      on storage.objects for update
+      using (bucket_id = 'social-post-images')
+      with check (bucket_id = 'social-post-images');
+  end if;
+end $$;
+
 alter table public.linkedin_received_invites enable row level security;
 alter table public.linkedin_message_replies enable row level security;
 alter table public.linkedin_sent_invites enable row level security;
 alter table public.linkedin_accepted_invites enable row level security;
 alter table public.linkedin_catch_up enable row level security;
+alter table public.social_posts enable row level security;
 
 do $$
 begin
@@ -97,6 +180,49 @@ begin
     create policy "Public read linkedin received invites"
       on public.linkedin_received_invites for select
       using (true);
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'social_posts'
+      and policyname = 'Public read social posts'
+  ) then
+    create policy "Public read social posts"
+      on public.social_posts for select
+      using (true);
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'social_posts'
+      and policyname = 'Public insert social posts'
+  ) then
+    create policy "Public insert social posts"
+      on public.social_posts for insert
+      with check (true);
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'social_posts'
+      and policyname = 'Public update social posts'
+  ) then
+    create policy "Public update social posts"
+      on public.social_posts for update
+      using (true)
+      with check (true);
   end if;
 end $$;
 

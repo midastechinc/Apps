@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>M365 Reminder and Notes Dashboard</title>
+  <meta
+    name="description"
+    content="A one-screen Microsoft 365 dashboard for OneNote, Microsoft To Do, calendar reminders, and flagged email."
+  >
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Manrope:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="stylesheet" href="styles.css">
+  <script type="text/javascript" src="https://alcdn.msauth.net/browser/2.34.0/js/msal-browser.min.js"></script>
+  <script src="m365-config.js"></script>
+</head>
+<body>
+  <div class="dashboard-shell">
+    <header class="hero-band">
+      <div class="hero-copy">
+        <p class="eyebrow">Microsoft 365 workspace</p>
+        <h1>Reminder and Notes Dashboard</h1>
+        <p class="hero-text">
+          One screen for OneNote notes, Microsoft To Do tasks, calendar reminders, events, and flagged email.
+        </p>
+        <div class="hero-pills" aria-label="Workspace highlights">
+          <span>OneNote</span>
+          <span>To Do</span>
+          <span>Calendar</span>
+          <span>Flagged Mail</span>
+        </div>
+      </div>
+
+      <div class="hero-metrics" aria-label="Dashboard metrics">
+        <article>
+          <span>Total items</span>
+          <strong id="totalItems">0</strong>
+        </article>
+        <article>
+          <span>Due today</span>
+          <strong id="dueTodayCount">0</strong>
+        </article>
+        <article>
+          <span>Flagged email</span>
+          <strong id="flaggedCount">0</strong>
+        </article>
+        <article>
+          <span>Connected</span>
+          <strong id="connectedCount">0</strong>
+        </article>
+      </div>
+    </header>
+
+    <section class="toolbar-band" aria-label="Search and dashboard status">
+      <div class="search-panel">
+        <label for="searchInput">Search across the whole dashboard</label>
+        <input id="searchInput" type="search" placeholder="Search notes, tasks, reminders, events, or email">
+      </div>
+
+      <div class="status-panel auth-panel">
+        <p class="eyebrow">Backend</p>
+        <h2>Microsoft 365 only</h2>
+        <p id="statusText">
+          OneNote, Microsoft To Do, Calendar, and Outlook flagged mail are modeled as one unified workspace.
+        </p>
+        <div class="auth-meta">
+          <span id="authStateChip" class="meta-chip">Setup needed</span>
+          <span id="authUserText" class="auth-user">No Microsoft account connected</span>
+        </div>
+        <div class="auth-actions">
+          <button id="connectButton" type="button" class="primary-button">Connect Microsoft 365</button>
+          <button id="refreshButton" type="button" class="ghost-button">Refresh</button>
+          <button id="signOutButton" type="button" class="ghost-button">Sign out</button>
+        </div>
+      </div>
+    </section>
+
+    <details class="admin-band surface" id="adminPanel">
+      <summary class="admin-summary">
+        <div class="surface-heading">
+          <div>
+            <p class="eyebrow">Admin</p>
+            <h2 id="adminHeading">Microsoft Graph Settings</h2>
+          </div>
+          <div class="admin-summary-meta">
+            <span class="admin-caption">Use this only when switching tenants or app registrations.</span>
+            <span class="surface-count" id="adminState">Local</span>
+          </div>
+        </div>
+      </summary>
+
+      <form id="adminForm" class="admin-form">
+        <div class="admin-grid">
+          <label>
+            <span>Client ID</span>
+            <input id="clientIdInput" type="text" placeholder="Application (client) ID">
+          </label>
+
+          <label>
+            <span>Tenant mode</span>
+            <select id="tenantModeInput">
+              <option value="organizations">Any work or school tenant</option>
+              <option value="specific">Specific tenant ID</option>
+              <option value="common">Common</option>
+              <option value="consumers">Personal Microsoft accounts</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="admin-grid">
+          <label>
+            <span>Specific tenant ID</span>
+            <input id="tenantIdInput" type="text" placeholder="Only needed when tenant mode is Specific">
+          </label>
+
+          <label>
+            <span>Redirect URI</span>
+            <input id="redirectUriInput" type="text" placeholder="http://localhost:5500/.../blank.html">
+          </label>
+        </div>
+
+        <label>
+          <span>Graph scopes</span>
+          <input
+            id="scopesInput"
+            type="text"
+            placeholder="User.Read, Notes.Read, Tasks.Read, Calendars.Read, Mail.Read"
+          >
+        </label>
+
+        <div class="admin-actions">
+          <button type="submit" class="primary-button">Save settings</button>
+          <button id="resetSettingsButton" type="button" class="ghost-button">Reset settings</button>
+        </div>
+
+        <p class="admin-help" id="authorityPreview">
+          Authority preview: not configured yet
+        </p>
+      </form>
+    </details>
+
+    <main class="grid-board">
+      <section class="surface notes-surface" aria-labelledby="notesHeading">
+        <div class="surface-heading">
+          <div>
+            <p class="eyebrow">OneNote</p>
+            <h2 id="notesHeading">Notes</h2>
+          </div>
+          <span class="surface-count" id="notesCount">0</span>
+        </div>
+        <div id="notesList" class="surface-list"></div>
+      </section>
+
+      <section class="surface tasks-surface" aria-labelledby="tasksHeading">
+        <div class="surface-heading">
+          <div>
+            <p class="eyebrow">Microsoft To Do</p>
+            <h2 id="tasksHeading">Tasks</h2>
+          </div>
+          <span class="surface-count" id="tasksCount">0</span>
+        </div>
+        <div id="tasksList" class="surface-list"></div>
+      </section>
+
+      <section class="surface calendar-surface" aria-labelledby="calendarHeading">
+        <div class="surface-heading">
+          <div>
+            <p class="eyebrow">M365 Calendar</p>
+            <h2 id="calendarHeading">Reminders and Calendar</h2>
+          </div>
+          <span class="surface-count" id="calendarCount">0</span>
+        </div>
+        <div class="calendar-toolbar" aria-label="Calendar view controls">
+          <div class="calendar-view-switch" role="tablist" aria-label="Calendar views">
+            <button type="button" class="calendar-view-button is-active" data-view="day">Day</button>
+            <button type="button" class="calendar-view-button" data-view="week">Week</button>
+            <button type="button" class="calendar-view-button" data-view="month">Month</button>
+            <button type="button" class="calendar-view-button" data-view="year">Year</button>
+          </div>
+          <div class="calendar-range">
+            <button type="button" class="ghost-button calendar-nav-button" id="calendarPrevButton">Back</button>
+            <strong id="calendarRangeLabel">Today</strong>
+            <button type="button" class="ghost-button calendar-nav-button" id="calendarNextButton">Next</button>
+          </div>
+        </div>
+        <div id="calendarBoard" class="calendar-board"></div>
+      </section>
+
+      <section class="surface email-surface" aria-labelledby="emailHeading">
+        <div class="surface-heading">
+          <div>
+            <p class="eyebrow">Outlook</p>
+            <h2 id="emailHeading">Flagged Email</h2>
+          </div>
+          <span class="surface-count" id="emailCount">0</span>
+        </div>
+        <div id="emailList" class="surface-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <template id="itemTemplate">
+    <article class="item-card">
+      <div class="item-topline">
+        <span class="source-chip"></span>
+        <span class="date-chip"></span>
+      </div>
+      <h3 class="item-title"></h3>
+      <p class="item-body"></p>
+      <div class="item-tags"></div>
+      <div class="item-link-row">
+        <a class="item-link" href="#" target="_blank" rel="noreferrer" hidden>Open in Microsoft 365</a>
+      </div>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
