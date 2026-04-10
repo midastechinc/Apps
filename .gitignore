@@ -58,6 +58,7 @@ applications/web-apps/LeadTracker/*
 !applications/web-apps/LeadTracker/index.html
 !applications/web-apps/LeadTracker/README.md
 !applications/web-apps/LeadTracker/schema.sql
+!applications/web-apps/LeadTracker/midas-social-generator.html
 !applications/web-apps/LeadTracker/.env.example
 !applications/web-apps/LeadTracker/requirements-linkedin.txt
 !applications/web-apps/LeadTracker/Bootstrap LinkedIn Session.bat
@@ -66,6 +67,14 @@ applications/web-apps/LeadTracker/*
 applications/web-apps/LeadTracker/scripts/*
 !applications/web-apps/LeadTracker/scripts/*.ps1
 !applications/web-apps/LeadTracker/scripts/*.py
+!applications/web-apps/Reminder and Notes/
+applications/web-apps/Reminder and Notes/*
+!applications/web-apps/Reminder and Notes/index.html
+!applications/web-apps/Reminder and Notes/styles.css
+!applications/web-apps/Reminder and Notes/app.js
+!applications/web-apps/Reminder and Notes/README.md
+!applications/web-apps/Reminder and Notes/m365-config.js
+!applications/web-apps/Reminder and Notes/blank.html
 !applications/scripts/scansnap-daily-processor/
 applications/scripts/scansnap-daily-processor/*
 !applications/scripts/scansnap-daily-processor/SKILL.md

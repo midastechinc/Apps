@@ -223,6 +223,18 @@
       color: white;
       box-shadow: 0 12px 24px rgba(29,78,216,0.22);
     }
+    .btn-social-studio {
+      background:
+        linear-gradient(135deg, rgba(198,138,47,0.96), rgba(232,183,90,0.96)),
+        linear-gradient(135deg, rgba(29,78,216,0.18), rgba(15,138,95,0.12));
+      color: var(--ink);
+      border: 1px solid rgba(198,138,47,0.35);
+      box-shadow: 0 14px 28px rgba(198,138,47,0.22);
+      font-weight: 800;
+    }
+    .btn-social-studio:hover {
+      box-shadow: 0 18px 32px rgba(198,138,47,0.26);
+    }
     .btn-secondary {
       background: linear-gradient(180deg, #fffdf9, #f5efe4);
       color: var(--gray-800);
@@ -1156,6 +1168,7 @@
       <select id="filterTitle" onchange="applyFilters()"><option value="">All Titles</option></select>
       <div class="spacer"></div>
       <input type="file" id="csvInput" accept=".csv" onchange="handleCSV(event)">
+      <button class="btn btn-social-studio" onclick="openSocialStudio()">Social Studio</button>
       <button class="btn btn-secondary" id="importCsvBtn" style="display:none" onclick="document.getElementById('csvInput').click()">Import CSV</button>
       <button class="btn btn-secondary" id="importBatchesBtn" style="display:none" onclick="openImportBatches()">Delete Batch</button>
       <button class="btn btn-primary"   onclick="openAddLead()">+ Add Lead</button>
@@ -1422,7 +1435,6 @@
       <div class="modal-actions">
         <button class="btn btn-secondary" onclick="closeModal('detailModal')">Close</button>
         <button class="btn btn-secondary" id="detailEditBtn" onclick="openEditLead()">Edit Lead</button>
-        <button class="btn btn-secondary" id="detailPostBtn" onclick="openLeadPostCreator(currentLeadId)">Generate Post</button>
         <button class="btn btn-primary" id="detailLogBtn">Log Activity</button>
       </div>
     </div>
@@ -2149,53 +2161,24 @@
       if (activeView === "workspace") renderWorkspace();
     }
 
-    function inferPostAudienceForLead(lead) {
-      const haystack = [
-        lead?.industry,
-        lead?.title,
-        lead?.company,
-        lead?.address
-      ].filter(Boolean).join(" ").toLowerCase();
-      if (/account|cpa|tax|bookkeep|finance/.test(haystack)) return "accounting";
-      if (/clinic|medical|health|dental|pharma|physio/.test(haystack)) return "healthcare";
-      if (/warehouse|logistics|distribution|shipping|transport|inventory/.test(haystack)) return "warehouses";
-      if (/operation|office manager|admin|administrator/.test(haystack)) return "operations";
-      return "business_owners";
-    }
-
-    function buildLeadPostTopic(lead) {
-      const parts = [];
-      if (lead?.company) parts.push(`${lead.company}`);
-      if (lead?.title || lead?.industry) parts.push(`${lead.title || lead.industry}`);
-      if (lead?.city || lead?.country) parts.push([lead.city, lead.country].filter(Boolean).join(", "));
-      const leadContext = parts.length ? parts.join(" | ") : (lead?.name || "this lead");
-      return `Create a LinkedIn post for ${leadContext} focused on cybersecurity risk, data protection, business continuity, and how Midas Tech can help.`;
-    }
-
     function getLeadTrackerPostCreatorBaseUrl() {
       return "./midas-social-generator.html";
     }
 
-    function buildLeadPostCreatorUrl(lead) {
+    function buildSocialStudioUrl() {
       const params = new URLSearchParams({
         mode: "manual",
-        topic: buildLeadPostTopic(lead),
-        audience: inferPostAudienceForLead(lead),
+        topic: "Create a LinkedIn post about cybersecurity risk, data protection, business continuity, and how Midas Tech helps Ontario businesses stay protected.",
+        audience: "business owners",
         voice: "premium",
         style: "alert",
         platform_context: "leadtracker"
       });
-      if (lead?.id) params.set("lead_id", lead.id);
-      if (lead?.company) params.set("company", lead.company);
-      if (lead?.name) params.set("lead_name", lead.name);
       return `${getLeadTrackerPostCreatorBaseUrl()}?${params.toString()}`;
     }
 
-    window.openLeadPostCreator = function (leadId) {
-      const lead = allLeads[leadId];
-      if (!lead) return showToast("Lead not found","error");
-      if (!isLeadVisibleToCurrentUser(lead)) return showToast("This lead is assigned to another rep","error");
-      window.open(buildLeadPostCreatorUrl(lead), "_blank", "noopener");
+    window.openSocialStudio = function () {
+      window.open(buildSocialStudioUrl(), "_blank", "noopener");
     };
 
     // ── METRICS ────────────────────────────────────────────────────
@@ -2293,7 +2276,6 @@
           <td><div class="actions">
             ${webBtn}${liBtn}
             <button class="icon-btn" onclick="openActivity('${l.id}')" title="Log activity">📝</button>
-            <button class="icon-btn" onclick="openLeadPostCreator('${l.id}')" title="Generate post">📣</button>
             <button class="icon-btn" onclick="openDetail('${l.id}')"  title="View details">👁</button>
           </div></td>
         </tr>`;
@@ -2407,7 +2389,6 @@
           </div>
           <div class="card-actions">
             <button class="btn btn-primary btn-sm"   onclick="openActivity('${l.id}')">Log Activity</button>
-            <button class="btn btn-secondary btn-sm" onclick="openLeadPostCreator('${l.id}')">Generate Post</button>
             <button class="btn btn-secondary btn-sm" onclick="openDetail('${l.id}')">View Details</button>
             <div class="card-last">${lastC ? `Last: ${lastC}` : "<span style='color:var(--red);font-weight:600'>Never contacted</span>"}</div>
           </div>

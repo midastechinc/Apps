@@ -80,19 +80,71 @@ select option{background:#111827}
 
 /* Posts */
 .psec{display:none}.psec.on{display:block}
+.posts-actions{display:flex;justify-content:flex-end;gap:10px;margin:-4px 0 16px}
+.posts-columns{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+.platform-column{min-width:0}
+.sec.sub{margin-bottom:12px}
 .posts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:24px}
 .pcard{background:var(--card);border:1px solid var(--bdr);border-radius:16px;overflow:hidden;animation:fu .38s ease forwards;opacity:0;transform:translateY(14px)}
 @keyframes fu{to{opacity:1;transform:translateY(0)}}
 .pcard:hover{border-color:rgba(0,174,239,0.28);box-shadow:0 0 26px rgba(0,174,239,0.09)}
-.pimg{width:100%;overflow:hidden;background:#0d1117;line-height:0}
+.pimg{width:100%;overflow:hidden;background:#0d1117;line-height:0;position:relative}
 .pimg canvas{width:100%;height:100%;display:block}
+.pimg-logo{position:absolute;top:12px;left:12px;background:rgba(7,16,28,0.72);border:1px solid rgba(255,255,255,0.16);backdrop-filter:blur(8px);border-radius:10px;padding:4px 8px;display:flex;align-items:center;pointer-events:none;z-index:2;box-shadow:0 6px 16px rgba(0,0,0,0.18)}
+.pimg-logo img{height:24px;display:block}
+.pimg-footer{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(180deg,rgba(3,8,18,0.38),rgba(3,8,18,0.82));color:rgba(255,255,255,0.94);font:600 12px Inter,sans-serif;text-align:center;padding:7px 8px;pointer-events:none;z-index:2;letter-spacing:0.02em}
+.pimg-brand-mark{display:none}
+.flux-edit-layer{position:absolute;inset:0;z-index:3;pointer-events:none}
+.flux-text-box{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;cursor:grab;user-select:none;white-space:pre-wrap;text-align:center;line-height:1.05;text-shadow:0 2px 12px rgba(0,0,0,0.42)}
+.flux-text-box:focus{outline:none}
+.flux-text-box.active{box-shadow:0 0 0 1px rgba(255,255,255,0.35),0 0 0 6px rgba(0,174,239,0.12);border-radius:8px}
+.flux-resize-handle{position:absolute;right:-3px;bottom:-3px;width:16px;height:16px;border-radius:4px;background:rgba(255,255,255,0.9);border:1px solid rgba(0,0,0,0.15);cursor:nwse-resize;box-shadow:0 2px 8px rgba(0,0,0,0.22)}
+.flux-resize-handle::after{content:'';position:absolute;right:3px;bottom:3px;width:6px;height:6px;border-right:2px solid rgba(0,0,0,0.38);border-bottom:2px solid rgba(0,0,0,0.38);transform:translate(-1px,-1px)}
+.flux-toolbar{position:static;z-index:4;display:none;gap:6px;align-items:center;flex-wrap:wrap;background:rgba(7,16,28,0.82);border:1px solid rgba(255,255,255,0.14);backdrop-filter:blur(10px);border-radius:12px;padding:8px 10px;margin:12px 0 14px;width:100%;max-width:100%}
+.flux-toolbar.on{display:flex}
+.flux-toolbar label{display:flex;align-items:center;gap:4px;font:700 11px Inter,sans-serif;color:rgba(226,232,240,0.9);text-transform:uppercase;letter-spacing:0.04em}
+.flux-toolbar select,.flux-toolbar input[type="range"]{accent-color:#00AEEF}
+.flux-toolbar select{width:auto;min-width:86px;padding:6px 26px 6px 10px;font-size:12px;border-radius:8px}
+.flux-toolbar input[type="range"]{width:96px}
+.flux-toolbar input[type="color"]{width:28px;height:28px;border:none;padding:0;background:transparent;cursor:pointer}
+.flux-toolbar button{border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.06);color:#fff;border-radius:8px;padding:7px 9px;font:700 12px Inter,sans-serif;cursor:pointer}
+.flux-toolbar button:hover{background:rgba(255,255,255,0.12)}
 .pbody{padding:16px}
 .pbadge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:5px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:11px}
 .big{background:rgba(214,44,143,0.1);border:1px solid rgba(214,44,143,0.28);color:#f06292}
 .bli{background:rgba(10,102,194,0.1);border:1px solid rgba(10,102,194,0.32);color:#60a5fa}
+.post-image-slot{display:none;margin:0 0 12px;border:1px solid var(--bdr);border-radius:12px;overflow:hidden;background:#0d1117;position:relative}
+.post-image-slot.on{display:block}
+.post-image-slot img{display:block;width:100%;height:auto;max-height:220px;object-fit:cover}
+.post-image-slot .remove-attach{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer}
+.saved-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--mt);margin-bottom:10px}
+.saved-meta .saved-date{color:var(--c);font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.saved-preview{margin-bottom:12px}
+.saved-title{font-size:16px;font-weight:800;color:var(--tx);line-height:1.3;margin-bottom:6px}
+.saved-excerpt{font-size:13px;color:var(--mt);line-height:1.65;max-height:128px;overflow:auto;white-space:pre-wrap}
+.saved-notes{margin:-2px 0 12px;padding:10px 12px;border-radius:10px;border:1px solid rgba(25,118,210,.18);background:rgba(25,118,210,.06);color:var(--tx);font-size:12.5px;line-height:1.5;white-space:pre-wrap;max-height:90px;overflow:auto}
+.saved-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0 14px;padding:12px;border:1px solid var(--bdr);border-radius:12px;background:rgba(255,255,255,.03)}
+.saved-filters .filter-input,.saved-filters .filter-select{flex:1 1 220px;border-radius:10px;border:1px solid var(--bdr);background:rgba(255,255,255,.05);color:var(--tx);padding:10px 12px;font:500 13px/1.4 Inter,sans-serif}
+.saved-filters .filter-select{flex:0 0 180px;min-width:180px}
+.saved-filters .filter-chip{background:rgba(0,174,239,.08);border:1px solid rgba(0,174,239,.18);color:var(--c);border-radius:999px;padding:9px 12px;font:700 12px Inter,sans-serif;cursor:pointer}
+.saved-filters .filter-chip:hover{background:rgba(0,174,239,.14)}
+.saved-editor{display:none;gap:10px;margin:12px 0 12px;padding:12px;border:1px dashed var(--bdr);border-radius:12px;background:rgba(255,255,255,.03)}
+.saved-card.editing .saved-editor{display:grid}
+.saved-card.editing .saved-preview{display:none}
+.saved-field-wrap{display:flex;flex-direction:column;gap:6px}
+.saved-field-wrap label{font-size:10px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--c)}
+.saved-field-wrap input,.saved-field-wrap textarea{width:100%;border-radius:10px;border:1px solid var(--bdr);background:rgba(255,255,255,.04);color:var(--tx);padding:10px 11px;font:500 13px/1.5 Inter,sans-serif}
+.saved-field-wrap textarea{min-height:96px;resize:vertical}
+.saved-editor .saved-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.saved-editor .saved-grid.one{grid-template-columns:1fr}
+.saved-editor .saved-grid.three{grid-template-columns:1fr 1fr 1fr}
+.saved-editor .saved-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
+.saved-editor .saved-actions .ab{flex:1 1 auto;min-width:120px}
+.saved-editor .attach-label{font-size:12px}
 .pcap{font-size:13px;color:var(--tx);line-height:1.72;margin-bottom:10px;white-space:pre-wrap;max-height:145px;overflow-y:auto}
 .pcap::-webkit-scrollbar{width:3px}.pcap::-webkit-scrollbar-thumb{background:rgba(0,174,239,.22);border-radius:2px}
 .ptags{font-size:11.5px;color:var(--c);line-height:1.8;margin-bottom:12px}
+.pcontact{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;font-weight:600;color:rgba(0,174,239,0.95);background:rgba(0,174,239,0.07);border:1px solid rgba(0,174,239,0.18);border-radius:8px;padding:7px 12px;margin-bottom:10px;letter-spacing:0.01em}
 .pacts{display:flex;gap:7px;flex-wrap:wrap}
 .ab{flex:1 1 calc(50% - 4px);background:rgba(255,255,255,.04);border:1px solid var(--bdr);border-radius:7px;padding:8px 9px;color:var(--mt);font-family:'Inter',sans-serif;font-size:11.5px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap}
 .ab:hover{background:rgba(0,174,239,.09);border-color:var(--c);color:var(--c)}
@@ -159,6 +211,12 @@ body.lt-shell .hcopy span{
   font-size:12px;
   color:#6a624f;
 }
+body.lt-shell .field-hint{
+  margin-top:8px;
+  color:#6a624f;
+  font-size:12px;
+  line-height:1.5;
+}
 body.lt-shell .header-actions{
   display:flex;
   align-items:center;
@@ -220,6 +278,7 @@ body.lt-shell .pcard{
   border:1px solid var(--lt-border);
   box-shadow:var(--lt-shadow-sm);
 }
+@media(max-width:1180px){.posts-columns{grid-template-columns:1fr}}
 body.lt-shell .lbl,
 body.lt-shell .sec,
 body.lt-shell .sstep,
@@ -250,7 +309,16 @@ body.lt-shell textarea:focus{
 body.lt-shell select{
   background-color:var(--lt-surface);
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%231d4ed8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 13px center;
+  background-size:11px 7px;
 }
+body.lt-shell select option{
+  background:var(--lt-surface);
+  color:var(--lt-ink-soft);
+}
+body.lt-shell .flux-panel{display:none}
+body.lt-shell .flux-panel.on{display:block}
 body.lt-shell .mode-btn,
 body.lt-shell .chip,
 body.lt-shell .ab{
@@ -302,6 +370,7 @@ body.lt-shell .toast{
   <div class="hcopy">
     <strong>LeadTracker Social Studio</strong>
     <span>Create campaign-ready posts that feel native to the LeadTracker workspace.</span>
+    <div style="font:600 12px Inter,sans-serif;color:rgba(0,174,239,0.9);margin-top:4px;letter-spacing:0.02em;">📞 905-787-2038&nbsp;&nbsp;|&nbsp;&nbsp;🌐 midastech.ca&nbsp;&nbsp;|&nbsp;&nbsp;✉️ info@midastech.ca</div>
   </div>
   <div class="header-actions">
     <div class="htag">LeadTracker Connected</div>
@@ -322,7 +391,7 @@ body.lt-shell .toast{
   <div class="lbl">🔑 1min.ai API Key</div>
   <input type="password" id="apiKey" placeholder="Paste your 1min.ai API key...">
   <div class="mini-row">
-    <label class="mini-check"><input type="checkbox" id="rememberApiKey"> Remember on this browser</label>
+    <label class="mini-check"><input type="checkbox" id="rememberApiKey" checked> Save to database</label>
     <button class="mini-link" type="button" onclick="clearSavedApiKey()">Clear saved key</button>
   </div>
   <div class="lbl lbl-t">🤖 AI Model</div>
@@ -383,8 +452,8 @@ body.lt-shell .toast{
   <div class="panel" style="margin-bottom:0">
     <div class="lbl">📸 Posts Per Platform</div>
     <select id="postCount">
-      <option value="1">1 per platform (2 total)</option>
-      <option value="2" selected>2 per platform (4 total)</option>
+      <option value="1" selected>1 per platform (2 total)</option>
+      <option value="2">2 per platform (4 total)</option>
     </select>
   </div>
 </div>
@@ -412,44 +481,21 @@ body.lt-shell .toast{
 </div>
 
 <div class="panel">
-  <div class="lbl">🖼️ Image Style</div>
-  <select id="imageStyle">
-    <option value="auto" selected>Auto (match the content)</option>
-    <option value="alert">Alert / Statement Graphic</option>
-    <option value="tips">Tips Infographic</option>
-    <option value="checklist">Checklist Infographic</option>
-    <option value="stats">Stats Infographic</option>
+  <div class="lbl">🏷️ Industry Focus</div>
+  <select id="industryFocus">
+    <option value="general" selected>General Ontario SMBs</option>
+    <option value="accounting">Accounting Firms & CPAs</option>
+    <option value="healthcare">Healthcare Clinics & Medical Teams</option>
+    <option value="warehouses">Warehouses & Logistics Teams</option>
+    <option value="law">Law Firms & Legal Practices</option>
+    <option value="dental">Dental Clinics & Dental Offices</option>
+    <option value="finance">Finance & Bookkeeping Firms</option>
+    <option value="retail">Retail & eCommerce Businesses</option>
   </select>
-  <p class="note">Choose a dedicated infographic style when you want structured image content instead of a single alert-style graphic.</p>
+  <p class="field-hint">Pick the vertical you want the post to speak to. This changes the hook, pain points, and visual direction.</p>
 </div>
 
-<div class="g2">
-  <div class="panel" style="margin-bottom:0">
-    <div class="lbl">🎨 Image Engine</div>
-    <select id="imageEngine">
-      <option value="canvas" selected>Built-in Graphic Renderer</option>
-      <option value="flux">FLUX AI Image Generation</option>
-    </select>
-    <p class="note">Use FLUX when you want AI-generated visuals instead of text-based graphic layouts.</p>
-  </div>
-  <div class="panel" style="margin-bottom:0">
-    <div class="lbl">🔑 FLUX / BFL API Key</div>
-    <input id="fluxApiKey" type="password" placeholder="Enter your Black Forest Labs API key">
-    <p class="note">Needed only when Image Engine is set to FLUX.</p>
-  </div>
-</div>
-
-<div class="panel">
-  <div class="lbl">⚙️ FLUX Model</div>
-  <select id="fluxModel">
-    <option value="flux-pro-1.1" selected>FLUX 1.1 Pro</option>
-    <option value="flux-dev">FLUX Dev</option>
-    <option value="flux-schnell" disabled>FLUX Schnell (not in current official hosted endpoint docs)</option>
-  </select>
-  <p class="note">The current official BFL hosted API documentation lists FLUX 1.1 Pro and FLUX Dev endpoints. Schnell can be added later through a supported hosted or local route.</p>
-</div>
-
-<button class="go" id="genBtn" onclick="run()">⚡ GENERATE POSTS</button>
+<button class="go" id="genBtn" onclick="run()">⚡ GENERATE CONTENT</button>
 
 <div class="err" id="errBox"></div>
 <div class="status" id="statusBar">
@@ -464,8 +510,40 @@ body.lt-shell .toast{
 </div>
 
 <div class="psec" id="postsSec">
-  <div class="sec">📸 LinkedIn &amp; Instagram Posts</div>
-  <div class="posts-grid" id="postsGrid"></div>
+  <div class="sec">📝 Draft Posts</div>
+  <div class="posts-columns">
+    <div class="platform-column">
+      <div class="sec sub">📸 Instagram</div>
+      <div class="posts-grid" id="postsGridIG"></div>
+    </div>
+    <div class="platform-column">
+      <div class="sec sub">💼 LinkedIn</div>
+      <div class="posts-grid" id="postsGridLI"></div>
+    </div>
+  </div>
+</div>
+
+<div class="psec" id="savedPostsSec">
+  <div class="sec">💾 Saved Posts</div>
+  <div class="saved-filters">
+    <input id="savedPostsSearch" class="filter-input" type="search" placeholder="Search headline, notes, caption, hashtags...">
+    <select id="savedPostsPlatformFilter" class="filter-select">
+      <option value="all" selected>All Platforms</option>
+      <option value="instagram">Instagram Only</option>
+      <option value="linkedin">LinkedIn Only</option>
+    </select>
+    <button type="button" class="filter-chip" id="savedPostsClearFilters">Clear Filters</button>
+  </div>
+  <div class="posts-columns">
+    <div class="platform-column">
+      <div class="sec sub">📸 Instagram</div>
+      <div class="posts-grid" id="savedPostsGridIG"></div>
+    </div>
+    <div class="platform-column">
+      <div class="sec sub">💼 LinkedIn</div>
+      <div class="posts-grid" id="savedPostsGridLI"></div>
+    </div>
+  </div>
 </div>
 
 </div><!-- wrap -->
@@ -501,25 +579,111 @@ document.querySelectorAll('#topicPills .chip').forEach(c => {
   c.addEventListener('click', () => c.classList.toggle('on'));
 });
 
-const savedApiKey = loadSavedApiKey();
-if (savedApiKey) {
+const DEFAULT_1MIN_API_KEY = '701b0c6fd8611ec218626e14d65e9e21c556c7d429407299a174ee0bea007505';
+const SOCIAL_POST_IMAGE_BUCKET = 'social-post-images';
+
+// Load API key from Supabase on startup (async)
+loadSavedApiKey().then(savedApiKey => {
   const apiKeyInput = document.getElementById('apiKey');
   const rememberApiKey = document.getElementById('rememberApiKey');
-  if (apiKeyInput) apiKeyInput.value = savedApiKey;
+  const resolvedKey = savedApiKey || DEFAULT_1MIN_API_KEY;
+  if (apiKeyInput && resolvedKey) apiKeyInput.value = resolvedKey;
   if (rememberApiKey) rememberApiKey.checked = true;
-}
+});
 document.getElementById('rememberApiKey')?.addEventListener('change', persistApiKeyPreference);
-document.getElementById('apiKey')?.addEventListener('input', () => {
+document.getElementById('apiKey')?.addEventListener('change', () => {
   if (document.getElementById('rememberApiKey')?.checked) persistApiKeyPreference();
 });
 
 initializeLeadTrackerContext();
+document.getElementById('savedPostsSec')?.classList.add('on');
+let savedPostsFilterTimer = null;
+function scheduleSavedPostsReload() {
+  clearTimeout(savedPostsFilterTimer);
+  savedPostsFilterTimer = setTimeout(() => {
+    loadSavedPosts().catch((err) => console.warn('Could not refresh saved posts after filter change:', err));
+  }, 180);
+}
+document.getElementById('savedPostsSearch')?.addEventListener('input', scheduleSavedPostsReload);
+document.getElementById('savedPostsPlatformFilter')?.addEventListener('change', () => {
+  loadSavedPosts().catch((err) => console.warn('Could not refresh saved posts after platform filter change:', err));
+});
+document.getElementById('savedPostsClearFilters')?.addEventListener('click', () => {
+  const search = document.getElementById('savedPostsSearch');
+  const platform = document.getElementById('savedPostsPlatformFilter');
+  if (search) search.value = '';
+  if (platform) platform.value = 'all';
+  loadSavedPosts().catch((err) => console.warn('Could not refresh saved posts after clearing filters:', err));
+});
+loadSavedPosts().catch((err) => console.warn('Could not load saved posts on startup:', err));
 
 // ── UI helpers ───────────────────────────────────────────────────────────────
 function setSt(t,s){document.getElementById('statusBar').classList.add('on');document.getElementById('stxt').textContent=t;document.getElementById('sstep').textContent=s}
 function showErr(m){const b=document.getElementById('errBox');b.innerHTML='⚠️ '+m;b.classList.add('on');document.getElementById('statusBar').classList.remove('on')}
 function hideErr(){document.getElementById('errBox').classList.remove('on')}
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2500)}
+
+function getApiKeyValue() {
+  const input = document.getElementById('apiKey');
+  return (input?.value || '').trim() || DEFAULT_1MIN_API_KEY;
+}
+
+function waitForLogoAssets() {
+  if (logoDark.complete && logoDark.naturalWidth && logoLight.complete && logoLight.naturalWidth) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    let tries = 0;
+    const tick = () => {
+      if ((logoDark.complete && logoDark.naturalWidth && logoLight.complete && logoLight.naturalWidth) || tries > 60) {
+        resolve();
+        return;
+      }
+      tries += 1;
+      setTimeout(tick, 50);
+    };
+    tick();
+  });
+}
+
+async function buildPersistentFallbackDataUrl(post, isIG) {
+  await waitForLogoAssets();
+  const canvas = document.createElement('canvas');
+  canvas.width = isIG ? 1080 : 1200;
+  canvas.height = isIG ? 1080 : 627;
+  const drawFn = isIG ? drawIG : drawLI;
+  drawFn(canvas, post || {});
+  return canvas.toDataURL('image/jpeg', 0.92);
+}
+
+async function uploadDataUrlToStorage(dataUrl, path) {
+  const db = getLeadTrackerClient();
+  if (!db?.storage) return '';
+  try {
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    const { error } = await db.storage.from(SOCIAL_POST_IMAGE_BUCKET).upload(path, blob, {
+      contentType: blob.type || 'image/jpeg',
+      cacheControl: '31536000',
+      upsert: true
+    });
+    if (error) {
+      console.warn(`Could not upload image to bucket "${SOCIAL_POST_IMAGE_BUCKET}":`, error);
+      return '';
+    }
+    const { data } = db.storage.from(SOCIAL_POST_IMAGE_BUCKET).getPublicUrl(path);
+    return data?.publicUrl || '';
+  } catch (err) {
+    console.warn(`Image persistence skipped for bucket "${SOCIAL_POST_IMAGE_BUCKET}":`, err);
+    return '';
+  }
+}
+
+async function persistCardImage(card, post, isIG, preferredDataUrl) {
+  const dataUrl = preferredDataUrl || await buildPersistentFallbackDataUrl(post, isIG);
+  const path = `${card.dataset.platform || 'post'}/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.jpg`;
+  return await uploadDataUrlToStorage(dataUrl, path);
+}
 
 // ── 1min.ai API ──────────────────────────────────────────────────────────────
 async function call1min(apiKey, model, prompt, webSearch=false) {
@@ -553,20 +717,21 @@ let currentGenerationContext = {
   topicContext: '',
   audienceKey: '',
   voiceKey: '',
+  industryKey: '',
   imageStyle: '',
   imageEngine: ''
 };
 const PREFERRED_CYBER_NEWS_SOURCES = [
-  { name: 'Krebs on Security', domain: 'krebsonsecurity.com', focus: 'investigations, breaches, real-world impact' },
-  { name: 'The Hacker News', domain: 'thehackernews.com', focus: 'fast daily threat and vulnerability updates' },
-  { name: 'BleepingComputer', domain: 'bleepingcomputer.com', focus: 'ransomware, exploits, and remediation coverage' },
-  { name: 'Dark Reading', domain: 'darkreading.com', focus: 'enterprise trends and practitioner insights' },
-  { name: 'SecurityWeek', domain: 'securityweek.com', focus: 'clean summaries of major incidents' },
-  { name: 'SANS Internet Storm Center', domain: 'isc.sans.edu', focus: 'analyst-level technical updates' },
-  { name: 'CyberScoop', domain: 'cyberscoop.com', focus: 'policy, government, and enterprise security' },
-  { name: 'Schneier on Security', domain: 'schneier.com', focus: 'strategic and big-picture security thinking' },
-  { name: 'Microsoft Security Blog', domain: 'microsoft.com/security/blog', focus: 'defender intelligence and vendor guidance' },
-  { name: 'Cisco Talos Blog', domain: 'blog.talosintelligence.com', focus: 'threat research and active campaign analysis' }
+  { name: 'Dark Reading', domain: 'darkreading.com', focus: 'technical and SOC-level insights' },
+  { name: 'Krebs on Security', domain: 'krebsonsecurity.com', focus: 'investigative reporting with very low noise' },
+  { name: 'Cybersecurity Dive', domain: 'cybersecuritydive.com', focus: 'trend breakdowns and business impact' },
+  { name: 'SC Media', domain: 'scmagazine.com', focus: 'compliance, regulations, and enterprise risk' },
+  { name: 'Infosecurity Magazine', domain: 'infosecurity-magazine.com', focus: 'global threats, policy, and vendor landscape' },
+  { name: 'CSO Online', domain: 'csoonline.com', focus: 'CISO-level thinking and business risk' },
+  { name: 'SANS NewsBites', domain: 'sans.org/newsbites', focus: 'quick daily digest for practitioners' },
+  { name: 'The Hacker News Newsletter', domain: 'thehackernews.com', focus: 'fast digest of breaches, zero-days, and malware' },
+  { name: 'Sophos Naked Security', domain: 'sophos.com/en-us/security-news', focus: 'daily threat coverage and practical explanations' },
+  { name: 'BleepingComputer', domain: 'bleepingcomputer.com', focus: 'ransomware, Windows/M365 issues, and real-world fixes' }
 ];
 const PREFERRED_SOURCE_NAMES = PREFERRED_CYBER_NEWS_SOURCES.map((source) => source.name).join(', ');
 const PREFERRED_SOURCE_GUIDE = PREFERRED_CYBER_NEWS_SOURCES
@@ -580,34 +745,54 @@ function getLeadTrackerClient() {
   return leadTrackerSupabase;
 }
 
-function loadSavedApiKey() {
+// ── API Key: Supabase-backed persistence ─────────────────────────────────────
+const API_KEY_SETTING = '1min_api_key';
+
+async function loadSavedApiKey() {
+  // Fallback to localStorage while Supabase initialises
+  const local = (() => { try { return localStorage.getItem(API_KEY_STORAGE_KEY) || ''; } catch(_){ return ''; } })();
   try {
-    return localStorage.getItem(API_KEY_STORAGE_KEY) || '';
-  } catch (_) {
-    return '';
+    const db = getLeadTrackerClient();
+    if (!db) return local;
+    const { data } = await db.from('settings').select('value').eq('key', API_KEY_SETTING).single();
+    if (data?.value) {
+      // Sync back to localStorage as fast-path for next load
+      try { localStorage.setItem(API_KEY_STORAGE_KEY, data.value); } catch(_){}
+      return data.value;
+    }
+  } catch (_) {}
+  return local || DEFAULT_1MIN_API_KEY;
+}
+
+async function persistApiKeyPreference() {
+  const remember = document.getElementById('rememberApiKey');
+  const apiKeyInput = document.getElementById('apiKey');
+  if (!remember || !apiKeyInput || !remember.checked || !apiKeyInput.value.trim()) return;
+  const val = apiKeyInput.value.trim();
+  // Save to localStorage immediately (fast)
+  try { localStorage.setItem(API_KEY_STORAGE_KEY, val); } catch(_){}
+  // Save to Supabase (persists across browsers/devices)
+  try {
+    const db = getLeadTrackerClient();
+    if (!db) return;
+    await db.from('settings').upsert({ key: API_KEY_SETTING, value: val }, { onConflict: 'key' });
+    toast('🔑 API key saved to database');
+  } catch(err) {
+    console.warn('Could not save API key to Supabase:', err);
   }
 }
 
-function persistApiKeyPreference() {
-  const remember = document.getElementById('rememberApiKey');
-  const apiKeyInput = document.getElementById('apiKey');
-  if (!remember || !apiKeyInput) return;
+async function clearSavedApiKey() {
+  try { localStorage.removeItem(API_KEY_STORAGE_KEY); } catch(_){}
   try {
-    if (remember.checked && apiKeyInput.value.trim()) {
-      localStorage.setItem(API_KEY_STORAGE_KEY, apiKeyInput.value.trim());
-    } else {
-      localStorage.removeItem(API_KEY_STORAGE_KEY);
-    }
-  } catch (_) {}
-}
-
-function clearSavedApiKey() {
-  try { localStorage.removeItem(API_KEY_STORAGE_KEY); } catch (_) {}
+    const db = getLeadTrackerClient();
+    if (db) await db.from('settings').delete().eq('key', API_KEY_SETTING);
+  } catch(_){}
   const remember = document.getElementById('rememberApiKey');
   const apiKeyInput = document.getElementById('apiKey');
   if (remember) remember.checked = false;
   if (apiKeyInput) apiKeyInput.value = '';
-  toast('🗑️ Saved API key cleared');
+  toast('🗑️ API key cleared from database');
 }
 
 const audienceMap = {
@@ -638,11 +823,142 @@ const audienceMap = {
   }
 };
 
+const industryMap = {
+  general: {
+    label: 'General Ontario SMBs',
+    pain: 'broad business risk, downtime, and common security gaps',
+    hook: 'Ontario small businesses',
+    scene: 'a neutral Ontario office or business setting with a single business owner or team member'
+  },
+  accounting: {
+    label: 'Accounting Firms & CPAs',
+    pain: 'client financial data, tax-season disruption, and email compromise',
+    hook: 'accounting firms and CPAs in Ontario',
+    scene: 'an accounting office with ledger folders, calculator, desk documents, and a focused finance professional',
+    dataTypes: 'SIN numbers, tax files, payroll data, bank details, and client financial records',
+    impact: 'one breach can mean client trust gone overnight, tax-season delays, and reputational damage',
+    mistakes: 'No MFA, no verified backups, no real monitoring'
+  },
+  healthcare: {
+    label: 'Healthcare Clinics & Medical Teams',
+    pain: 'patient data exposure, appointment disruption, and compliance pressure',
+    hook: 'healthcare clinics in Ontario',
+    scene: 'a clean clinic admin desk or medical office with subtle charts, a receptionist area, and a clinician or administrator',
+    dataTypes: 'patient charts, PHI, appointment schedules, billing records, and staff credentials',
+    impact: 'one breach can disrupt patient care, damage trust, and trigger compliance headaches',
+    mistakes: 'No MFA, no tested backup, no security monitoring'
+  },
+  warehouses: {
+    label: 'Warehouses & Logistics Teams',
+    pain: 'shipping delays, system outages, and inventory workflow disruption',
+    hook: 'warehouses and logistics teams in Ontario',
+    scene: 'a warehouse operations setting with shipping crates, pallets, scanners, and an operations lead at a workstation',
+    dataTypes: 'inventory records, shipping manifests, order systems, scanner access, and logistics data',
+    impact: 'one outage can stall shipments, slow operations, and hurt customer service',
+    mistakes: 'No MFA, no backup tests, no endpoint visibility'
+  },
+  law: {
+    label: 'Law Firms & Legal Practices',
+    pain: 'quiet account compromise, confidential records, case downtime, and trust damage',
+    hook: 'law firms and legal practices in Ontario',
+    scene: 'a legal office with case files, warm wood accents, and a lawyer or paralegal reviewing documents at a desk',
+    dataTypes: 'case files, contracts, evidence records, client communications, and confidential documents',
+    impact: 'one breach can expose confidential matters, stall active cases, and damage reputation overnight',
+    mistakes: 'No MFA on email or remote access, backups exist but are never tested, no incident response plan'
+  },
+  dental: {
+    label: 'Dental Clinics & Dental Offices',
+    pain: 'patient records, appointment schedules, and front-desk workflow disruption',
+    hook: 'dental clinics and dental offices in Ontario',
+    scene: 'a dental clinic front desk or treatment room with calm medical lighting and a staff member working at a computer',
+    dataTypes: 'patient records, treatment plans, billing files, and appointment calendars',
+    impact: 'one breach can stop bookings, expose patient data, and damage trust',
+    mistakes: 'No MFA, no backup checks, no monitoring'
+  },
+  finance: {
+    label: 'Finance & Bookkeeping Firms',
+    pain: 'sensitive accounting data, client trust, and reporting delays',
+    hook: 'finance and bookkeeping firms in Ontario',
+    scene: 'a financial office with reports, calculator, clean desktop setup, and a detail-focused business professional',
+    dataTypes: 'financial reports, payroll records, bank details, invoices, and client accounting data',
+    impact: 'one breach can expose sensitive numbers and stall reporting',
+    mistakes: 'No MFA, no backup validation, no security oversight'
+  },
+  retail: {
+    label: 'Retail & eCommerce Businesses',
+    pain: 'online sales disruption, payment issues, and customer trust loss',
+    hook: 'retail and eCommerce businesses in Ontario',
+    scene: 'a retail back office or eCommerce operations desk with product boxes, POS hints, and an owner reviewing operations',
+    dataTypes: 'payment records, customer accounts, order history, POS access, and inventory data',
+    impact: 'one breach can interrupt sales and push customers away',
+    mistakes: 'No MFA, no tested backups, no endpoint protection'
+  }
+};
+
 const voiceMap = {
   premium: 'Sound like a premium trusted advisor: polished, concise, credible, calm, and commercially aware.',
   direct: 'Sound direct and clear: plain English, decisive, practical, and no fluff.',
   thought_leader: 'Sound like an executive thought leader: strategic, insight-led, confident, and industry-aware.',
   friendly: 'Sound like a friendly local expert: approachable, helpful, reassuring, and human.'
+};
+
+const hashtagBank = {
+  law: {
+    industry: ['#LawFirms', '#LegalIndustry'],
+    service: ['#CyberSecurity', '#DataProtection'],
+    risk: ['#Ransomware', '#DataBreach'],
+    local: ['#GTA', '#OntarioBusiness'],
+    niche: '#CyberSecurityForLawFirms'
+  },
+  accounting: {
+    industry: ['#AccountingFirms', '#CPAFirms'],
+    service: ['#CyberSecurity', '#DataProtection'],
+    risk: ['#PhishingAttacks', '#DataBreach'],
+    local: ['#GTA', '#OntarioBusiness'],
+    niche: '#ITSupportForCPAs'
+  },
+  healthcare: {
+    industry: ['#HealthcareClinics', '#MedicalPractices'],
+    service: ['#CyberSecurity', '#DataProtection'],
+    risk: ['#PatientData', '#Ransomware'],
+    local: ['#GTA', '#OntarioBusiness'],
+    niche: '#CyberSecurityForHealthcare'
+  },
+  dental: {
+    industry: ['#DentalClinics', '#DentalPractices'],
+    service: ['#CyberSecurity', '#DataProtection'],
+    risk: ['#PatientData', '#Ransomware'],
+    local: ['#GTA', '#OntarioBusiness'],
+    niche: '#ITSupportForDental'
+  },
+  warehouses: {
+    industry: ['#Warehousing', '#Manufacturing'],
+    service: ['#CyberSecurity', '#BusinessContinuity'],
+    risk: ['#Ransomware', '#OperationalRisk'],
+    local: ['#GTA', '#OntarioBusiness'],
+    niche: '#ITSupportForManufacturing'
+  },
+  finance: {
+    industry: ['#FinanceFirms', '#Bookkeeping'],
+    service: ['#CyberSecurity', '#DataProtection'],
+    risk: ['#Ransomware', '#DataBreach'],
+    local: ['#GTA', '#OntarioBusiness'],
+    niche: '#ManagedIT'
+  },
+  retail: {
+    industry: ['#RetailBusiness', '#eCommerce'],
+    service: ['#CyberSecurity', '#BusinessContinuity'],
+    risk: ['#Ransomware', '#DataBreach'],
+    local: ['#GTA', '#OntarioBusiness'],
+    niche: '#ManagedIT'
+  },
+  general: {
+    industry: ['#BusinessSecurity', '#CyberSecurity'],
+    service: ['#ManagedITServices', '#DataProtection'],
+    risk: ['#Ransomware', '#DataBreach'],
+    local: ['#GTA', '#OntarioBusiness'],
+    niche: '#OntarioBusiness'
+  }
 };
 
 function cleanJsonString(raw) {
@@ -667,6 +983,9 @@ function getVisualStyle(post) {
 }
 
 function normalizeStructuredPosts(posts, forcedStyle) {
+  if (forcedStyle === 'post' || forcedStyle === 'caption') {
+    return posts.map((post) => ({ ...post }));
+  }
   return posts.map((post) => {
     const next = { ...post };
     if (forcedStyle && forcedStyle !== 'auto') next.imageStyle = forcedStyle;
@@ -725,113 +1044,559 @@ function normalizeStructuredPosts(posts, forcedStyle) {
   });
 }
 
+function buildHashtags(industryKey) {
+  const bank = hashtagBank[industryKey] || hashtagBank.general;
+  const ordered = [
+    ...(bank.industry || []),
+    ...(bank.service || []),
+    ...(bank.risk || []),
+    ...(bank.local || [])
+  ];
+  if (bank.niche) ordered.push(bank.niche);
+  return [...new Set(ordered)].slice(0, 8).join(' ');
+}
+
+function escapeHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+async function attachImageToPost(ev, i) {
+  const file = ev?.target?.files?.[0];
+  const card = getCard(i);
+  if (!file || !card) return;
+  const slot = card.querySelector('.post-image-slot');
+  const preview = card.querySelector('.post-image-preview');
+  const label = card.querySelector('.attach-label');
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const dataUrl = String(reader.result || '');
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const safeExt = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext) ? ext : 'jpg';
+    const path = `manual/${card.dataset.platform || 'post'}/${Date.now()}-${Math.random().toString(36).slice(2)}.${safeExt}`;
+    const uploaded = await uploadDataUrlToStorage(dataUrl, path);
+    const imageUrl = uploaded || dataUrl;
+    card.dataset.imageUrl = imageUrl;
+    card.dataset.imageName = file.name;
+    card.dataset.imagePath = uploaded ? path : '';
+    if (slot) slot.classList.add('on');
+    if (preview) {
+      preview.src = imageUrl;
+      preview.alt = file.name;
+    }
+    if (label) label.textContent = file.name;
+    const saveBtn = card.querySelector('button[onclick^="saveToLeadTracker"]');
+    if (saveBtn) saveBtn.textContent = '💾 Save';
+    toast('✅ Image attached');
+  };
+  reader.readAsDataURL(file);
+  ev.target.value = '';
+}
+
+function removeAttachedImage(i) {
+  const card = getCard(i);
+  if (!card) return;
+  delete card.dataset.imageUrl;
+  delete card.dataset.imageName;
+  delete card.dataset.imagePath;
+  const slot = card.querySelector('.post-image-slot');
+  const preview = card.querySelector('.post-image-preview');
+  const label = card.querySelector('.attach-label');
+  if (slot) slot.classList.remove('on');
+  if (preview) preview.removeAttribute('src');
+  if (label) label.textContent = 'No image attached';
+  toast('🗑️ Image removed');
+}
+
+function formatSavedPostDate(value) {
+  if (!value) return 'Saved post';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Saved post';
+  return date.toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function renderSavedPostCard(post, index) {
+  const isIG = (post.platform || '').toLowerCase() === 'instagram';
+  const card = document.createElement('div');
+  card.className = 'pcard saved-card';
+  card.style.animationDelay = `${index * 0.06}s`;
+  const body = document.createElement('div');
+  body.className = 'pbody';
+  const badge = isIG ? '<span class="pbadge big">📸 Instagram</span>' : '<span class="pbadge bli">💼 LinkedIn</span>';
+  const headline = String(post.headline || '').trim();
+  const category = String(post.category || '').trim();
+  const caption = String(post.caption || '').trim();
+  const hashtags = String(post.hashtags || '').trim();
+  const cta = String(post.cta || '').trim();
+  const notes = String(post.notes || post?.post_payload?.notes || '').trim();
+  const fullCaption = caption || '';
+  const imageUrl = String(post.image_url || post.attachment_image_url || post?.post_payload?.attachedImageUrl || post?.post_payload?.attachmentImageUrl || '').trim();
+  const attachImageUrl = String(post.attachment_image_url || post?.post_payload?.attachedImageUrl || '').trim();
+  const attachImageName = String(post.attachment_image_name || post?.post_payload?.attachedImageName || '').trim();
+  const notesDisplay = notes ? (notes.length > 180 ? `${notes.slice(0, 177)}...` : notes) : '';
+  const imageMarkup = imageUrl
+    ? `<div class="post-image-slot on"><img class="post-image-preview" alt="Saved post image" src="${imageUrl}"></div>`
+    : `<div class="post-image-slot"><img class="post-image-preview" alt="Saved post image"></div>`;
+  const attachmentMarkup = attachImageUrl
+    ? `<div class="post-image-slot on"><img class="post-image-preview attachment-preview" alt="Attachment image" src="${attachImageUrl}"></div>`
+    : `<div class="post-image-slot"><img class="post-image-preview attachment-preview" alt="Attachment image"></div>`;
+  body.innerHTML = `
+    ${badge}
+    ${imageMarkup}
+    <div class="saved-meta">
+      <span class="saved-date">${formatSavedPostDate(post.created_at)}</span>
+      <span>${escapeHtml(category || (isIG ? 'Instagram' : 'LinkedIn'))}</span>
+    </div>
+    <div class="saved-preview">
+      <div class="saved-title">${escapeHtml(headline || 'Untitled Post')}</div>
+      <div class="saved-excerpt">${escapeHtml(fullCaption).replace(/\n/g, '<br>')}</div>
+    </div>
+    ${notesDisplay ? `<div class="saved-notes">📝 ${escapeHtml(notesDisplay).replace(/\n/g, '<br>')}</div>` : ''}
+    <div class="saved-editor">
+      <div class="saved-grid">
+        <div class="saved-field-wrap">
+          <label>Headline</label>
+          <input type="text" data-field="headline" value="${escapeHtml(headline)}" placeholder="Headline">
+        </div>
+        <div class="saved-field-wrap">
+          <label>Category</label>
+          <input type="text" data-field="category" value="${escapeHtml(category)}" placeholder="Category">
+        </div>
+      </div>
+      <div class="saved-grid">
+        <div class="saved-field-wrap">
+          <label>CTA</label>
+          <input type="text" data-field="cta" value="${escapeHtml(cta)}" placeholder="CTA">
+        </div>
+        <div class="saved-field-wrap">
+          <label>Image</label>
+          <div class="mini-row" style="margin-top:0">
+            <span class="mini-check attach-label">${imageUrl ? 'Image attached' : 'No image attached'}</span>
+            <button class="mini-link" type="button" onclick="this.nextElementSibling?.click()">📎 Replace Image</button>
+            <input class="saved-image-input" type="file" accept="image/*" hidden onchange="attachImageToSavedPost(event, this.closest('.saved-card'))">
+          </div>
+        </div>
+      </div>
+      <div class="saved-grid">
+        <div class="saved-field-wrap">
+          <label>Notes</label>
+          <textarea data-field="notes" placeholder="Reviewer notes">${escapeHtml(notes)}</textarea>
+        </div>
+        <div class="saved-field-wrap">
+          <label>Attachment Image</label>
+          <div class="mini-row" style="margin-top:0">
+            <span class="mini-check attach-label attachment-label">${attachImageUrl ? (escapeHtml(attachImageName) || 'Attachment image attached') : 'No attachment image'}</span>
+            <button class="mini-link" type="button" onclick="this.nextElementSibling?.click()">📎 Attach Image</button>
+            <input class="saved-attachment-input" type="file" accept="image/*" hidden onchange="attachAttachmentImageToSavedPost(event, this.closest('.saved-card'))">
+          </div>
+        </div>
+      </div>
+      ${attachmentMarkup}
+      <div class="saved-grid one">
+        <div class="saved-field-wrap">
+          <label>Caption</label>
+          <textarea data-field="caption" placeholder="Caption">${escapeHtml(caption)}</textarea>
+        </div>
+      </div>
+      <div class="saved-grid one">
+        <div class="saved-field-wrap">
+          <label>Hashtags</label>
+          <textarea data-field="hashtags" placeholder="#Hashtag #Hashtag">${escapeHtml(hashtags)}</textarea>
+        </div>
+      </div>
+      <div class="saved-actions">
+        <button class="ab p" type="button" onclick="saveSavedPostEdits(this)">💾 Save Changes</button>
+        <button class="ab" type="button" onclick="toggleSavedEditor(this)">✏️ Close</button>
+      </div>
+    </div>
+    <div class="pcontact">📞 <strong>905-787-2038</strong>&nbsp;&nbsp;|&nbsp;&nbsp;🌐 <strong>midastech.ca</strong>&nbsp;&nbsp;|&nbsp;&nbsp;✉️ <strong>info@midastech.ca</strong></div>
+    <div class="ptags">${escapeHtml(hashtags)}</div>
+    <div class="pacts">
+      <button class="ab" type="button" onclick="toggleSavedEditor(this)">✏️ Edit</button>
+      <button class="ab" type="button" onclick="cpCapFromSaved(this)">📋 Caption</button>
+      <button class="ab" type="button" onclick="cpAllFromSaved(this)">✨ Copy All</button>
+      <button class="ab" type="button" onclick="deleteSavedPost(this)">🗑 Delete</button>
+      ${imageUrl ? `<button class="ab p" type="button" onclick="window.open('${escapeHtml(imageUrl)}', '_blank')">🖼 Open Image</button>` : `<button class="ab" type="button" disabled>🖼 No Image</button>`}
+    </div>`;
+  card.appendChild(body);
+  card._savedPost = post;
+  card.dataset.savedId = String(post.id || '');
+  card.dataset.platform = post.platform || '';
+  card.dataset.headline = headline;
+  card.dataset.category = category;
+  card.dataset.caption = caption;
+  card.dataset.hashtags = hashtags;
+  card.dataset.cta = cta;
+  card.dataset.notes = notes;
+  card.dataset.imageUrl = imageUrl;
+  card.dataset.imageName = String(post?.post_payload?.attachedImageName || '');
+  card.dataset.attachmentImageUrl = attachImageUrl;
+  card.dataset.attachmentImageName = attachImageName;
+  return card;
+}
+
+function cpCapFromSaved(el) {
+  const card = el?.closest('.saved-card');
+  const cap = _addCF((card?.dataset.caption || '').replace(/\\n/g, '\n'));
+  navigator.clipboard.writeText(cap).then(() => toast('✅ Caption copied!'));
+}
+
+function cpAllFromSaved(el) {
+  const card = el?.closest('.saved-card');
+  const cap = _addCF((card?.dataset.caption || '').replace(/\\n/g, '\n'));
+  const tags = card?.dataset.hashtags || '';
+  navigator.clipboard.writeText(cap + (tags ? '\n\n' + tags : '')).then(() => toast('✅ Copied!'));
+}
+
+function toggleSavedEditor(el) {
+  const card = el?.closest('.saved-card');
+  if (!card) return;
+  card.classList.toggle('editing');
+}
+
+async function attachImageToSavedPost(ev, card) {
+  const file = ev?.target?.files?.[0];
+  const db = getLeadTrackerClient();
+  if (!file || !card || !db) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const dataUrl = String(reader.result || '');
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const safeExt = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext) ? ext : 'jpg';
+      const path = `saved/${card.dataset.platform || 'post'}/${Date.now()}-${Math.random().toString(36).slice(2)}.${safeExt}`;
+      const uploaded = await uploadDataUrlToStorage(dataUrl, path);
+      if (!uploaded) throw new Error('Image upload failed');
+      const payload = {
+        image_url: uploaded,
+        post_payload: {
+          ...(card._savedPost || {}),
+          attachedImageUrl: uploaded,
+          attachedImageName: file.name
+        }
+      };
+      const { error } = await db.from('social_posts').update(payload).eq('id', Number(card.dataset.savedId));
+      if (error) throw error;
+      card.dataset.imageUrl = uploaded;
+      card.dataset.imageName = file.name;
+      const preview = card.querySelector('.post-image-preview');
+      const slot = card.querySelector('.post-image-slot');
+      const label = card.querySelector('.attach-label');
+      if (preview) preview.src = uploaded;
+      if (slot) slot.classList.add('on');
+      if (label) label.textContent = file.name;
+      toast('✅ Image attached to saved post');
+      loadSavedPosts().catch((err) => console.warn('Could not refresh saved posts after image attach:', err));
+    } catch (err) {
+      showErr(`Could not attach image.<br><small>${err.message || err}</small>`);
+    }
+  };
+  reader.readAsDataURL(file);
+  ev.target.value = '';
+}
+
+async function attachAttachmentImageToSavedPost(ev, card) {
+  const file = ev?.target?.files?.[0];
+  const db = getLeadTrackerClient();
+  if (!file || !card || !db) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const dataUrl = String(reader.result || '');
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const safeExt = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext) ? ext : 'jpg';
+      const path = `attachments/${card.dataset.platform || 'post'}/${Date.now()}-${Math.random().toString(36).slice(2)}.${safeExt}`;
+      const uploaded = await uploadDataUrlToStorage(dataUrl, path);
+      if (!uploaded) throw new Error('Image upload failed');
+      const payload = {
+        attachment_image_url: uploaded,
+        attachment_image_name: file.name,
+        post_payload: {
+          ...(card._savedPost || {}),
+          attachmentImageUrl: uploaded,
+          attachmentImageName: file.name
+        }
+      };
+      const { error } = await db.from('social_posts').update(payload).eq('id', Number(card.dataset.savedId));
+      if (error) throw error;
+      card.dataset.attachmentImageUrl = uploaded;
+      card.dataset.attachmentImageName = file.name;
+      card._savedPost = { ...(card._savedPost || {}), ...payload };
+      const preview = card.querySelector('.attachment-preview');
+      const label = card.querySelector('.attachment-label');
+      if (preview) preview.src = uploaded;
+      if (label) label.textContent = file.name;
+      toast('✅ Attachment image saved');
+      loadSavedPosts().catch((err) => console.warn('Could not refresh saved posts after attachment image attach:', err));
+    } catch (err) {
+      showErr(`Could not attach attachment image.<br><small>${err.message || err}</small>`);
+    }
+  };
+  reader.readAsDataURL(file);
+  ev.target.value = '';
+}
+
+async function saveSavedPostEdits(el) {
+  const card = el?.closest('.saved-card');
+  const db = getLeadTrackerClient();
+  if (!card || !db) return;
+  const get = (field) => card.querySelector(`[data-field="${field}"]`);
+  const payload = {
+    headline: get('headline')?.value.trim() || '',
+    category: get('category')?.value.trim() || '',
+    cta: get('cta')?.value.trim() || '',
+    caption: get('caption')?.value.trim() || '',
+    hashtags: get('hashtags')?.value.trim() || '',
+    notes: get('notes')?.value.trim() || '',
+    image_url: card.dataset.imageUrl || '',
+    attachment_image_url: card.dataset.attachmentImageUrl || '',
+    attachment_image_name: card.dataset.attachmentImageName || '',
+    post_payload: {
+      ...(card._savedPost || {}),
+      headline: get('headline')?.value.trim() || '',
+      category: get('category')?.value.trim() || '',
+      cta: get('cta')?.value.trim() || '',
+      caption: get('caption')?.value.trim() || '',
+      hashtags: get('hashtags')?.value.trim() || '',
+      notes: get('notes')?.value.trim() || '',
+      attachedImageUrl: card.dataset.imageUrl || '',
+      attachedImageName: card.dataset.imageName || '',
+      attachmentImageUrl: card.dataset.attachmentImageUrl || '',
+      attachmentImageName: card.dataset.attachmentImageName || ''
+    }
+  };
+  try {
+    const { error } = await db.from('social_posts').update(payload).eq('id', Number(card.dataset.savedId));
+    if (error) throw error;
+    card._savedPost = { ...(card._savedPost || {}), ...payload };
+    card.dataset.headline = payload.headline;
+    card.dataset.category = payload.category;
+    card.dataset.caption = payload.caption;
+    card.dataset.hashtags = payload.hashtags;
+    card.dataset.cta = payload.cta;
+    card.dataset.notes = payload.notes;
+    toast('✅ Saved post updated');
+    loadSavedPosts().catch((err) => console.warn('Could not refresh saved posts after edit:', err));
+  } catch (err) {
+    showErr(`Could not save edits.<br><small>${err.message || err}</small>`);
+  }
+}
+
+async function deleteSavedPost(el) {
+  const card = el?.closest('.saved-card');
+  const db = getLeadTrackerClient();
+  if (!card || !db) return;
+  if (!confirm('Delete this saved post? This cannot be undone.')) return;
+  try {
+    const { error } = await db.from('social_posts').delete().eq('id', Number(card.dataset.savedId));
+    if (error) throw error;
+    card.remove();
+    toast('🗑️ Saved post deleted');
+    loadSavedPosts().catch((err) => console.warn('Could not refresh saved posts after delete:', err));
+  } catch (err) {
+    showErr(`Could not delete saved post.<br><small>${err.message || err}</small>`);
+  }
+}
+
+async function loadSavedPosts() {
+  const db = getLeadTrackerClient();
+  const igGrid = document.getElementById('savedPostsGridIG');
+  const liGrid = document.getElementById('savedPostsGridLI');
+  if (!igGrid || !liGrid) return;
+  igGrid.innerHTML = '<div class="nc">Loading saved Instagram posts...</div>';
+  liGrid.innerHTML = '<div class="nc">Loading saved LinkedIn posts...</div>';
+  if (!db) {
+    igGrid.innerHTML = '<div class="nc">Supabase is not available.</div>';
+    liGrid.innerHTML = '<div class="nc">Supabase is not available.</div>';
+    return;
+  }
+  try {
+    const { data, error } = await db
+      .from('social_posts')
+      .select('id, platform, headline, category, caption, hashtags, cta, notes, image_url, attachment_image_url, attachment_image_name, created_at, image_engine, image_style, post_payload')
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (error) throw error;
+    const posts = Array.isArray(data) ? data : [];
+    const searchTerm = String(document.getElementById('savedPostsSearch')?.value || '').trim().toLowerCase();
+    const platformFilter = String(document.getElementById('savedPostsPlatformFilter')?.value || 'all').toLowerCase();
+    const matchesSearch = (post) => {
+      if (!searchTerm) return true;
+      const haystack = [
+        post.platform,
+        post.headline,
+        post.category,
+        post.caption,
+        post.hashtags,
+        post.cta,
+        post.notes,
+        post?.post_payload?.attachedImageName,
+        post?.post_payload?.attachmentImageName
+      ].map((v) => String(v || '').toLowerCase()).join(' ');
+      return haystack.includes(searchTerm);
+    };
+    const matchesPlatform = (post) => {
+      if (platformFilter === 'all') return true;
+      return String(post.platform || '').toLowerCase() === platformFilter;
+    };
+    const filtered = posts.filter((post) => matchesSearch(post) && matchesPlatform(post));
+    const igPosts = filtered.filter((p) => String(p.platform || '').toLowerCase() === 'instagram');
+    const liPosts = filtered.filter((p) => String(p.platform || '').toLowerCase() === 'linkedin');
+    igGrid.innerHTML = '';
+    liGrid.innerHTML = '';
+    if (!igPosts.length) {
+      igGrid.innerHTML = searchTerm || platformFilter !== 'all'
+        ? '<div class="nc">No matching Instagram posts.</div>'
+        : '<div class="nc">No saved Instagram posts yet.</div>';
+    } else {
+      igPosts.forEach((post, index) => igGrid.appendChild(renderSavedPostCard(post, index)));
+    }
+    if (!liPosts.length) {
+      liGrid.innerHTML = searchTerm || platformFilter !== 'all'
+        ? '<div class="nc">No matching LinkedIn posts.</div>'
+        : '<div class="nc">No saved LinkedIn posts yet.</div>';
+    } else {
+      liPosts.forEach((post, index) => liGrid.appendChild(renderSavedPostCard(post, index)));
+    }
+  } catch (err) {
+    igGrid.innerHTML = `<div class="nc">Could not load saved Instagram posts.<br><small>${err.message || err}</small></div>`;
+    liGrid.innerHTML = `<div class="nc">Could not load saved LinkedIn posts.<br><small>${err.message || err}</small></div>`;
+  }
+}
+
 function getFluxDimensions(isIG) {
   return isIG
     ? { width: 1024, height: 1024 }
     : { width: 1344, height: 704 };
 }
 
-function buildFluxPrompt(post, isIG) {
-  const platformPrompt = isIG
-    ? 'Square composition for Instagram. Strong focal point, clean composition, premium lighting.'
-    : 'Wide composition for LinkedIn. Professional commercial composition with clear subject hierarchy.';
-  const structuredBits = [];
-  if (Array.isArray(post.tips) && post.tips.length) {
-    structuredBits.push(`Key talking points: ${post.tips.map((tip) => `${tip.title}: ${tip.body}`).join(' | ')}`);
-  }
-  if (Array.isArray(post.checklist) && post.checklist.length) {
-    structuredBits.push(`Checklist themes: ${post.checklist.join(' | ')}`);
-  }
-  if (Array.isArray(post.stats) && post.stats.length) {
-    structuredBits.push(`Stats themes: ${post.stats.map((item) => `${item.value} ${item.label}`).join(' | ')}`);
-  }
-  if (Array.isArray(post.risks) && post.risks.length) {
-    structuredBits.push(`Primary business risk list: ${post.risks.join(' | ')}`);
-  }
-  if (Array.isArray(post.services) && post.services.length) {
-    structuredBits.push(`Service solution list: ${post.services.join(' | ')}`);
-  }
-  if (Array.isArray(post.sources) && post.sources.length) {
-    structuredBits.push(`Credibility sources: ${post.sources.join(' | ')}`);
-  }
-  const sourcePrompt = post.imagePrompt || `${post.headline || 'Cybersecurity business visual'}. ${post.body || ''}`.trim();
-  return [
-    'Create a premium, modern cybersecurity-themed marketing visual for a managed IT and security company.',
-    platformPrompt,
-    `Topic: ${sourcePrompt}`,
-    `Category: ${post.category || 'Cybersecurity'}.`,
-    structuredBits.join(' '),
-    'Visual direction: premium B2B technology brand, Ontario business setting, polished office or operational environment, blue and white palette, subtle cinematic lighting, realistic or high-end editorial illustration style.',
-    'Do not add any text, letters, logos, UI screenshots, watermarks, or infographic numbers inside the image.',
-    'Keep the image clean, trustworthy, professional, and suitable as a background or hero visual for a social media post.'
-  ].filter(Boolean).join(' ');
+function getFluxAspectRatio(isIG) {
+  return isIG ? '1:1' : '16:9';
 }
 
-async function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function getImageRecipe(post, isIG) {
+  const text = `${post?.headline || ''} ${post?.category || ''} ${post?.body || ''} ${post?.caption || ''}`.toLowerCase();
+  const industryCfg = industryMap[currentGenerationContext.industryKey] || industryMap.general;
+  const platform = isIG
+    ? 'Square social post, poster-like composition, stronger centered focal point.'
+    : 'Wide LinkedIn composition, editorial campaign layout, clear subject hierarchy.';
+
+  const noHud = ' No HUD, no floating numbers, no data readouts, no fake dashboard or terminal, no matrix code, no social network icons, no bullet-list graphics, no infographic panels in the scene, and absolutely no readable words anywhere in the image.';
+  const industryScene = `Scene should specifically look like ${industryCfg.scene}.`;
+  if (/(phish|email|inbox|credential|account)/.test(text)) {
+    return `${platform} VISUAL-ONLY. Photograph: business owner at a laptop, side angle, laptop screen completely black or powered off (no pixels, no UI). Soft blue ambient light only. ${industryScene}${noHud} Absolutely no readable text, letters, labels, signage, or watermark.`;
+  }
+  if (/(ransom|breach|attack|malware|hack|shutdown|downtime|lock|leak)/.test(text)) {
+    return `${platform} VISUAL-ONLY. Photograph: dim office, person at laptop with screen off or closed, moody blue lighting, shallow depth of field. ${industryScene}${noHud} Absolutely no readable text, letters, labels, UI, signage, or watermark.`;
+  }
+  if (/(roi|return|value|investment|cost|savings)/.test(text)) {
+    return `${platform} VISUAL-ONLY. Photograph: calm corporate desk, one person, minimal props, restrained blue tones, no charts with numbers on screen. ${industryScene}${noHud} Absolutely no readable text, letters, labels, UI, signage, or watermark.`;
+  }
+  if (/(mfa|backup|password|patch|system|gap|compliance|checklist|audit)/.test(text)) {
+    return `${platform} VISUAL-ONLY. Photograph: focused professional at a laptop in a clean office, screen dark, no icons or UI visible. ${industryScene}${noHud} No fake company names, no competitor logos, no watermarks.`;
+  }
+  return `${platform} VISUAL-ONLY. Photograph: single subject, Ontario office mood, dark blue palette, laptop screen off, empty background walls without posters. ${industryScene}${noHud} No fake company names, no stock-photo watermarks.`;
+}
+
+function clipFluxText(text, maxLen) {
+  const value = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!value) return '';
+  if (value.length <= maxLen) return value;
+  return value.slice(0, Math.max(0, maxLen - 1)).trimEnd() + '…';
+}
+
+function compactFluxHeadline(text) {
+  const words = String(text || '').trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return FLUX_TEXT_DEFAULTS.title.text;
+  const cleaned = words.slice(0, 6).map((word) => word.toUpperCase());
+  if (cleaned.length <= 4) return cleaned.join(' ');
+  const splitAt = cleaned.length >= 6 ? 3 : 2;
+  const first = cleaned.slice(0, splitAt).join(' ');
+  const second = cleaned.slice(splitAt).join(' ');
+  return second ? `${first}\n${second}` : first;
+}
+
+function buildFluxPrompt(post, isIG) {
+  const platformPrompt = isIG
+    ? 'Square composition for Instagram. Strong focal point, clean composition, premium lighting, big mobile-friendly visual read.'
+    : 'Wide composition for LinkedIn. Professional commercial composition with clear subject hierarchy and editorial breathing room.';
+  const industryCfg = industryMap[currentGenerationContext.industryKey] || industryMap.general;
+  // Keep the prompt compact to stay under 1min.ai's 1000 character limit.
+  const recipePrompt = clipFluxText(getImageRecipe(post, isIG), 360);
+  const industryScene = clipFluxText(industryCfg.scene, 120);
+  const category = clipFluxText(post.category || 'Cybersecurity', 40);
+  return clipFluxText([
+    'Realistic premium business photo for a managed IT/cybersecurity hero image.',
+    platformPrompt,
+    `Scene: ${industryScene}.`,
+    `Style: ${recipePrompt}.`,
+    `Industry: ${industryCfg.label}.`,
+    `Category: ${category}.`,
+    'Visual-only: no readable text, letters, numbers, logos, UI, HUD, signage, captions, or watermarks.',
+    'Leave clean space for app-added headline, logo, and footer.',
+    'One focal subject, editorial lighting, minimal clutter.'
+  ].join(' '), 920);
+}
+
+function getPreferredImageModel(imageStyle, requestedModel) {
+  if (requestedModel && requestedModel !== 'auto_best') return requestedModel;
+  const style = String(imageStyle || '').toLowerCase();
+  if (style === 'tips' || style === 'checklist' || style === 'stats') return 'recraft';
+  return 'black-forest-labs/flux-1.1-pro-ultra';
 }
 
 async function generateFluxImage(apiKey, model, prompt, isIG) {
-  const endpointMap = {
-    'flux-pro-1.1': 'https://api.bfl.ai/v1/flux-pro-1.1',
-    'flux-dev': 'https://api.bfl.ai/v1/flux-dev'
+  const resolvedModel = getPreferredImageModel(currentGenerationContext.imageStyle, model);
+  const promptObject = {
+    prompt,
+    aspect_ratio: getFluxAspectRatio(isIG),
+    output_quality: 90
   };
-  const endpoint = endpointMap[model];
-  if (!endpoint) {
-    throw new Error('Selected FLUX model is not available through the current hosted endpoint setup.');
+  if (resolvedModel === 'black-forest-labs/flux-schnell') {
+    promptObject.num_inference_steps = 4;
+    promptObject.go_fast = true;
+    promptObject.megapixels = '1';
+  } else if (resolvedModel === 'recraft') {
+    promptObject.style = 'realistic_image';
+  } else {
+    promptObject.safety_tolerance = 2;
+    if (resolvedModel === 'black-forest-labs/flux-1.1-pro-ultra') {
+      promptObject.raw_mode = true;
+    }
+    // Upsampling often re-introduces "poster" text and fake lettering — keep the prompt literal.
+    promptObject.prompt_upsampling = false;
   }
-  const dims = getFluxDimensions(isIG);
-  const submitRes = await fetch(endpoint, {
+
+  const submitRes = await fetch('https://api.1min.ai/api/features', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-key': apiKey
+      'API-KEY': apiKey
     },
     body: JSON.stringify({
-      prompt,
-      width: dims.width,
-      height: dims.height,
-      prompt_upsampling: true,
-      safety_tolerance: 2,
-      output_format: 'jpeg'
+      type: 'IMAGE_GENERATOR',
+      model: resolvedModel,
+      promptObject
     })
   });
   if (!submitRes.ok) {
     let msg = `HTTP ${submitRes.status}`;
     try {
       const err = await submitRes.json();
-      msg = err?.message || err?.detail || msg;
+      msg = err?.error?.message || err?.message || err?.detail || msg;
     } catch (_) {}
-    throw new Error(`FLUX submit failed: ${msg}`);
+    throw new Error(`1min.ai FLUX request failed: ${msg}`);
   }
   const submitData = await submitRes.json();
-  const pollingUrl = submitData?.polling_url;
-  if (!pollingUrl) {
-    throw new Error('FLUX did not return a polling URL.');
-  }
-
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    await sleep(2500);
-    const pollRes = await fetch(pollingUrl, {
-      headers: {
-        'x-key': apiKey
-      }
-    });
-    if (!pollRes.ok) {
-      continue;
-    }
-    const pollData = await pollRes.json();
-    const status = String(pollData?.status || '').toLowerCase();
-    if (status === 'ready' || status === 'completed') {
-      const imageUrl = pollData?.result?.sample || pollData?.sample;
-      if (!imageUrl) throw new Error('FLUX completed without returning an image URL.');
-      return imageUrl;
-    }
-    if (status === 'error' || status === 'failed') {
-      throw new Error(pollData?.error || pollData?.message || 'FLUX image generation failed.');
-    }
-  }
-  throw new Error('FLUX image generation timed out.');
+  const resultPath = submitData?.aiRecord?.aiRecordDetail?.resultObject?.[0];
+  if (resultPath) return `https://asset.1min.ai/${resultPath}`;
+  const imageUrl = submitData?.aiRecord?.temporaryUrl;
+  if (imageUrl) return imageUrl;
+  throw new Error('1min.ai FLUX completed without returning an image URL.');
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -880,13 +1645,51 @@ function drawWrapped(ctx,text,x,y,maxW,lh,maxL){
   return y;
 }
 
-// Draw logo onto canvas (handles dark-bg logo for dark bg, light for light bg)
+function drawWrappedCenter(ctx,text,cx,y,maxW,lh,maxL){
+  const ls=lines(ctx,text,maxW);
+  const sl=maxL?ls.slice(0,maxL):ls;
+  if(maxL&&ls.length>maxL){
+    let last=sl[sl.length-1];
+    while(ctx.measureText(last+'…').width>maxW&&last.length>2)last=last.slice(0,-1);
+    sl[sl.length-1]=last+'…';
+  }
+  ctx.textAlign='left';
+  for(const l of sl){
+    ctx.fillText(l,cx-ctx.measureText(l).width/2,y);
+    y+=lh;
+  }
+  return y;
+}
+
+function fitSourcesLine(ctx,parts,maxW,startSz,minSz){
+  let s=parts.join('  |  ');
+  for(let sz=startSz;sz>=minSz;sz-=1){
+    ctx.font=`800 ${sz}px Inter,sans-serif`;
+    if(ctx.measureText(s).width<=maxW)return{line:s,sz};
+  }
+  let t=s;
+  while(t.length>12&&ctx.measureText(t+'…').width>maxW)t=t.slice(0,-1);
+  return{line:t+'…',sz:minSz};
+}
+
+// Draw logo onto canvas with a white backing pill so it's always visible
 function drawLogo(ctx,x,y,targetH,useDark){
   const img=useDark?logoDark:logoLight;
   if(!img.complete||!img.naturalWidth)return;
   const scale=targetH/img.naturalHeight;
-  const w=Math.round(img.naturalWidth*scale);
-  ctx.drawImage(img,x,y,Math.min(w,280),targetH);
+  const w=Math.min(Math.round(img.naturalWidth*scale),220);
+  const pad=8;
+  // Subtle dark pill so the logo feels integrated instead of pasted on
+  ctx.save();
+  ctx.fillStyle='rgba(7,16,28,0.66)';
+  ctx.strokeStyle='rgba(255,255,255,0.16)';
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.roundRect(x-pad, y-pad, w+pad*2, targetH+pad*2, 10);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+  ctx.drawImage(img,x,y,w,targetH);
 }
 
 function drawTechBackdrop(ctx,W,H){
@@ -948,6 +1751,586 @@ function drawSlantedBand(ctx,x,y,w,h,color,slant){
   ctx.fill();
 }
 
+/** FLUX/AI images often hallucinate gibberish text and fake brands; draw the photo as cover then scrub with overlays before painting real canvas text. */
+function drawCoverImage(ctx, img, W, H) {
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight || img.height;
+  if (!iw || !ih) return;
+  const ir = iw / ih;
+  const cr = W / H;
+  let dw, dh, ox, oy;
+  if (ir > cr) {
+    dh = H;
+    dw = dh * ir;
+    ox = (W - dw) / 2;
+    oy = 0;
+  } else {
+    dw = W;
+    dh = dw / ir;
+    ox = 0;
+    oy = (H - dh) / 2;
+  }
+  ctx.drawImage(img, ox, oy, dw, dh);
+}
+
+function applyFluxPhotoScrubOverlay(ctx, W, H, strength = 0.42) {
+  // Keep the AI image visible while still muting any accidental text-like artifacts.
+  const veil = Math.max(0.18, Math.min(0.62, strength));
+  ctx.fillStyle = `rgba(4, 10, 20, ${veil})`;
+  ctx.fillRect(0, 0, W, H);
+  const g = ctx.createLinearGradient(0, 0, W, 0);
+  g.addColorStop(0, 'rgba(5, 14, 28, 0.14)');
+  g.addColorStop(0.5, 'rgba(5, 14, 28, 0.04)');
+  g.addColorStop(1, 'rgba(5, 14, 28, 0.18)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  const g2 = ctx.createRadialGradient(W * 0.9, H * 0.92, 0, W * 0.9, H * 0.92, W * 0.55);
+  g2.addColorStop(0, 'rgba(2, 5, 12, 0.28)');
+  g2.addColorStop(1, 'transparent');
+  ctx.fillStyle = g2;
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(4, 8, 16, 0.08)';
+  ctx.fillRect(0, 0, W, H);
+}
+
+function loadImageWithCORS(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Could not load generated image (CORS or network).'));
+    img.src = url;
+  });
+}
+
+/** If direct CORS fails, fetch bytes and use a blob: URL (same-origin to the page, canvas-safe when fetch succeeds). */
+async function loadImageForFluxCanvas(imageUrl) {
+  try {
+    return await loadImageWithCORS(imageUrl);
+  } catch (e1) {
+    try {
+      const res = await fetch(imageUrl, { mode: 'cors', credentials: 'omit' });
+      if (!res.ok) throw new Error(String(res.status));
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = objectUrl;
+      });
+      URL.revokeObjectURL(objectUrl);
+      return img;
+    } catch (e2) {
+      throw new Error('Could not load AI image for merging. Browsers block canvas export when the host does not allow cross-origin access (common with file:// or strict CDN rules). Serve this page over http://localhost and retry, or use Built-in Graphic.');
+    }
+  }
+}
+
+let tesseractLoadPromise = null;
+async function ensureTesseract() {
+  if (window.Tesseract) return window.Tesseract;
+  if (!tesseractLoadPromise) {
+    tesseractLoadPromise = new Promise((resolve, reject) => {
+      const existing = document.querySelector('script[data-tesseract-loader="1"]');
+      if (existing && window.Tesseract) {
+        resolve(window.Tesseract);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      script.async = true;
+      script.dataset.tesseractLoader = '1';
+      script.onload = () => resolve(window.Tesseract);
+      script.onerror = () => reject(new Error('Could not load the text-checking library.'));
+      document.head.appendChild(script);
+    });
+  }
+  return await tesseractLoadPromise;
+}
+
+async function detectFluxTextArtifacts(imageUrl) {
+  try {
+    const img = await loadImageForFluxCanvas(imageUrl);
+    const scanCanvas = document.createElement('canvas');
+    const w = img.naturalWidth || img.width || 0;
+    const h = img.naturalHeight || img.height || 0;
+    if (!w || !h) return { suspicious: false, reason: 'no-image-size' };
+    scanCanvas.width = w;
+    scanCanvas.height = h;
+    const ctx = scanCanvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    const Tesseract = await ensureTesseract();
+    const result = await Tesseract.recognize(scanCanvas, 'eng');
+    const words = (result?.data?.words || [])
+      .map((wrd) => ({
+        text: String(wrd.text || '').trim(),
+        confidence: Number(wrd.confidence || 0),
+      }))
+      .filter((wrd) => wrd.text && /[A-Za-z]/.test(wrd.text) && wrd.confidence >= 65 && wrd.text.length >= 3);
+    const text = words.map((wrd) => wrd.text).join(' ').replace(/\s+/g, ' ').trim();
+    const totalLetters = text.replace(/[^A-Za-z]/g, '').length;
+    const longestWord = words.reduce((max, wrd) => Math.max(max, wrd.text.length), 0);
+    const suspicious = words.length >= 3 || (words.length >= 2 && longestWord >= 5 && totalLetters >= 12) || text.length >= 22;
+    return { suspicious, reason: suspicious ? `detected text: ${text.slice(0, 80)}` : '', text };
+  } catch (err) {
+    console.warn('Flux text detection skipped:', err);
+    return { suspicious: false, reason: 'ocr-unavailable' };
+  }
+}
+
+async function renderFluxComposite(canvas, imageUrl, post, isIG) {
+  const W = isIG ? 1080 : 1200;
+  const H = isIG ? 1080 : 627;
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const img = await loadImageForFluxCanvas(imageUrl);
+  drawCoverImage(ctx, img, W, H);
+  applyFluxPhotoScrubOverlay(ctx, W, H, isIG ? 0.36 : 0.32);
+  drawLogo(ctx, isIG ? 34 : 38, isIG ? 28 : 24, isIG ? 84 : 76, true);
+}
+
+function buildStrictFluxPrompt(post, isIG) {
+  const industryCfg = industryMap[currentGenerationContext.industryKey] || industryMap.general;
+  const platformPrompt = isIG
+    ? 'Square composition, premium lighting, one clear focal point.'
+    : 'Wide composition, premium lighting, one clear focal point.';
+  return clipFluxText([
+    'Premium realistic business photo only.',
+    platformPrompt,
+    `Industry scene: ${clipFluxText(industryCfg.scene, 120)}.`,
+    'Single human subject, clean desk or office environment, dark blue palette, strong negative space.',
+    'STRICT NO-TEXT: no readable words, letters, numbers, signage, UI, logos, captions, or poster design.'
+  ].join(' '), 920);
+}
+
+const FLUX_TEXT_DEFAULTS = {
+  title: {
+    text: 'STAY AHEAD NOW',
+    topIG: 19,
+    leftIG: 50,
+    topLI: 18,
+    leftLI: 52,
+    fontFamily: 'Inter, sans-serif',
+    fontWeight: 900,
+    fontSizeIG: 58,
+    fontSizeLI: 52,
+    color: '#f8fbff',
+  },
+  subtitlePrimary: {
+    text: 'Boost profit margins with robust cybersecurity. Keep your Ontario business secure, productive, and ready to scale.',
+    topIG: 30,
+    leftIG: 50,
+    topLI: 29,
+    leftLI: 52,
+    fontFamily: 'Inter, sans-serif',
+    fontWeight: 600,
+    fontSizeIG: 20,
+    fontSizeLI: 18,
+    color: 'rgba(226,232,240,0.96)',
+  },
+  subtitleSecondary: {
+    text: 'MFA, backups, and rapid response help stop downtime before it spreads.',
+    topIG: 40,
+    leftIG: 50,
+    topLI: 39,
+    leftLI: 52,
+    fontFamily: 'Inter, sans-serif',
+    fontWeight: 500,
+    fontSizeIG: 18,
+    fontSizeLI: 16,
+    color: 'rgba(226,232,240,0.88)',
+  },
+  footer: {
+    text: 'midastech.ca  •  905-787-2038  •  info@midastech.ca',
+    topIG: 94,
+    leftIG: 50,
+    topLI: 94,
+    leftLI: 52,
+    fontFamily: 'Inter, sans-serif',
+    fontWeight: 900,
+    fontSizeIG: 16,
+    fontSizeLI: 15,
+    color: 'rgba(255,255,255,0.96)',
+  },
+};
+
+function buildFluxTextDefaultsFromPost(post, isIG) {
+  const headline = String(post?.headline || '').trim();
+  const body = String(post?.body || post?.caption || '').trim();
+  const cta = String(post?.cta || '').trim();
+  const category = String(post?.category || '').trim();
+  return {
+    title: {
+      ...FLUX_TEXT_DEFAULTS.title,
+      text: headline ? compactFluxHeadline(headline) : FLUX_TEXT_DEFAULTS.title.text,
+      fontSizeIG: isIG ? 46 : 42,
+      fontSizeLI: isIG ? 40 : 38,
+    },
+    subtitlePrimary: {
+      ...FLUX_TEXT_DEFAULTS.subtitlePrimary,
+      text: clipFluxText(body || 'Protect your business before the next attack spreads.', isIG ? 86 : 98),
+    },
+    subtitleSecondary: {
+      ...FLUX_TEXT_DEFAULTS.subtitleSecondary,
+      text: clipFluxText(cta || (category ? `${category} support built for Ontario businesses.` : FLUX_TEXT_DEFAULTS.subtitleSecondary.text), isIG ? 50 : 58),
+    },
+    footer: {
+      ...FLUX_TEXT_DEFAULTS.footer,
+    },
+  };
+}
+
+function getFluxTextStateFromCard(card, isIG, post) {
+  const seeded = buildFluxTextDefaultsFromPost(post || card?._postData || {}, isIG);
+  const read = (role) => {
+    const el = card.querySelector(`.flux-text-box[data-role="${role}"]`);
+    const defaults = seeded[role] || FLUX_TEXT_DEFAULTS[role];
+    return {
+      role,
+      text: (el?.textContent || defaults.text || '').trim(),
+      x: parseFloat(el?.dataset.x || (isIG ? defaults.leftIG : defaults.leftLI)),
+      y: parseFloat(el?.dataset.y || (isIG ? defaults.topIG : defaults.topLI)),
+      fontFamily: el?.dataset.fontFamily || defaults.fontFamily,
+      fontWeight: el?.dataset.fontWeight || String(defaults.fontWeight || 700),
+      fontSize: parseFloat(el?.dataset.fontSize || (isIG ? defaults.fontSizeIG : defaults.fontSizeLI)),
+      color: el?.dataset.color || defaults.color,
+      align: el?.dataset.align || 'center',
+    };
+  };
+  return {
+    title: read('title'),
+    subtitlePrimary: read('subtitlePrimary'),
+    subtitleSecondary: read('subtitleSecondary'),
+    footer: read('footer'),
+  };
+}
+
+function syncFluxTextStyle(el) {
+  const size = parseFloat(el.dataset.fontSize || '18');
+  const family = el.dataset.fontFamily || 'Inter, sans-serif';
+  const weight = el.dataset.fontWeight || '700';
+  el.style.fontFamily = family;
+  el.style.fontWeight = weight;
+  el.style.fontSize = `${size}px`;
+  el.style.color = el.dataset.color || '#fff';
+  el.style.textAlign = el.dataset.align || 'center';
+}
+
+function positionFluxTextBox(el, state, isIG) {
+  const defaults = FLUX_TEXT_DEFAULTS[state.role];
+  const y = state.y ?? (isIG ? defaults.topIG : defaults.topLI);
+  const x = state.x ?? (isIG ? defaults.leftIG : defaults.leftLI);
+  el.dataset.x = String(x);
+  el.dataset.y = String(y);
+  el.style.left = `${x}%`;
+  el.style.top = `${y}%`;
+}
+
+function createFluxEditorToolbar(card) {
+  let toolbar = card.querySelector('.flux-toolbar');
+  if (toolbar) return toolbar;
+  toolbar = document.createElement('div');
+  toolbar.className = 'flux-toolbar';
+  toolbar.innerHTML = `
+    <label>Font
+      <select data-cmd="fontFamily">
+        <option value="Inter, sans-serif">Inter</option>
+        <option value="Arial, sans-serif">Arial</option>
+        <option value="Montserrat, sans-serif">Montserrat</option>
+        <option value="Georgia, serif">Georgia</option>
+        <option value="Times New Roman, serif">Times</option>
+      </select>
+    </label>
+    <label>Color
+      <input data-cmd="color" type="color" value="#ffffff">
+    </label>
+    <label>Size
+      <input data-cmd="fontSize" type="range" min="12" max="96" step="1" value="24">
+    </label>
+    <label>Weight
+      <select data-cmd="fontWeight">
+        <option value="500">500</option>
+        <option value="600">600</option>
+        <option value="700">700</option>
+        <option value="800">800</option>
+        <option value="900">900</option>
+      </select>
+    </label>
+    <label>Align
+      <select data-cmd="align">
+        <option value="left">Left</option>
+        <option value="center">Center</option>
+        <option value="right">Right</option>
+      </select>
+    </label>
+    <button type="button" data-cmd="done">Done</button>
+  `;
+  const pbody = card.querySelector('.pbody');
+  pbody?.prepend(toolbar);
+  return toolbar;
+}
+
+function setActiveFluxBox(card, box) {
+  card.querySelectorAll('.flux-text-box').forEach((el) => el.classList.toggle('active', el === box));
+  const toolbar = createFluxEditorToolbar(card);
+  toolbar.classList.add('on');
+  if (!box) return;
+  toolbar.querySelector('[data-cmd="fontFamily"]').value = box.dataset.fontFamily || 'Inter, sans-serif';
+  toolbar.querySelector('[data-cmd="color"]').value = box.dataset.color || '#ffffff';
+  toolbar.querySelector('[data-cmd="fontWeight"]').value = box.dataset.fontWeight || '700';
+  toolbar.querySelector('[data-cmd="fontSize"]').value = String(Math.round(parseFloat(box.dataset.fontSize || '24')));
+  toolbar.querySelector('[data-cmd="align"]').value = box.dataset.align || 'center';
+}
+
+function createFluxTextBox(card, state, isIG) {
+  const box = document.createElement('div');
+  box.className = 'flux-text-box';
+  box.contentEditable = 'true';
+  box.spellcheck = false;
+  box.dataset.role = state.role;
+  box.dataset.x = String(state.x);
+  box.dataset.y = String(state.y);
+  box.dataset.fontFamily = state.fontFamily;
+  box.dataset.fontWeight = String(state.fontWeight);
+  box.dataset.fontSize = String(state.fontSize);
+  box.dataset.color = state.color;
+  box.dataset.align = state.align;
+  box.textContent = state.text;
+  box.style.width = state.role === 'footer' ? '96%' : (state.role === 'title' ? '92%' : '90%');
+  box.style.minHeight = '42px';
+  box.style.paddingBottom = '14px';
+  syncFluxTextStyle(box);
+  positionFluxTextBox(box, state, isIG);
+
+  const resizeHandle = document.createElement('div');
+  resizeHandle.className = 'flux-resize-handle';
+  resizeHandle.title = 'Resize text box';
+  box.appendChild(resizeHandle);
+
+  let dragging = false;
+  let resizing = false;
+  let dragOffsetX = 0;
+  let dragOffsetY = 0;
+  let startWidthPct = 0;
+  let startWidthPx = 0;
+  const onPointerMove = (ev) => {
+    if (!dragging) return;
+    const pimg = card.querySelector('.pimg');
+    const rect = pimg.getBoundingClientRect();
+    const xPx = ev.clientX - rect.left - dragOffsetX;
+    const yPx = ev.clientY - rect.top - dragOffsetY;
+    const xPct = Math.max(2, Math.min(98, (xPx / rect.width) * 100));
+    const yPct = Math.max(2, Math.min(98, (yPx / rect.height) * 100));
+    box.dataset.x = String(xPct);
+    box.dataset.y = String(yPct);
+    box.style.left = `${xPct}%`;
+    box.style.top = `${yPct}%`;
+    card.dataset.fluxNeedsExport = '1';
+  };
+  const onResizeMove = (ev) => {
+    if (!resizing) return;
+    const pimg = card.querySelector('.pimg');
+    const rect = pimg.getBoundingClientRect();
+    const dx = ev.clientX - dragOffsetX;
+    const targetPx = Math.max(120, startWidthPx + dx);
+    const widthPct = Math.max(20, Math.min(96, (targetPx / rect.width) * 100));
+    box.style.width = `${widthPct}%`;
+    box.dataset.width = String(widthPct);
+    card.dataset.fluxNeedsExport = '1';
+  };
+  const stopDrag = () => {
+    dragging = false;
+    resizing = false;
+    box.style.cursor = 'grab';
+    window.removeEventListener('pointermove', onPointerMove);
+    window.removeEventListener('pointermove', onResizeMove);
+    window.removeEventListener('pointerup', stopDrag);
+  };
+
+  resizeHandle.addEventListener('pointerdown', (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    const pimg = card.querySelector('.pimg');
+    const rect = pimg.getBoundingClientRect();
+    resizing = true;
+    dragging = false;
+    dragOffsetX = ev.clientX;
+    startWidthPx = box.getBoundingClientRect().width;
+    startWidthPct = parseFloat(box.style.width || box.dataset.width || '80');
+    box.style.cursor = 'nwse-resize';
+    setActiveFluxBox(card, box);
+    window.addEventListener('pointermove', onResizeMove);
+    window.addEventListener('pointerup', stopDrag);
+  });
+
+  box.addEventListener('pointerdown', (ev) => {
+    if (ev.target === resizeHandle) return;
+    if (ev.button !== 0) return;
+    const pimg = card.querySelector('.pimg');
+    const rect = pimg.getBoundingClientRect();
+    const boxRect = box.getBoundingClientRect();
+    dragging = true;
+    dragOffsetX = ev.clientX - boxRect.left;
+    dragOffsetY = ev.clientY - boxRect.top;
+    box.style.cursor = 'grabbing';
+    box.focus();
+    setActiveFluxBox(card, box);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', stopDrag);
+    ev.preventDefault();
+    ev.stopPropagation();
+    // Keep the block draggable without selecting text while moving.
+    if (rect.width && rect.height) box.dataset.dragging = '1';
+  });
+
+  box.addEventListener('focus', () => setActiveFluxBox(card, box));
+  box.addEventListener('input', () => {
+    card.dataset.fluxEdited = '1';
+    card.dataset.fluxNeedsExport = '1';
+  });
+
+  return box;
+}
+
+function createFluxTextEditor(card, post, isIG) {
+  const existing = card.querySelector('.flux-edit-layer');
+  existing?.remove();
+  const layer = document.createElement('div');
+  layer.className = 'flux-edit-layer';
+  const states = getFluxTextStateFromCard(card, isIG, post);
+  const ordered = ['title', 'subtitlePrimary', 'subtitleSecondary', 'footer'];
+  ordered.forEach((role) => {
+    const box = createFluxTextBox(card, states[role], isIG);
+    layer.appendChild(box);
+  });
+  const toolbar = createFluxEditorToolbar(card);
+  toolbar.addEventListener('click', (ev) => {
+    const cmd = ev.target?.dataset?.cmd;
+    if (!cmd) return;
+    const active = card.querySelector('.flux-text-box.active') || card.querySelector('.flux-text-box');
+    if (!active) return;
+    if (cmd === 'done') {
+      toolbar.classList.remove('on');
+      active.blur();
+      return;
+    }
+  });
+  toolbar.querySelector('[data-cmd="fontFamily"]').addEventListener('change', (ev) => {
+    const active = card.querySelector('.flux-text-box.active');
+    if (!active) return;
+    active.dataset.fontFamily = ev.target.value;
+    syncFluxTextStyle(active);
+  });
+  toolbar.querySelector('[data-cmd="fontWeight"]').addEventListener('change', (ev) => {
+    const active = card.querySelector('.flux-text-box.active');
+    if (!active) return;
+    active.dataset.fontWeight = ev.target.value;
+    syncFluxTextStyle(active);
+  });
+  toolbar.querySelector('[data-cmd="fontSize"]').addEventListener('input', (ev) => {
+    const active = card.querySelector('.flux-text-box.active');
+    if (!active) return;
+    active.dataset.fontSize = ev.target.value;
+    syncFluxTextStyle(active);
+  });
+  toolbar.querySelector('[data-cmd="color"]').addEventListener('input', (ev) => {
+    const active = card.querySelector('.flux-text-box.active');
+    if (!active) return;
+    active.dataset.color = ev.target.value;
+    syncFluxTextStyle(active);
+  });
+  toolbar.querySelector('[data-cmd="align"]').addEventListener('change', (ev) => {
+    const active = card.querySelector('.flux-text-box.active');
+    if (!active) return;
+    active.dataset.align = ev.target.value;
+    syncFluxTextStyle(active);
+  });
+  createFluxEditorToolbar(card);
+  const pimg = card.querySelector('.pimg');
+  pimg?.appendChild(layer);
+  const firstBox = layer.querySelector('.flux-text-box');
+  if (firstBox) setActiveFluxBox(card, firstBox);
+  card.dataset.fluxNeedsExport = '1';
+  card.dataset.fluxTextEditor = '1';
+}
+
+function drawFluxTextBlock(ctx, card, role, isIG, W, H) {
+  const defaults = FLUX_TEXT_DEFAULTS[role];
+  const el = card.querySelector(`.flux-text-box[data-role="${role}"]`);
+  const text = (el?.textContent || defaults.text || '').trim();
+  const x = parseFloat(el?.dataset.x || (isIG ? defaults.leftIG : defaults.leftLI));
+  const y = parseFloat(el?.dataset.y || (isIG ? defaults.topIG : defaults.topLI));
+  const size = parseFloat(el?.dataset.fontSize || (isIG ? defaults.fontSizeIG : defaults.fontSizeLI));
+  const weight = el?.dataset.fontWeight || String(defaults.fontWeight || 700);
+  const family = el?.dataset.fontFamily || defaults.fontFamily;
+  const color = el?.dataset.color || defaults.color;
+  const widthPct = parseFloat(el?.style.width || (role === 'footer' ? '96%' : role === 'title' ? '92%' : '90%')) || 90;
+  const align = (el?.dataset.align || defaults.align || 'center').toLowerCase();
+  ctx.fillStyle = color;
+  ctx.font = `${weight} ${size}px ${family}`;
+  const maxW = Math.min(W * (widthPct / 100), role === 'footer' ? W * 0.96 : W * 0.9);
+  const baseX = W * (x / 100);
+  const baseY = H * (y / 100);
+  ctx.textAlign = align === 'left' ? 'left' : align === 'right' ? 'right' : 'center';
+  if (role === 'footer') {
+    ctx.fillText(text, baseX, baseY);
+  } else {
+    const linesArr = lines(ctx, text, maxW).slice(0, 2);
+    const lineHeight = Math.round(size * 1.03);
+    let yy = baseY;
+    for (const line of linesArr) {
+      ctx.fillText(line, baseX, yy);
+      yy += lineHeight;
+    }
+  }
+  ctx.textAlign = 'left';
+}
+
+function drawFluxOverlayFromCard(ctx, card, isIG, W, H) {
+  drawLogo(ctx, isIG ? 34 : 38, isIG ? 28 : 24, isIG ? 84 : 76, true);
+  drawFluxTextBlock(ctx, card, 'title', isIG, W, H);
+  drawFluxTextBlock(ctx, card, 'subtitlePrimary', isIG, W, H);
+  drawFluxTextBlock(ctx, card, 'subtitleSecondary', isIG, W, H);
+  const footerH = isIG ? 58 : 50;
+  ctx.fillStyle = 'rgba(7,16,30,0.95)';
+  ctx.fillRect(0, H - footerH, W, footerH);
+  drawFluxTextBlock(ctx, card, 'footer', isIG, W, H);
+}
+
+async function buildFluxExportFromCard(card, imageUrl, post, platform, includeOverlay = true) {
+  const isIG = (platform || '').toLowerCase() === 'instagram';
+  const W = isIG ? 1080 : 1200;
+  const H = isIG ? 1080 : 627;
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const base = new Image();
+  base.crossOrigin = 'anonymous';
+  await new Promise((resolve, reject) => {
+    base.onload = resolve;
+    base.onerror = reject;
+    base.src = imageUrl;
+  });
+  ctx.drawImage(base, 0, 0, W, H);
+  ctx.fillStyle = 'rgba(0,0,0,0.04)';
+  ctx.fillRect(0, 0, W, H);
+  if (includeOverlay) {
+    drawFluxOverlayFromCard(ctx, card, isIG, W, H, post || {});
+  }
+  return canvas.toDataURL('image/jpeg', 0.92);
+}
+
+async function getFluxEditableExportDataUrl(card, post, platform) {
+  const imageUrl = card?.dataset?.persistedImageUrl || card?.dataset?.imageUrl || '';
+  if (!card || !imageUrl) return '';
+  const isFluxCard = card.dataset.imageEngine === 'flux' || card.dataset.fluxTextEditor === '1' || card.dataset.fluxNeedsExport === '1';
+  if (!isFluxCard) return '';
+  return await buildFluxExportFromCard(card, imageUrl, post || card._postData || {}, platform || card.dataset.platform || 'post', true);
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 //  INSTAGRAM  1080×1080
 // ════════════════════════════════════════════════════════════════════════════
@@ -984,6 +2367,7 @@ function applyLeadTrackerPrefill() {
   const topic = params.get('topic');
   const audience = params.get('audience');
   const voice = params.get('voice');
+  const industry = params.get('industry');
   const style = params.get('style');
   const company = params.get('company');
   const draft = params.get('draft');
@@ -999,8 +2383,8 @@ function applyLeadTrackerPrefill() {
   if (voice && document.getElementById('brandVoice')) {
     document.getElementById('brandVoice').value = voice;
   }
-  if (style && document.getElementById('imageStyle')) {
-    document.getElementById('imageStyle').value = style;
+  if (industry && document.getElementById('industryFocus')) {
+    document.getElementById('industryFocus').value = industry;
   }
   if (company) {
     document.title = `Midas Tech — LeadTracker Social Studio — ${company}`;
@@ -1026,170 +2410,246 @@ function drawIG_Alert(ctx, W, H, post) {
   drawTechBackdrop(ctx,W,H);
   ctx.fillStyle='rgba(4,8,16,0.36)';
   ctx.fillRect(0,0,W,H);
+  drawIG_AlertLayout(ctx, W, H, post);
+}
 
-  const cat=(post.category||'SECURITY ALERT').toUpperCase();
-  const isRed=/ransomware|breach|hack|attack|malware|downtime|leak/i.test(cat);
-  const accent=isRed?'#ffb020':'#49b8ff';
-  const danger=isRed?'#ff5b57':'#35b0ff';
-  const ctaTxt=(post.cta||'CONNECT WITH MIDAS TECH').toUpperCase();
-  const bodyText=(post.body||'').slice(0,150);
-  const sources=(post.sources||['Krebs on Security','The Hacker News','BleepingComputer']).slice(0,3);
-  const risks=(post.risks||['Weak passwords','No MFA','Outdated systems','No backup strategy']).slice(0,4);
-  const services=(post.services||['Security audits','Microsoft 365 protection','Endpoint security','Backup solutions']).slice(0,4);
+function drawIG_AlertLayout(ctx, W, H, post) {
+  const MX = Math.max(48, Math.round(W * 0.052));
+  const INNER = W - MX * 2;
+  const ig = W === 1080 && H === 1080;
+  const cat = (post.category || 'SECURITY ALERT').toUpperCase();
+  const isRed = /ransomware|breach|hack|attack|malware|downtime|leak/i.test(cat);
+  const accent = isRed ? '#ffb020' : '#49b8ff';
+  const bodyText = (post.body || '').slice(0, 150);
+  const sources = (post.sources || ['Krebs on Security', 'The Hacker News', 'BleepingComputer']).slice(0, 3);
+  const risks = (post.risks || ['Weak passwords', 'No MFA', 'Outdated systems', 'No backup strategy']).slice(0, ig ? 3 : 4);
+  const services = (post.services || ['Security audits', 'Microsoft 365 protection', 'Endpoint security', 'Backup solutions']).slice(0, 4);
 
-  ctx.fillStyle='rgba(255,255,255,0.04)';
-  rrect(ctx,26,26,W-52,H-52,24);ctx.fill();
-  ctx.strokeStyle='rgba(120,200,255,0.12)';
-  ctx.strokeRect(26.5,26.5,W-53,H-53);
+  const footerBar = 34;
+  const bandH = 120;
+  const sourceBarH = 44;
+  const riskRowH = 44;
+  const riskGap = 8;
+  const svcChipH = 48;
+  const svcColGap = 14;
+  const ctaDrawH = 118;
+  const splitX = MX + Math.floor(INNER * 0.41);
+  const rightColW = INNER - (splitX - MX) - 22;
+  const statColW = splitX - MX - 36;
 
-  drawLogo(ctx,70,54,94,true);
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  rrect(ctx, 26, 26, W - 52, H - 52, 24);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(120,200,255,0.12)';
+  ctx.strokeRect(26.5, 26.5, W - 53, H - 53);
 
-  ctx.font='800 19px Inter,sans-serif';
-  const cpw=ctx.measureText(cat).width+44;
-  ctx.fillStyle='rgba(33,16,19,0.82)';
-  rrect(ctx,56,172,cpw,40,8);ctx.fill();
-  ctx.strokeStyle=isRed?'rgba(255,91,87,0.7)':'rgba(73,184,255,0.6)';
-  ctx.lineWidth=1.5;
-  rrect(ctx,56,172,cpw,40,8);ctx.stroke();
-  ctx.fillStyle=isRed?'#ff6d67':'#67c8ff';
-  ctx.fillText(cat,78,198);
+  drawLogo(ctx, MX + 14, 54, ig ? 82 : 94, true);
 
-  const hlRaw=(post.headline||'DATA BREACH ALERT').toUpperCase();
-  let hlSz=fitSize(ctx,hlRaw,780,78,42,'900','Inter,sans-serif');
-  ctx.font=`900 ${hlSz}px Inter,sans-serif`;
-  let hlLines=lines(ctx,hlRaw,780);
-  while(hlLines.length>3&&hlSz>42){
-    hlSz-=3;
-    ctx.font=`900 ${hlSz}px Inter,sans-serif`;
-    hlLines=lines(ctx,hlRaw,780);
-  }
-  ctx.fillStyle='#f8fbff';
-  let hy=274;
-  const hlLH=Math.round(hlSz*1.04);
-  for(const line of hlLines.slice(0,3)){
-    ctx.fillText(line,56,hy);
-    hy+=hlLH;
-  }
-
-  const bandY=hy+18;
-  drawSlantedBand(ctx,56,bandY,930,118,'rgba(10,14,23,0.9)',34);
-  ctx.strokeStyle='rgba(94,182,255,0.14)';
-  ctx.strokeRect(56.5,bandY+0.5,929,117);
-
-  const statText=(post.stat&&post.stat!=='null'&&post.stat!=='')?String(post.stat).toUpperCase():'100,000';
-  const statLabel=(post.statLabel&&post.statLabel!=='null'&&post.statLabel!=='')?String(post.statLabel):'records exposed';
-  const statSz=fitSize(ctx,statText,360,118,68,'900','Inter,sans-serif');
-  ctx.font=`900 ${statSz}px Inter,sans-serif`;
-  ctx.fillStyle=isRed?'#ff6b57':'#4bb9ff';
-  ctx.fillText(statText,86,bandY+83);
-  ctx.font='700 22px Inter,sans-serif';
-  ctx.fillStyle='rgba(228,235,245,0.92)';
-  drawWrapped(ctx,statLabel,86,bandY+102,300,28,2);
-
-  const centerX=428;
-  ctx.strokeStyle='rgba(255,255,255,0.12)';
-  ctx.beginPath();
-  ctx.moveTo(centerX,bandY+22);
-  ctx.lineTo(centerX,bandY+96);
+  ctx.font = '800 18px Inter,sans-serif';
+  const cpw = ctx.measureText(cat).width + 40;
+  ctx.fillStyle = 'rgba(33,16,19,0.82)';
+  rrect(ctx, MX, 164, cpw, 36, 8);
+  ctx.fill();
+  ctx.strokeStyle = isRed ? 'rgba(255,91,87,0.7)' : 'rgba(73,184,255,0.6)';
+  ctx.lineWidth = 1.4;
+  rrect(ctx, MX, 164, cpw, 36, 8);
   ctx.stroke();
-  ctx.fillStyle='rgba(255,255,255,0.94)';
-  ctx.font='800 30px Inter,sans-serif';
-  ctx.fillText('Is Your Business in',458,bandY+48);
-  ctx.fillStyle=accent;
-  ctx.font='900 42px Inter,sans-serif';
-  ctx.fillText('Ontario Secure?',458,bandY+91);
+  ctx.fillStyle = isRed ? '#ff6d67' : '#67c8ff';
+  ctx.fillText(cat, MX + 18, 188);
 
-  const sourceY=bandY+136;
-  ctx.fillStyle='rgba(8,18,33,0.88)';
-  rrect(ctx,56,sourceY,968,54,14);ctx.fill();
-  ctx.strokeStyle='rgba(120,200,255,0.14)';
-  ctx.strokeRect(56.5,sourceY+0.5,967,53);
-  ctx.fillStyle='rgba(239,243,248,0.96)';
-  ctx.font='800 24px Inter,sans-serif';
-  ctx.textAlign='center';
-  ctx.fillText(sources.join('  |  '),540,sourceY+35);
-  ctx.textAlign='left';
-
-  const bodyY=sourceY+74;
-  ctx.fillStyle='rgba(6,12,22,0.74)';
-  rrect(ctx,56,bodyY,968,130,24);ctx.fill();
-  ctx.strokeStyle='rgba(255,255,255,0.08)';
-  ctx.strokeRect(56.5,bodyY+0.5,967,129);
-  ctx.fillStyle='rgba(227,235,246,0.92)';
-  ctx.font='800 24px Inter,sans-serif';
-  ctx.textAlign='center';
-  ctx.fillText('Top Cybersecurity Risks for Ontario Businesses:',540,bodyY+38);
-  ctx.textAlign='left';
-  ctx.font='700 20px Inter,sans-serif';
-  ctx.fillStyle='rgba(255,176,32,0.98)';
-  drawWrapped(ctx,bodyText,84,bodyY+78,910,28,2);
-
-  const riskY=bodyY+150;
-  for(let i=0;i<risks.length;i++){
-    const y=riskY+i*48;
-    ctx.fillStyle='rgba(255,255,255,0.08)';
-    rrect(ctx,70,y,420,38,10);ctx.fill();
-    ctx.fillStyle='rgba(255,176,32,0.98)';
-    ctx.font='900 28px Inter,sans-serif';
-    ctx.fillText('›',92,y+28);
-    ctx.fillStyle='#f8fbff';
-    ctx.font='800 22px Inter,sans-serif';
-    drawWrapped(ctx,risks[i],124,y+25,330,26,1);
+  const hlRaw = (post.headline || 'DATA BREACH ALERT').toUpperCase();
+  let hlSz = fitSize(ctx, hlRaw, INNER, ig ? 58 : 72, ig ? 34 : 40, '900', 'Inter,sans-serif');
+  ctx.font = `900 ${hlSz}px Inter,sans-serif`;
+  let hlLines = lines(ctx, hlRaw, INNER);
+  while (hlLines.length > (ig ? 2 : 3) && hlSz > (ig ? 34 : 40)) {
+    hlSz -= 2;
+    ctx.font = `900 ${hlSz}px Inter,sans-serif`;
+    hlLines = lines(ctx, hlRaw, INNER);
+  }
+  if (ig) hlLines = hlLines.slice(0, 2);
+  ctx.fillStyle = '#f8fbff';
+  let hy = 218;
+  const hlLH = Math.round(hlSz * 1.05);
+  for (const line of hlLines) {
+    ctx.fillText(line, MX, hy);
+    hy += hlLH;
   }
 
-  const solY=riskY+8;
-  ctx.fillStyle='rgba(255,221,170,0.95)';
-  ctx.font='800 22px Inter,sans-serif';
-  ctx.fillText('At Midas Tech, we help organizations stay ahead with:',540,solY+8);
-  for(let i=0;i<services.length;i++){
-    const col=i%2;
-    const row=Math.floor(i/2);
-    const x=540+col*220;
-    const y=solY+42+row*44;
-    ctx.fillStyle='rgba(255,255,255,0.08)';
-    rrect(ctx,x,y,198,34,10);ctx.fill();
-    ctx.fillStyle='rgba(255,176,32,0.98)';
-    ctx.font='900 20px Inter,sans-serif';
-    ctx.fillText('✓',554+col*220,y+24);
-    ctx.fillStyle='#f8fbff';
-    ctx.font='800 18px Inter,sans-serif';
-    drawWrapped(ctx,services[i],578+col*220,y+22,148,22,1);
+  const bandY = hy + 16;
+  drawSlantedBand(ctx, MX, bandY, INNER, bandH, 'rgba(10,14,23,0.92)', 32);
+  ctx.strokeStyle = 'rgba(94,182,255,0.14)';
+  ctx.strokeRect(MX + 0.5, bandY + 0.5, INNER - 1, bandH - 1);
+
+  const statText = (post.stat && post.stat !== 'null' && post.stat !== '') ? String(post.stat).toUpperCase() : '—';
+  const statLabel = (post.statLabel && post.statLabel !== 'null' && post.statLabel !== '') ? String(post.statLabel) : '';
+  const statPx = fitSize(ctx, statText, statColW, bandH - 44, 40, '900', 'Inter,sans-serif');
+  ctx.font = `900 ${statPx}px Inter,sans-serif`;
+  ctx.fillStyle = isRed ? '#ff6b57' : '#4bb9ff';
+  ctx.fillText(statText, MX + 22, bandY + 52);
+  ctx.fillStyle = 'rgba(228,235,245,0.92)';
+  ctx.font = '700 17px Inter,sans-serif';
+  if (statLabel) drawWrapped(ctx, statLabel, MX + 22, bandY + 72, statColW, 20, 3);
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.11)';
+  ctx.beginPath();
+  ctx.moveTo(splitX, bandY + 18);
+  ctx.lineTo(splitX, bandY + bandH - 14);
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(242,246,250,0.96)';
+  ctx.font = '800 21px Inter,sans-serif';
+  let ontY = drawWrapped(ctx, 'Is Your Business in', splitX + 12, bandY + 34, rightColW, 24, 2);
+  ctx.fillStyle = accent;
+  ctx.font = '900 27px Inter,sans-serif';
+  drawWrapped(ctx, 'Ontario Secure?', splitX + 12, ontY + 2, rightColW, 28, 2);
+
+  const sourceY = bandY + bandH + 14;
+  ctx.fillStyle = 'rgba(8,18,33,0.9)';
+  rrect(ctx, MX, sourceY, INNER, sourceBarH, 12);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(120,200,255,0.14)';
+  ctx.strokeRect(MX + 0.5, sourceY + 0.5, INNER - 1, sourceBarH - 1);
+  ctx.textAlign = 'center';
+  const { line: srcLine, sz: srcSz } = fitSourcesLine(ctx, sources, INNER - 36, 20, 11);
+  ctx.fillStyle = 'rgba(239,243,248,0.96)';
+  ctx.font = `800 ${srcSz}px Inter,sans-serif`;
+  ctx.fillText(srcLine, W / 2, sourceY + 29);
+  ctx.textAlign = 'left';
+
+  const ttl = 'Top Cybersecurity Risks for Ontario Businesses:';
+  ctx.font = '800 21px Inter,sans-serif';
+  const ttlLines = lines(ctx, ttl, INNER - 32);
+  ctx.font = '700 17px Inter,sans-serif';
+  const bodyAll = lines(ctx, bodyText, INNER - 48);
+  let bodyMaxLines = Math.min(4, bodyAll.length);
+
+  const introTop = sourceY + sourceBarH + 12;
+  const chipW = Math.floor((INNER - svcColGap) / 2);
+  const midasHead = 'At Midas Tech, we help organizations stay ahead with:';
+
+  function stackForBodyLines(bml) {
+    const bodyL = bodyAll.slice(0, bml);
+    const introPadT = 22;
+    const introPadB = 18;
+    const ttlH = ttlLines.length * 26;
+    const bodyBlockH = bodyL.length ? 12 + bodyL.length * 22 : 0;
+    const introH = introPadT + ttlH + bodyBlockH + introPadB;
+    const riskBlockH = risks.length ? risks.length * (riskRowH + riskGap) - riskGap : 0;
+    ctx.font = '800 18px Inter,sans-serif';
+    const midasLineCount = Math.min(2, Math.max(1, lines(ctx, midasHead, INNER).length));
+    const midasH = midasLineCount * 24 + 10;
+    const svcRows = Math.ceil(services.length / 2);
+    const svcBlockH = midasH + (svcRows ? svcRows * (svcChipH + svcColGap) - svcColGap : 0);
+    const riskY0 = introTop + introH + 10;
+    const svcStart = riskY0 + riskBlockH + 12;
+    const svcBottom = svcStart + svcBlockH;
+    return { bodyL, introH, riskY0, svcStart, svcBottom };
   }
 
-  const ctaBandY=riskY+224;
-  drawSlantedBand(ctx,56,ctaBandY,968,102,'rgba(8,18,33,0.92)',34);
-  ctx.fillStyle=accent;
-  ctx.font='900 52px Inter,sans-serif';
-  ctx.fillText("Don't Be the Next Headline!",88,ctaBandY+50);
-  ctx.fillStyle='rgba(238,243,249,0.95)';
-  ctx.font='700 27px Inter,sans-serif';
-  drawWrapped(ctx,'Connect with Midas Tech to strengthen your defenses.',88,ctaBandY+86,640,34,2);
+  let st = stackForBodyLines(bodyMaxLines);
+  for (;;) {
+    const ctaTry = Math.min(st.svcBottom + 14, H - footerBar - ctaDrawH - 6);
+    if (ctaTry >= st.svcBottom + 4 || bodyMaxLines <= 0) break;
+    bodyMaxLines--;
+    st = stackForBodyLines(bodyMaxLines);
+  }
 
-  ctx.fillStyle='rgba(255,176,32,0.95)';
-  ctx.save();
-  ctx.translate(862,ctaBandY+20);
-  ctx.rotate(-0.06);
-  rrect(ctx,0,0,126,126,22);ctx.fill();
-  ctx.fillStyle='#173a57';
-  ctx.font='900 70px Inter,sans-serif';
-  ctx.textAlign='center';
-  ctx.fillText('M',63,86);
-  ctx.restore();
-  ctx.textAlign='left';
+  ctx.fillStyle = 'rgba(6,12,22,0.78)';
+  rrect(ctx, MX, introTop, INNER, st.introH, 20);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.strokeRect(MX + 0.5, introTop + 0.5, INNER - 1, st.introH - 1);
 
-  ctx.fillStyle='rgba(7,16,30,0.9)';
-  ctx.fillRect(0,H-28,W,28);
-  ctx.fillStyle='rgba(122,210,255,0.82)';
-  ctx.font='600 16px Inter,sans-serif';
-  ctx.textAlign='center';
-  ctx.fillText('midastech.ca  •  905-787-2038  •  info@midastech.ca',W/2,H-9);
-  ctx.textAlign='left';
+  let iy = introTop + 22;
+  ctx.fillStyle = 'rgba(227,235,246,0.94)';
+  ctx.font = '800 21px Inter,sans-serif';
+  ctx.textAlign = 'center';
+  for (const tln of ttlLines) {
+    ctx.fillText(tln, W / 2, iy);
+    iy += 26;
+  }
+  ctx.textAlign = 'left';
+  ctx.font = '700 17px Inter,sans-serif';
+  ctx.fillStyle = 'rgba(255,176,32,0.96)';
+  if (st.bodyL.length) iy += 4;
+  for (const bl of st.bodyL) {
+    ctx.fillText(bl, MX + 20, iy);
+    iy += 22;
+  }
+
+  let ry = st.riskY0;
+  for (let i = 0; i < risks.length; i++) {
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    rrect(ctx, MX + 10, ry, INNER - 20, riskRowH, 10);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,176,32,0.98)';
+    ctx.font = '900 22px Inter,sans-serif';
+    ctx.fillText('›', MX + 26, ry + 28);
+    ctx.fillStyle = '#f8fbff';
+    ctx.font = '800 17px Inter,sans-serif';
+    drawWrapped(ctx, risks[i], MX + 48, ry + 26, INNER - 88, 20, 2);
+    ry += riskRowH + riskGap;
+  }
+
+  ctx.fillStyle = 'rgba(255,221,170,0.95)';
+  ctx.font = '800 18px Inter,sans-serif';
+  let sy = drawWrapped(ctx, midasHead, MX, st.svcStart, INNER, 24, 2) + 10;
+  for (let i = 0; i < services.length; i++) {
+    const col = i % 2;
+    const row = Math.floor(i / 2);
+    const cx = MX + col * (chipW + svcColGap);
+    const cy = sy + row * (svcChipH + svcColGap);
+    ctx.fillStyle = 'rgba(255,255,255,0.09)';
+    rrect(ctx, cx, cy, chipW, svcChipH, 10);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,176,32,0.98)';
+    ctx.font = '900 16px Inter,sans-serif';
+    ctx.fillText('✓', cx + 10, cy + 30);
+    ctx.fillStyle = '#f8fbff';
+    ctx.font = '800 15px Inter,sans-serif';
+    drawWrapped(ctx, services[i], cx + 28, cy + 28, chipW - 38, 18, 2);
+  }
+
+  const svcBottom = st.svcBottom;
+  let ctaBandY = Math.min(svcBottom + 14, H - footerBar - ctaDrawH - 6);
+  if (ctaBandY < svcBottom + 4) ctaBandY = svcBottom + 4;
+
+  drawSlantedBand(ctx, MX, ctaBandY, INNER, ctaDrawH, 'rgba(8,18,33,0.93)', 30);
+  ctx.fillStyle = accent;
+  ctx.font = '900 34px Inter,sans-serif';
+  const ctaHeadY = ctaBandY + 56;
+  let cy2 = drawWrapped(ctx, "Don't Be the Next Headline!", MX + 24, ctaHeadY, INNER - 48, 36, 2);
+  ctx.fillStyle = 'rgba(238,243,249,0.95)';
+  ctx.font = '700 17px Inter,sans-serif';
+  drawWrapped(ctx, 'Connect with Midas Tech to strengthen your defenses.', MX + 24, cy2 + 6, INNER - 48, 22, 2);
+
+  if (!ig) {
+    ctx.save();
+    ctx.translate(W - 168, ctaBandY + 18);
+    ctx.rotate(-0.06);
+    ctx.fillStyle = 'rgba(255,176,32,0.95)';
+    rrect(ctx, 0, 0, 118, 118, 20);
+    ctx.fill();
+    ctx.fillStyle = '#173a57';
+    ctx.font = '900 64px Inter,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('M', 59, 80);
+    ctx.restore();
+    ctx.textAlign = 'left';
+  }
+
+  ctx.fillStyle = 'rgba(7,16,30,0.95)';
+  ctx.fillRect(0, H - footerBar, W, footerBar);
+  ctx.fillStyle = 'rgba(122,210,255,0.92)';
+  ctx.font = '600 14px Inter,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('midastech.ca  •  905-787-2038  •  info@midastech.ca', W / 2, H - footerBar / 2 + 5);
+  ctx.textAlign = 'left';
 }
 
 // ── Instagram INFOGRAPHIC / TIPS style ───────────────────────────────────────
 function drawIG_Infographic(ctx, W, H, post) {
   const visualStyle = getVisualStyle(post);
-  ctx.fillStyle='#08111f';ctx.fillRect(0,0,W,H);
   let g=ctx.createRadialGradient(W*0.82,H*0.12,0,W*0.82,H*0.12,W*0.75);
   g.addColorStop(0,'rgba(0,174,239,0.22)');g.addColorStop(1,'transparent');
   ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
@@ -1305,7 +2765,7 @@ function drawIG_Infographic(ctx, W, H, post) {
   ctx.fillText(ctaTxt,W/2,H-116);
   ctx.font='500 20px Inter,sans-serif';
   ctx.fillStyle='rgba(179,221,246,0.85)';
-  ctx.fillText('midastech.ca  •  905-787-2038  •  @midastech.it',W/2,H-84);
+  ctx.fillText('midastech.ca  •  905-787-2038  •  info@midastech.ca',W/2,H-84);
   ctx.textAlign='left';
 }
 
@@ -1342,7 +2802,11 @@ function drawLI_Alert(ctx, W, H, post) {
   drawTechBackdrop(ctx,W,H);
   ctx.fillStyle='rgba(4,8,16,0.34)';
   ctx.fillRect(0,0,W,H);
+  drawLI_AlertLayout(ctx, W, H, post);
+}
 
+function drawLI_AlertLayout(ctx, W, H, post) {
+  const li=W===1200&&H===627;
   const cat=(post.category||'SECURITY ALERT').toUpperCase();
   const isRed=/ransomware|breach|hack|attack|malware|downtime|leak/i.test(cat);
   const accent=isRed?'#ffb020':'#49b8ff';
@@ -1350,7 +2814,7 @@ function drawLI_Alert(ctx, W, H, post) {
   const bodyText=(post.body||'').slice(0,135);
   const ctaTxt=(post.cta||'CONNECT WITH MIDAS TECH').toUpperCase();
   const sources=(post.sources||['Krebs on Security','The Hacker News','BleepingComputer']).slice(0,3);
-  const risks=(post.risks||['Weak passwords','No MFA','Outdated systems','No backup strategy']).slice(0,4);
+  const risks=(post.risks||['Weak passwords','No MFA','Outdated systems','No backup strategy']).slice(0,li?3:4);
   const services=(post.services||['Security audits','Microsoft 365 protection','Endpoint security','Backup solutions']).slice(0,4);
 
   ctx.fillStyle='rgba(255,255,255,0.03)';
@@ -1371,10 +2835,10 @@ function drawLI_Alert(ctx, W, H, post) {
   ctx.fillText(cat,58,123);
 
   const hlRaw=(post.headline||'DATA BREACH ALERT').toUpperCase();
-  let hlSz=fitSize(ctx,hlRaw,840,58,28,'900','Inter,sans-serif');
+  let hlSz=fitSize(ctx,hlRaw,840,li?48:58,li?24:28,'900','Inter,sans-serif');
   ctx.font=`900 ${hlSz}px Inter,sans-serif`;
   let hlLines=lines(ctx,hlRaw,840);
-  while(hlLines.length>2&&hlSz>28){
+  while(hlLines.length>2&&hlSz>(li?24:28)){
     hlSz-=2;
     ctx.font=`900 ${hlSz}px Inter,sans-serif`;
     hlLines=lines(ctx,hlRaw,840);
@@ -1386,116 +2850,149 @@ function drawLI_Alert(ctx, W, H, post) {
     ctx.fillText(line,42,hy);
     hy+=hlLH;
   }
+  if(li&&hy>230){
+    hlSz=Math.max(24,hlSz-4);
+    ctx.font=`900 ${hlSz}px Inter,sans-serif`;
+    hlLines=lines(ctx,hlRaw,840).slice(0,2);
+    hy=176;
+    const lh2=Math.round(hlSz*1.04);
+    for(const line of hlLines){ctx.fillText(line,42,hy);hy+=lh2;}
+  }
 
   const bandY=hy+12;
-  drawSlantedBand(ctx,42,bandY,1060,96,'rgba(9,14,23,0.92)',28);
+  const statBandH=li?112:96;
+  drawSlantedBand(ctx,42,bandY,1060,statBandH,'rgba(9,14,23,0.92)',28);
   ctx.strokeStyle='rgba(94,182,255,0.13)';
-  ctx.strokeRect(42.5,bandY+0.5,1059,95);
+  ctx.strokeRect(42.5,bandY+0.5,1059,statBandH-1);
 
   const statText=(post.stat&&post.stat!=='null'&&post.stat!=='')?String(post.stat).toUpperCase():'100,000';
   const statLabel=(post.statLabel&&post.statLabel!=='null'&&post.statLabel!=='')?String(post.statLabel):'customer records exposed';
   ctx.fillStyle=danger;
-  ctx.font=`900 ${fitSize(ctx,statText,260,86,46,'900','Inter,sans-serif')}px Inter,sans-serif`;
-  ctx.fillText(statText,76,bandY+64);
+  const statPx=fitSize(ctx,statText,260,statBandH-36,li?40:46,'900','Inter,sans-serif');
+  ctx.font=`900 ${statPx}px Inter,sans-serif`;
+  ctx.fillText(statText,76,bandY+54);
   ctx.fillStyle='rgba(230,236,244,0.92)';
-  ctx.font='700 22px Inter,sans-serif';
-  drawWrapped(ctx,statLabel,300,bandY+40,300,28,2);
+  ctx.font=li?'700 18px Inter,sans-serif':'700 22px Inter,sans-serif';
+  drawWrapped(ctx,statLabel,300,bandY+72,292,li?20:24,2);
 
   ctx.strokeStyle='rgba(255,255,255,0.11)';
   ctx.beginPath();
-  ctx.moveTo(642,bandY+18);
-  ctx.lineTo(642,bandY+78);
+  ctx.moveTo(642,bandY+20);
+  ctx.lineTo(642,bandY+statBandH-16);
   ctx.stroke();
+  const ontX=676;
+  const ontW=W-ontX-40;
   ctx.fillStyle='rgba(242,246,250,0.95)';
-  ctx.font='800 30px Inter,sans-serif';
-  ctx.fillText('Is Your Business in',676,bandY+38);
+  ctx.font=li?'800 22px Inter,sans-serif':'800 30px Inter,sans-serif';
+  let ontY=drawWrapped(ctx,'Is Your Business in',ontX,bandY+28,ontW,li?22:26,2);
   ctx.fillStyle=accent;
-  ctx.font='900 40px Inter,sans-serif';
-  ctx.fillText('Ontario Secure?',676,bandY+74);
+  ctx.font=li?'900 30px Inter,sans-serif':'900 40px Inter,sans-serif';
+  drawWrapped(ctx,'Ontario Secure?',ontX,ontY+(li?2:4),ontW,li?28:34,2);
 
-  const sourceY=bandY+112;
+  const sourceGap=li?18:16;
+  const sourceY=bandY+statBandH+sourceGap;
   ctx.fillStyle='rgba(8,18,33,0.88)';
-  rrect(ctx,42,sourceY,1070,42,12);ctx.fill();
+  rrect(ctx,42,sourceY,1070,46,12);ctx.fill();
   ctx.strokeStyle='rgba(120,200,255,0.12)';
-  ctx.strokeRect(42.5,sourceY+0.5,1069,41);
-  ctx.fillStyle='rgba(239,243,248,0.96)';
-  ctx.font='800 16px Inter,sans-serif';
+  ctx.strokeRect(42.5,sourceY+0.5,1069,45);
   ctx.textAlign='center';
-  ctx.fillText(sources.join('  |  '),577,sourceY+27);
+  if(li){
+    const {line,sz}=fitSourcesLine(ctx,sources,1020,16,10);
+    ctx.fillStyle='rgba(239,243,248,0.96)';
+    ctx.font=`800 ${sz}px Inter,sans-serif`;
+    ctx.fillText(line,600,sourceY+29);
+  }else{
+    ctx.fillStyle='rgba(239,243,248,0.96)';
+    ctx.font='800 16px Inter,sans-serif';
+    ctx.fillText(sources.join('  |  '),577,sourceY+27);
+  }
   ctx.textAlign='left';
 
-  const bodyY=sourceY+60;
+  const bodyY=sourceY+58;
+  const footerBarH=32;
+  const gapBeforeCta=14;
+  const ctaBandH=li?112:88;
+  const ctaSubLinesH=52;
+  const pillOverlap=58;
+  const ctaFootprint=ctaBandH+ctaSubLinesH+Math.max(0,pillOverlap-ctaBandH*0.3);
+  const maxBodyBottom=H-footerBarH-10-gapBeforeCta-ctaFootprint;
+  let bodyH=li?188:208;
+  if(bodyY+bodyH>maxBodyBottom)bodyH=Math.max(96,Math.floor(maxBodyBottom-bodyY));
   ctx.fillStyle='rgba(6,12,22,0.78)';
-  rrect(ctx,42,bodyY,610,208,22);ctx.fill();
+  rrect(ctx,42,bodyY,610,bodyH,22);ctx.fill();
   ctx.strokeStyle='rgba(255,255,255,0.07)';
-  ctx.strokeRect(42.5,bodyY+0.5,609,207);
+  ctx.strokeRect(42.5,bodyY+0.5,609,bodyH-1);
   ctx.fillStyle='rgba(255,221,170,0.95)';
   ctx.font='800 20px Inter,sans-serif';
-  ctx.fillText('Top Cybersecurity Risks for Ontario Businesses:',70,bodyY+38);
+  ctx.fillText('Top Cybersecurity Risks for Ontario Businesses:',70,bodyY+34);
+  const riskStep=li?28:34;
   for(let i=0;i<risks.length;i++){
-    const y=bodyY+60+i*34;
+    const y=bodyY+56+i*riskStep;
     ctx.fillStyle='rgba(255,255,255,0.08)';
-    rrect(ctx,68,y,560,26,8);ctx.fill();
+    rrect(ctx,68,y,560,li?24:26,8);ctx.fill();
     ctx.fillStyle='rgba(255,176,32,0.98)';
     ctx.font='900 20px Inter,sans-serif';
-    ctx.fillText('›',82,y+19);
+    ctx.fillText('›',82,y+18);
     ctx.fillStyle='#f8fbff';
-    ctx.font='800 18px Inter,sans-serif';
-    drawWrapped(ctx,risks[i],108,y+18,500,20,1);
+    ctx.font='800 17px Inter,sans-serif';
+    drawWrapped(ctx,risks[i],108,y+16,500,li?19:20,1);
   }
 
   ctx.fillStyle='rgba(255,255,255,0.08)';
-  rrect(ctx,684,bodyY,430,208,22);ctx.fill();
+  rrect(ctx,684,bodyY,430,bodyH,22);ctx.fill();
   ctx.strokeStyle='rgba(120,200,255,0.15)';
-  ctx.strokeRect(684.5,bodyY+0.5,429,207);
+  ctx.strokeRect(684.5,bodyY+0.5,429,bodyH-1);
   ctx.fillStyle='rgba(255,221,170,0.95)';
   ctx.font='800 20px Inter,sans-serif';
-  ctx.fillText('How Midas Tech helps:',714,bodyY+34);
+  ctx.fillText('How Midas Tech helps:',714,bodyY+28);
+  const svcStep=li?38:54;
+  let maxSvcBottom=bodyY+44;
   for(let i=0;i<services.length;i++){
     const col=i%2;
     const row=Math.floor(i/2);
     const x=714+col*188;
-    const y=bodyY+56+row*54;
+    const y=bodyY+44+row*svcStep;
     ctx.fillStyle='rgba(255,255,255,0.08)';
-    rrect(ctx,x,y,166,34,10);ctx.fill();
+    rrect(ctx,x,y,166,li?32:34,10);ctx.fill();
     ctx.fillStyle='rgba(255,176,32,0.98)';
     ctx.font='900 18px Inter,sans-serif';
-    ctx.fillText('✓',x+12,y+23);
+    ctx.fillText('✓',x+12,y+22);
     ctx.fillStyle='#f8fbff';
-    ctx.font='800 17px Inter,sans-serif';
-    drawWrapped(ctx,services[i],x+34,y+22,120,20,1);
+    ctx.font='800 15px Inter,sans-serif';
+    drawWrapped(ctx,services[i],x+30,y+20,128,li?18:19,2);
+    maxSvcBottom=Math.max(maxSvcBottom,y+(li?32:34));
   }
   ctx.fillStyle='rgba(189,204,224,0.84)';
-  ctx.font='600 17px Inter,sans-serif';
-  drawWrapped(ctx,bodyText,714,bodyY+176,360,22,2);
+  ctx.font='600 15px Inter,sans-serif';
+  drawWrapped(ctx,bodyText,714,maxSvcBottom+8,388,li?17:22,li?3:5);
 
-  const ctaY=bodyY+234;
-  drawSlantedBand(ctx,42,ctaY,1072,88,'rgba(8,18,33,0.94)',28);
+  const ctaY=bodyY+bodyH+gapBeforeCta;
+  drawSlantedBand(ctx,42,ctaY,1072,ctaBandH,'rgba(8,18,33,0.94)',28);
   ctx.fillStyle=accent;
-  ctx.font='900 42px Inter,sans-serif';
-  ctx.fillText("Don't Be the Next Headline!",68,ctaY+40);
+  ctx.font=li?'900 28px Inter,sans-serif':'900 42px Inter,sans-serif';
+  const ctaSubTop=drawWrapped(ctx,"Don't Be the Next Headline!",68,ctaY+(li?40:42),1004,li?26:32,2);
   ctx.fillStyle='rgba(238,243,249,0.94)';
-  ctx.font='700 19px Inter,sans-serif';
-  ctx.fillText('Connect with Midas Tech to strengthen your defenses',68,ctaY+68);
+  ctx.font='700 16px Inter,sans-serif';
+  drawWrapped(ctx,'Connect with Midas Tech to strengthen your defenses.',68,ctaSubTop+(li?6:8),1004,li?19:24,2);
 
-  drawSlantedBand(ctx,796,ctaY+16,274,48,'rgba(255,176,32,0.98)',18);
+  const pillY=ctaY+Math.max(10,ctaBandH-54);
+  drawSlantedBand(ctx,796,pillY,274,48,'rgba(255,176,32,0.98)',18);
   ctx.fillStyle='#173a57';
-  ctx.font=`800 ${fitSize(ctx,ctaTxt,226,21,13,'800','Inter,sans-serif')}px Inter,sans-serif`;
+  ctx.font=`800 ${fitSize(ctx,ctaTxt,226,20,12,'800','Inter,sans-serif')}px Inter,sans-serif`;
   ctx.textAlign='center';
-  ctx.fillText(ctaTxt,930,ctaY+47);
+  ctx.fillText(ctaTxt,930,pillY+30);
 
-  ctx.fillStyle='rgba(7,16,30,0.9)';
-  ctx.fillRect(0,H-24,W,24);
-  ctx.fillStyle='rgba(122,210,255,0.82)';
-  ctx.font='600 14px Inter,sans-serif';
-  ctx.fillText('midastech.ca  •  905-787-2038  •  info@midastech.ca',W/2,H-8);
+  ctx.fillStyle='rgba(7,16,30,0.94)';
+  ctx.fillRect(0,H-footerBarH,W,footerBarH);
+  ctx.fillStyle='rgba(122,210,255,0.88)';
+  ctx.font='600 13px Inter,sans-serif';
+  ctx.fillText('midastech.ca  •  905-787-2038  •  info@midastech.ca',W/2,H-footerBarH/2+5);
   ctx.textAlign='left';
 }
 
 // ── LinkedIn INFOGRAPHIC / TIPS ───────────────────────────────────────────────
 function drawLI_Infographic(ctx, W, H, post) {
   const visualStyle = getVisualStyle(post);
-  ctx.fillStyle='#08111f';ctx.fillRect(0,0,W,H);
   let g=ctx.createLinearGradient(0,0,W,H);
   g.addColorStop(0,'rgba(6,16,30,1)');
   g.addColorStop(1,'rgba(8,27,52,1)');
@@ -1632,8 +3129,8 @@ function drawLI_Infographic(ctx, W, H, post) {
 // ════════════════════════════════════════════════════════════════════════════
 async function run(){
   hideErr();
-  const apiKey=document.getElementById('apiKey').value.trim();
-  persistApiKeyPreference();
+  const apiKey=getApiKeyValue();
+  persistApiKeyPreference(); // async — fires and forgets, non-blocking
   if(!apiKey){showErr('Please enter your 1min.ai API key.');return}
 
   const model=document.querySelector('#modelChips .chip.on')?.dataset.model||'gpt-4o-mini';
@@ -1641,13 +3138,10 @@ async function run(){
   const perPlat=parseInt(document.getElementById('postCount').value);
   const audienceKey=document.getElementById('targetAudience').value;
   const voiceKey=document.getElementById('brandVoice').value;
-  const imageStyle=document.getElementById('imageStyle').value;
-  const imageEngine=document.getElementById('imageEngine').value;
-  const fluxApiKey=document.getElementById('fluxApiKey').value.trim();
-  const fluxModel=document.getElementById('fluxModel').value;
+  const industryKey=document.getElementById('industryFocus')?.value || 'general';
   const audienceCfg=audienceMap[audienceKey]||audienceMap.business_owners;
   const voiceCfg=voiceMap[voiceKey]||voiceMap.premium;
-  if(imageEngine==='flux' && !fluxApiKey){showErr('Please enter your FLUX / BFL API key.');return}
+  const industryCfg=industryMap[industryKey]||industryMap.general;
 
   // Get topic source
   let topicContext='';
@@ -1655,12 +3149,12 @@ async function run(){
   if(currentMode==='auto'){
     const topics=Array.from(document.querySelectorAll('#topicPills .chip.on')).map(c=>c.dataset.topic);
     if(!topics.length){showErr('Select at least one news topic.');return}
-    topicContext=topics.join(' | ');
+    topicContext=[industryCfg.label, ...topics].join(' | ');
     useWebSearch=true;
   } else {
     const manual=document.getElementById('manualTopic').value.trim();
     if(!manual){showErr('Please enter your post topic.');return}
-    topicContext=manual;
+    topicContext=industryKey==='general' ? manual : `${industryCfg.label} | ${manual}`;
     useWebSearch=false;
   }
 
@@ -1668,18 +3162,20 @@ async function run(){
     topicContext,
     audienceKey,
     voiceKey,
-    imageStyle,
-    imageEngine
+    industryKey,
+    imageStyle:'post',
+    imageEngine:'post'
   };
 
   const btn=document.getElementById('genBtn');
   btn.disabled=true;
-  btn.innerHTML='<div class="spin"></div>&nbsp; '+( useWebSearch?'SEARCHING NEWS...':'GENERATING POSTS...');
+  btn.innerHTML='<div class="spin"></div>&nbsp; '+( useWebSearch?'SEARCHING NEWS...':'WRITING CONTENT...');
 
-  document.getElementById('newsSec').classList.remove('on');
-  document.getElementById('postsSec').classList.remove('on');
-  document.getElementById('newsCont').innerHTML='';
-  document.getElementById('postsGrid').innerHTML='';
+    document.getElementById('newsSec').classList.remove('on');
+    document.getElementById('postsSec').classList.remove('on');
+    document.getElementById('newsCont').innerHTML='';
+    document.getElementById('postsGridIG').innerHTML='';
+    document.getElementById('postsGridLI').innerHTML='';
 
   try {
     let sourceItems=[];
@@ -1708,7 +3204,7 @@ Return ONLY a raw JSON array (nothing before [ or after ]):
       if(!sourceItems.length) sourceItems=[{headline:`Ransomware Attacks on Ontario SMBs Surge in ${CURRENT_YEAR}`,source:"BleepingComputer",date:`April ${CURRENT_YEAR}`,summary:"Ransomware incidents targeting Canadian small businesses remain elevated. Healthcare clinics and accounting firms continue to be top targets.",key_stat:"40%",stat_label:"surge in attacks",category_tag:"RANSOMWARE ALERT"}];
 
       // Show news
-      setSt('News found! Writing post copy...','2/3');
+      setSt('News found! Writing post copy...','2/2');
       document.getElementById('newsSec').classList.add('on');
       const nc=document.getElementById('newsCont');
       sourceItems.slice(0,perPlat+1).forEach(n=>{
@@ -1716,7 +3212,7 @@ Return ONLY a raw JSON array (nothing before [ or after ]):
       });
     } else {
       // Manual topic
-      setSt('Generating posts for your topic...','1/2');
+      setSt('Writing post copy for your topic...','1/1');
       sourceItems=[{headline:topicContext,summary:topicContext,key_stat:null,stat_label:null,category_tag:'SECURITY'}];
       document.getElementById('newsSec').classList.add('on');
       document.getElementById('newsCont').innerHTML=`<div class="nc"><h4>Manual Topic</h4><p>${topicContext}</p></div>`;
@@ -1730,26 +3226,18 @@ Return ONLY a raw JSON array (nothing before [ or after ]):
       fear:"Consequences-focused. Paint a vivid picture of downtime, data loss, financial ruin, regulatory penalties if they DON'T act.",
       tips:"Practical tips infographic format. Provide exactly 3 numbered tips, each with a short title (3-5 words) and 1-sentence explanation. This will render as a numbered list graphic."
     };
-    const requestedVisualStyle=imageStyle==='auto' ? (tone==='tips' ? 'tips' : 'alert') : imageStyle;
-    const needsStructuredVisual=requestedVisualStyle!=='alert';
-    const visualInstructions = requestedVisualStyle==='stats'
-      ? `- "imageStyle": "stats" for every post
-- "stats": array of exactly 3 objects: [{"value":"short stat","label":"2-5 word label"}]
-- The image graphic should feel like a clean stats infographic, not a numbered tips list`
-      : requestedVisualStyle==='checklist'
-      ? `- "imageStyle": "checklist" for every post
-- "checklist": array of exactly 5 short checklist items, each 3-8 words
-- The image graphic should feel like a practical checklist infographic`
-      : requestedVisualStyle==='tips'
-      ? `- "imageStyle": "tips" for every post
-- "tips": array of exactly 3 objects: [{"num":"01","title":"Short Title","body":"One sentence explanation max 90 chars"}] — this populates the infographic boxes`
-      : `- "imageStyle": "alert" for every post
-- For alert visuals, think like a poster with a clear narrative flow: warning headline -> proof/source row -> 4 business risks -> 4 service solutions -> urgent CTA
-- "sources": array of exactly 3 short source names used as credibility markers
-- "risks": array of exactly 4 short risk items, each 2-5 words
-- "services": array of exactly 4 short solution items, each 2-5 words`;
+    const requestedVisualStyle='alert';
+    const needsStructuredVisual=false;
+    const visualInstructions = '';
 
     const newsContext=sourceItems.slice(0,perPlat+1).map((n,i)=>`${i+1}. ${n.headline} — ${n.summary}${n.key_stat&&n.key_stat!='null'?' STAT: '+n.key_stat+' '+n.stat_label:''} [${n.category_tag}]`).join('\n');
+    const industryMistakes = String(industryCfg.mistakes || 'No MFA, no tested backups, no monitoring').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 3);
+    const industryDataTypes = String(industryCfg.dataTypes || 'client records, financial files, and credentials');
+    const industryImpact = String(industryCfg.impact || 'client trust gone overnight, downtime, and reputational damage');
+    const industryStyleRules = industryKey === 'law'
+      ? 'For law firms, lead with quiet compromise, a single compromised account, and no one notices until it is too late. Focus on contracts, client communications, confidential case files, and reputation. Do not mention vendors, product names, or ROI claims.'
+      : 'Avoid vendor mentions, product names, and ROI claims. Keep the focus on business risk, gaps, and real-world scenarios that create urgency.';
+    const hashtagString = buildHashtags(industryKey);
 
     const postsPrompt=`You are an expert B2B social media writer for MSP/cybersecurity companies.
 
@@ -1762,30 +3250,72 @@ TONE: ${toneMap[tone]}
 BRAND VOICE: ${voiceCfg}
 TARGET AUDIENCE: ${audienceCfg.label}
 PRIMARY PAIN POINTS: ${audienceCfg.pain}
+INDUSTRY FOCUS: ${industryCfg.label}
+INDUSTRY PAIN POINTS: ${industryCfg.pain}
 
-CONTENT OBJECTIVE:
-- Make each post feel current, premium, specific, and useful.
-- Avoid generic cyber buzzwords and obvious filler.
-- Show business consequence, not just technical risk.
-- Mention Ontario, GTA, or Canadian SMB context where it naturally helps.
-- Keep claims grounded in the source material. Do not invent stats.
-- Treat these as trusted news source standards when framing credibility and specificity: ${PREFERRED_SOURCE_NAMES}.
+LEAD GENERATION OBJECTIVE — this is the most important part:
+Every post must make a GTA/Ontario business owner think "this is about MY business" and feel urgency to act. Posts that are too broad, too technical, or too news-focused do NOT generate leads. Follow these rules exactly:
+
+Use the style of your strongest posts:
+- Open with a sharp, specific hook that sounds like a real insight, not a brochure.
+- Lead with immediate risk: downtime, lost revenue, or a breach consequence the reader can feel right away.
+- Keep the middle tight: no long paragraphs, and never more than 2 sentences before a blank line.
+- Make the opening feel industry-specific: if the focus is accounting, healthcare, law, dental, retail, finance, or warehouses, name that vertical immediately.
+- Avoid statistics unless they strengthen the emotional impact. Prefer real-world scenarios over numbers.
+- If you use a statistic, make sure it directly supports urgency or consequence.
+- No Stats by Default Rule:
+- Do not include statistics unless they are highly specific and increase urgency.
+- Prefer real-world scenarios over numbers.
+- If a stat is not essential, leave it out.
+- Keep the emotional tone practical and urgent: the reader should feel the cost of inaction.
+- End with a low-friction offer that feels like help, not a hard sell.
+- Make the offer time-bound whenever possible: "this week", "15-minute security check", or "quick review this week".
+- Use exactly one CTA line near the end. Do not repeat the offer or add a second "let's connect" style line.
+- Avoid generic corporate phrasing like "in today's landscape", "as cyber threats grow", or "we provide solutions".
+
+1. HOOK FIRST (scroll-stopper):
+   - Open with a specific stat, a real dollar amount, a named local risk, or a bold statement of fact that implies immediate consequences.
+   - BANNED openers: "In today's landscape", "Did you know", "In an era of", "As cyber threats grow", "It's no secret". These are scroll-past phrases.
+   - Good hook examples: "Cyberattacks aren't random — email is the #1 entry point." / "85% of ransomware victims had no MFA." / "One phishing click can shut down an Ontario clinic for weeks."
+   - Make line 1 a statement, not a question. Bold claims outperform questions.
+
+2. MAKE IT ABOUT THEIR BUSINESS (not the news):
+   - Translate the news event into: "here is what this means for YOUR company in Ontario."
+   - Name the exact business types we serve: accounting firms, dental offices, warehouses, law firms, healthcare clinics.
+   - The reader should never think "this isn't about me." They should think "that's exactly my situation."
+
+3. SHOW THE REAL PAIN (not vague "risk"):
+   - Name specific consequences: downtime, ransomware payout, CRA audit exposure, client data breach, compliance fines, reputation damage, lost revenue.
+   - Use "most businesses we see still have:" followed by 2-3 bullet gaps (no MFA, no tested backup, outdated systems).
+   - This pattern converts. Use it.
+
+4. OFFER A QUICK WIN / AUDIT (not a generic CTA):
+   - End with one low-friction, time-bound offer only: "free security check this week", "15-minute call", "quick gap review", or "we'll tell you exactly where you stand."
+   - BANNED CTAs: "act now before it's too late", "connect with us to mitigate risks", "don't wait until it's too late", "reach out today". These are clichés that kill conversions.
+   - Good CTA examples: "Want a quick assessment? Let's connect." / "DM me — we'll run a free check, no strings." / "Not sure where you stand? I'll show you in 15 minutes."
+   - Do not pair the time-bound offer with a second CTA line. Pick one direct ask and stop there.
+   - CTA must feel like a trusted advisor offering help, not a salesperson closing a deal.
+
+5. LOCAL CREDIBILITY:
+   - Mention Ontario, GTA, Richmond Hill, or specific local industries naturally.
+   - Treat these as trusted sources for framing credibility: ${PREFERRED_SOURCE_NAMES}.
+   - Keep stats grounded in source material. Do not invent numbers.
 
 For each source item, generate ONE Instagram post AND ONE LinkedIn post. Total: ${perPlat*2} posts.
 
-STRICT RULES:
-- "headline": MAX 5 WORDS, punchy, for the image graphic header
-- "body": MAX 180 CHARACTERS for the image. Short, impactful. No long sentences.
-- "stat": most impactful number from the news (e.g. "40%") or null if none
+STRICT FORMAT RULES:
+- "headline": MAX 5 WORDS — punchy, fear/curiosity-driven, for the image graphic header
+- "body": MAX 180 CHARACTERS for the image. One sharp sentence naming the risk and consequence. No filler.
+- "stat": most alarming number from the news or null
 - "statLabel": 4-7 words describing the stat, or null
-- "cta": MAX 40 CHARACTERS (e.g. "BOOK FREE SECURITY AUDIT")
+- "cta": MAX 40 CHARACTERS — action-oriented (e.g. "BOOK YOUR FREE SECURITY AUDIT", "GET A FREE GAP REVIEW")
 - "category": short alert type (e.g. "RANSOMWARE ALERT", "SECURITY TIP")
-- Instagram caption: Hook (1 line) + 2-3 short punchy paragraphs + emoji + CTA. 80-140 words. Energetic, readable, and specific.
-- LinkedIn caption: Professional 150-220 words. Start with a strong non-clickbait hook, explain the business impact, give one practical insight, and end with a soft CTA. No hashtag spam. Write in short paragraphs for readability.
-- LinkedIn caption must sound like a credible advisor, not an ad. Limit self-promotion to 1-2 natural mentions of Midas Tech max.
-- Hashtags: Instagram 8-12 total, topic-specific and varied. LinkedIn 3-5 total, clean and relevant.
-- "imagePrompt": one strong visual prompt, 1-2 sentences max, describing the best AI-generated image concept for this post. No text overlays in the image.
-- For alert posts, do not just restate the news headline. Turn it into a business theme with clear risks and a practical solution frame.
+- Instagram caption: Bold statement hook (no question, no "Did you know") → 1-2 short paragraphs naming exact pain for the target industry → use arrow format for consequences (→ Downtime → Lost trust → Fines) → "What we see in many firms:" + 2-3 bullet gaps (• No MFA • No tested backup • Outdated systems) → low-friction CTA. 90-140 words. Max 2 emojis total.
+- LinkedIn caption: 160-220 words. STRUCTURE EXACTLY AS FOLLOWS — (1) Bold factual hook line. (2) One short context line explaining why now matters. (3) One sentence naming who is being targeted (specific industry + Ontario). (4) Consequence block using arrow format: "One successful attack can mean: → Downtime → Lost client trust → Compliance penalties". (5) Gap list: "What we see in many firms: • No MFA • No tested backup • Outdated systems". (6) One sentence bridge to Midas Tech. (7) One time-bound offer OR one direct CTA, not both. Choose one and stop. — Use single blank lines between every block for LinkedIn spacing. No long paragraphs. No corporate speak. Max 2 Midas Tech mentions.
+- End EVERY caption (Instagram and LinkedIn) with a blank line followed exactly by this contact line: 📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca
+- Hashtags: Instagram 8-12 varied topic hashtags. LinkedIn 3-5 clean professional hashtags.
+- "imagePrompt": Clean, minimal, high-contrast visual. Best performers: phishing email on screen, padlock breaking, a focused business owner at a laptop with warning indicators, or a simple business scene with obvious tension — relatable Ontario SMB office setting. NOT: abstract glowing shields, generic circuit boards, or busy infographic-style scenes. No text overlays. Think editorial photography style, not stock tech illustration. Leave visual breathing room for the Midas Tech logo/footer overlay.
+- For alert posts: frame as "this happened elsewhere — here is why YOUR Ontario business is next if you don't act."
 ${visualInstructions}
 - "postType": "${needsStructuredVisual?'infographic':'alert'}"
 ${audienceCfg.linkedinCTA}
@@ -1795,8 +3325,203 @@ Return ONLY raw JSON array (nothing before [ or after ]):
 
 Generate all ${perPlat*2} posts.`;
 
-    const postsRaw=await call1min(apiKey,model,postsPrompt,false);
-    let posts=normalizeStructuredPosts(safeParsePosts(postsRaw), requestedVisualStyle);
+    const postOnlyPrompt=`You are an expert B2B social media writer for MSP/cybersecurity companies.
+
+Create ${perPlat} sets of social posts for Midas Tech Inc. in Richmond Hill, Ontario.
+
+Focus on the selected industry: ${industryCfg.label}
+Audience: ${audienceCfg.label}
+Tone: ${toneMap[tone]}
+Brand voice: ${voiceCfg}
+Topic source: ${newsContext}
+Use the News section only as current related activity and inspiration. Do not summarize the articles verbatim.
+Use it to identify the threat, the business pain, and a timely hook for the post.
+Data types the audience cares about: ${industryCfg.dataTypes || 'sensitive business records'}
+Business impact to emphasize: ${industryCfg.impact || 'trust loss, downtime, and business disruption'}
+Common mistakes to call out: ${industryCfg.mistakes || 'no MFA, no verified backups, no monitoring'}
+${industryStyleRules}
+Style transformation example:
+- Technical source language like "a critical vulnerability" must become plain business risk like "this could let attackers access your systems without you knowing."
+- Replace vendor/product jargon with a direct consequence the owner understands.
+- Replace abstract phrases like "safeguard client information" with specific records and real damage.
+- Make the reader feel exposed first, then give one clear action.
+
+Write only post copy, not design instructions.
+Return JSON only with this shape:
+[{"platform":"instagram","headline":"MAX 12 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","caption":"full IG caption","hashtags":"topic-specific hashtags","cta":"MAX 40 CHAR"},{"platform":"linkedin","headline":"MAX 12 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","caption":"full LI caption","hashtags":"topic-specific hashtags","cta":"MAX 40 CHAR"}]
+
+Rules:
+- Write for ONE industry and ONE role only.
+- Do not summarize news; use it only as a trigger.
+- Keep copy short, punchy, mobile-friendly.
+- Write like you’re speaking to a business owner, not IT staff.
+- Avoid corporate language and jargon.
+- Never mention vendors, product names, or ROI stats.
+
+Hook Rules (STRICT):
+- Hook must be 12 words or fewer.
+- Hook must call out the audience directly.
+- Hook must create curiosity, tension, or urgency.
+- The first 2 lines must make the reader want to click “see more”.
+
+Approved formats:
+- “[Industry] — this is happening right now”
+- “[Industry] are getting hit — quietly”
+- “If you’re a [role], read this”
+- “Most [industry] firms miss this”
+
+Banned:
+- “Cyber threats are increasing”
+- “Businesses today face risks”
+
+No Generic Statements Rule:
+- Every sentence must add value, specificity, or tension.
+- Ban filler like “Cyber threats are rising”, “Security is important”, and “Businesses need protection”.
+- No Repetition Rule:
+- Do not repeat the same idea twice using different wording.
+- Each line must introduce new information or tension.
+- No Generic Industry Statements Rule:
+- Avoid phrases like “X firms are facing growing risks”.
+- Replace them with a scenario plus direct exposure.
+
+Scroll Formatting Rule:
+- Use line breaks every 1–2 lines max.
+- No long paragraphs.
+- Keep total length under about 120 words.
+- Use arrows (→) for impact where helpful.
+
+Risk Translation Rules:
+- Translate all risks into business impact: client trust loss, downtime, revenue loss, compliance pressure.
+- Replace vague terms with exact records such as case files, SIN numbers, patient records, or financial statements.
+- For vulnerabilities, do not explain technical details.
+- Translate them into unauthorized access, data exposure, or silent compromise.
+
+Relatability Rule:
+- Include one real-world scenario such as a compromised email, an unusual login, or after-hours access.
+
+Micro-Scenario Rule:
+- After the hook, include 1-2 short lines describing a real, simple scenario.
+- The scenario must feel normal and easy to imagine.
+- Keep each line under 8 words if possible.
+- Examples: "A login after hours.", "No alerts. No warning.", "An email account quietly accessed."
+
+Assumption Breaker Rule:
+- Include one line that challenges belief such as “Most firms think they’re covered...”.
+
+Micro-Tension Rule:
+- Include at least one contrast line such as “Everything looks normal... until it isn’t.”
+
+Urgency Rule:
+- Use soft urgency such as “right now”, “already happening”, or “before it becomes an issue”.
+- No Hype Language Rule:
+- Avoid phrases like “act now”, “wake-up call”, or “critical threat”.
+- Use calm, direct urgency instead.
+
+Structure Rules:
+Follow this flow:
+1. Hook
+2. Micro-scenario lines
+3. What’s happening
+4. What they handle
+5. Why it matters
+6. 3 common mistakes
+7. One simple action
+8. Assumption breaker
+9. Question-based CTA
+
+Audience + Location Rule:
+- Always include the industry and location in the first 3 lines.
+- Make it clear who the post is for and where they are.
+- This should feel immediate and specific, not like a formal introduction.
+- Always Call Out Industry Early Rule:
+- Mention the industry (CPA, law firm, clinic, etc.) within the first 3 lines.
+
+Formatting Rules:
+- Put the micro-scenario immediately after the hook.
+- Present common mistakes as bullet points.
+- Keep the assumption breaker near the end, right before the CTA.
+- Tighten wording so each line reads fast and clean.
+- Remove repeated lines and repeated ideas.
+- Keep the pace moving from tension to impact without filler.
+
+Common Mistakes Rules:
+- Mistakes must feel familiar and slightly uncomfortable.
+- Use natural language.
+- Examples: “Backups exist — but never tested”, “MFA not enforced on all accounts”, “No one monitoring suspicious logins”.
+
+Action Rule:
+- Include exactly one simple action such as “Enable MFA”, “Test your backups”, or “Patch your systems”.
+- Keep it clear and non-technical.
+
+CTA Rules:
+- Use one CTA only.
+- Single CTA Rule (STRICT):
+- Only one question at the end.
+- Do not stack multiple questions.
+- The CTA must tie directly to detection or exposure.
+- It must be question-based.
+- It must create uncertainty.
+- Examples: “Do you know if your systems are exposed right now?”, “Would your firm catch this early?”
+- Banned CTAs: “Let’s connect”, “Contact us today”.
+- Avoid statistics unless they strengthen the emotional impact. Prefer real-world scenarios over numbers.
+- No Report Language Rule:
+- Avoid phrases like “sharp rise in attacks” and “increasing threats”.
+- Replace them with real scenarios or direct risk statements.
+- No Buzzword Rule:
+- Avoid phrases like “AI-driven threats” and “evolving landscape”.
+- Replace them with real scenarios and direct risks.
+
+Hashtag Rules:
+- Use 5-8 hashtags per post.
+- Put hashtags at the end of the post.
+- Use 2 industry hashtags, 2 service hashtags, 1-2 risk or pain hashtags, and 1-2 local hashtags.
+- Do not use generic or viral hashtags.
+- Do not repeat the same hashtag more than once.
+- Include 1 niche intent hashtag when it fits naturally.
+
+Industry Rules:
+- Always name the industry.
+- Always list what they specifically handle.
+- Examples: law firms → case files, contracts, client communications; CPAs → SIN numbers, tax records; clinics → patient records, health data.
+
+Local Rule:
+- If Ontario/GTA, reference local business context naturally.
+- Do not overuse location.
+
+Pattern Rotation Rule:
+- Rotate angles across vulnerability alert, silent compromise, “we’re seeing this in [industry]”, common mistakes, and hypothetical scenario.
+
+Law Firm Specific Rules:
+- Lead with quiet/silent compromise.
+- Focus on case files, contracts, client communication, and reputation.
+- Emphasize unnoticed breaches and delayed detection.
+
+Tone Rules:
+- Conversational and natural.
+- Use contractions like you’re and don’t.
+- Must sound human when read out loud.
+- No fluff, no over-explaining.
+- Clarity over cleverness.
+
+Ending Rules:
+- End with a question CTA followed by the contact line.
+
+Final Output Check:
+- The post must feel like: “This could happen to my business.”
+- Follow the sample rhythm: hook, micro-scenario, industry framing, data, impact, gaps, action, assumption breaker, CTA.
+- Start with a tension line such as “Everything looks normal… until it isn’t.”
+- Then use 1-2 very short scenario lines.
+- Then move into the audience-specific risk.
+- No vendor mentions.
+- No ROI claims.
+- No technical jargon overload.
+- No long paragraphs.
+- The first 2 lines must create curiosity or tension.
+- Every sentence must add value, specificity, or tension.
+- End each caption with: 📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca`;
+
+    const postsRaw=await call1min(apiKey,model,postOnlyPrompt,false);
+    let posts=normalizeStructuredPosts(safeParsePosts(postsRaw), 'post');
 
     if(!posts.length){
       const fallbackTips=[{num:"01",title:"Enable MFA Today",body:"Blocks 99% of automated credential attacks on your accounts."},{num:"02",title:"Patch All Software",body:"Unpatched systems are the #1 entry point for ransomware attacks."},{num:"03",title:"Train Your Team",body:"80% of breaches start with a phishing click from untrained staff."}];
@@ -1805,17 +3530,41 @@ Generate all ${perPlat*2} posts.`;
       const fallbackSources=['Krebs on Security','The Hacker News','BleepingComputer'];
       const fallbackRisks=['Weak passwords','No MFA','Outdated systems','No backup strategy'];
       const fallbackServices=['Security audits','Microsoft 365 protection','Endpoint security','Backup solutions'];
-      posts=[
-        {platform:'instagram',postType:needsStructuredVisual?'infographic':'alert',imageStyle:requestedVisualStyle,imagePrompt:'A premium cybersecurity operations scene for an Ontario small business, blue-lit office environment, secure devices, subtle urgency, polished commercial style, no text.',headline:'STAY AHEAD NOW',category:'RANSOMWARE ALERT',stat:'40%',statLabel:'surge in Canadian SMB attacks',body:'Ontario businesses are still prime ransomware targets. Is your team ready to respond?',caption:`🔐 Cyber threats are not slowing down for Ontario businesses.\n\nRecent reporting continues to show how often attackers succeed by exploiting simple gaps: weak passwords, missing MFA, old systems, and poor backup discipline.\n\nThat is why proactive protection matters more than reactive cleanup. Midas Tech helps SMBs reduce risk with security audits, Microsoft 365 protection, endpoint security, and reliable backup planning.\n\n💬 If you are unsure where your biggest risks are, let’s have a quick conversation.`,hashtags:'#Cybersecurity #MidasTech #OntarioIT #MSP #ITSupport #RichmondHill #DataProtection #SmallBusiness #Toronto #GTA',cta:'CONNECT WITH MIDAS TECH',sources:fallbackSources,risks:fallbackRisks,services:fallbackServices,tips:fallbackTips,checklist:fallbackChecklist,stats:fallbackStats},
-        {platform:'linkedin',postType:needsStructuredVisual?'infographic':'alert',imageStyle:requestedVisualStyle,imagePrompt:'A polished B2B cybersecurity visual showing a modern business team protecting operations, premium blue and white palette, Ontario SMB context, realistic editorial style, no text.',headline:'STAY AHEAD NOW',category:'RANSOMWARE ALERT',stat:'40%',statLabel:'surge in Canadian SMB attacks',body:'Ontario businesses are still prime ransomware targets. Is your team ready to respond?',caption:`Cyber threats are not slowing down, and most successful attacks still come back to the same operational gaps.\n\nRecent cybersecurity reporting keeps pointing to familiar weak points: poor password hygiene, no MFA, outdated systems, and backup strategies that were never properly tested. For Ontario businesses, that means the real risk is not just the headline incident. It is the downtime, client disruption, and recovery cost that follow.\n\nThe organizations that handle this well usually take a proactive approach before something breaks. They review security posture, harden Microsoft 365, strengthen endpoint controls, and make sure backup and recovery plans actually work.\n\nAt Midas Tech, we help GTA businesses do exactly that in a practical way that fits day-to-day operations.\n\nIf you want a second opinion on your current security gaps, we are happy to talk.`,hashtags:'#Cybersecurity #ManagedIT #OntarioBusiness #SMBSecurity #Ransomware',cta:'CONNECT WITH MIDAS TECH',sources:fallbackSources,risks:fallbackRisks,services:fallbackServices,tips:fallbackTips,checklist:fallbackChecklist,stats:fallbackStats}
-      ];
+      if (industryKey === 'law') {
+        posts = [
+          {
+            platform:'instagram',
+            headline:'PROTECT YOUR FIRM NOW',
+            category:'LEGAL CYBER RISK',
+            stat:null,
+            statLabel:null,
+            caption:`⚖️ Ontario law firms are getting hit — quietly.\n\nNot always ransomware headlines. Sometimes it’s a single compromised account... and no one notices until it’s too late.\n\nThat can mean:\n→ Lost access to contracts\n→ Exposed client data\n→ Damaged reputation\n\nWhat we see in many firms:\n• No MFA on email or remote access\n• Backups exist, but never tested\n• No incident response plan\n\nThese gaps don’t show up... until something breaks.\n\n✔️ Quick check: If a staff account gets compromised today — do you know what happens next?\n\nMost firms don’t.\n\nHave you reviewed your security setup recently?\n\n📞 905-787-2038\n🌐 midastech.ca\n✉️ info@midastech.ca`,
+            hashtags:hashtagString,
+            cta:'DO YOU KNOW YOUR RISK?'
+          },
+          {
+            platform:'linkedin',
+            headline:'PROTECT YOUR FIRM NOW',
+            category:'LEGAL CYBER RISK',
+            stat:null,
+            statLabel:null,
+            caption:`⚖️ Ontario law firms are getting hit — quietly.\n\nA single compromised account can expose confidential case files, client communications, and legal records without triggering obvious alarms.\n\nThat can mean:\n→ Lost access to contracts\n→ Exposed client data\n→ Damaged reputation\n\nWhat we see in many firms:\n• No MFA on email or remote access\n• Backups exist, but never tested\n• No incident response plan\n\nThese gaps don’t show up... until something breaks.\n\n✔️ Quick check: If a staff account gets compromised today — do you know what happens next?\n\nMost firms don’t.\n\nHave you reviewed your security setup recently?\n\n📞 905-787-2038\n🌐 midastech.ca\n✉️ info@midastech.ca`,
+            hashtags:hashtagString,
+            cta:'REVIEW YOUR SETUP'
+          }
+        ];
+      } else {
+        posts=[
+          {platform:'instagram',headline:'MOST FIRMS MISS THIS',category:'RANSOMWARE ALERT',stat:null,statLabel:null,caption:`Ontario ${industryCfg.label} are getting hit — quietly.\n\nRansomware is not a distant threat. It looks for weak spots right now.\n\nFor ${industryCfg.hook}, the real risk is ${industryDataTypes} being exposed or locked away.\n\nOne breach can mean ${industryImpact}.\n\nWhat we see in many firms:\n• ${industryMistakes[0] || 'No MFA'}\n• ${industryMistakes[1] || 'No tested backup'}\n• ${industryMistakes[2] || 'Outdated systems'}\n\nQuick win: run a gap review this week and see where you stand.\n\nDo you know where your firm stands right now?\n\n📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca`,hashtags:hashtagString,cta:'DO YOU KNOW YOUR RISK?'},
+          {platform:'linkedin',headline:'MOST FIRMS MISS THIS',category:'RANSOMWARE ALERT',stat:null,statLabel:null,caption:`Ontario ${industryCfg.label} are getting hit — quietly.\n\nCyber threats are not slowing down. They look for weak spots right now.\n\nFor ${industryCfg.hook}, the valuable data is ${industryDataTypes}.\n\nOne successful attack can mean ${industryImpact}.\n\nWhat we see in many firms:\n• ${industryMistakes[0] || 'No MFA'}\n• ${industryMistakes[1] || 'No tested backup'}\n• ${industryMistakes[2] || 'Outdated systems'}\n\nAt Midas Tech, we help GTA businesses close those gaps before they turn into incidents.\n\nDo you know where your firm stands right now?\n\n📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca`,hashtags:hashtagString,cta:'DO YOU KNOW YOUR RISK?'}
+        ];
+      }
     }
-    posts=normalizeStructuredPosts(posts, requestedVisualStyle);
+    posts=normalizeStructuredPosts(posts, 'post');
 
-    // ── Render ──────────────────────────────────────────────────────
-    setSt(imageEngine==='flux'?'Generating FLUX images...':'Rendering images...','3/3');
+    // ── Render content first ───────────────────────────────────────
+    setSt('Content ready. Review and refine the copy as needed.','Done');
     document.getElementById('postsSec').classList.add('on');
-    const grid=document.getElementById('postsGrid');
 
     // Interleave IG and LI
     const igP=posts.filter(p=>p.platform==='instagram');
@@ -1828,68 +3577,77 @@ Generate all ${perPlat*2} posts.`;
       const card=document.createElement('div');
       card.className='pcard';
       card.style.animationDelay=`${idx*0.09}s`;
-      card.dataset.caption=post.caption||'';
+      const CONTACT_FOOTER = '\n\n📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca';
+      const rawCap = (post.caption||'').replace(/\\n/g,'\n');
+      const capStripped = rawCap.replace(/\n+📞\s*905-787-2038[^\n]*/g,'').trimEnd();
+      const finalCap = capStripped + CONTACT_FOOTER;
+
+      card.dataset.caption=finalCap;
       card.dataset.hashtags=post.hashtags||'';
       card.dataset.platform=post.platform;
-      card.dataset.imageEngine=imageEngine;
+      card.dataset.imageEngine='post';
+      card.dataset.imageUrl = '';
+      card.dataset.imageName = '';
       card._postData={...post};
-
-      const imgDiv=document.createElement('div');
-      imgDiv.className='pimg';
-      imgDiv.style.aspectRatio=isIG?'1/1':'1200/627';
-      if(imageEngine==='flux'){
-        imgDiv.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;min-height:260px;color:#94a3b8;font:500 14px Inter,sans-serif;padding:24px;text-align:center">Generating FLUX image...</div>';
-      } else {
-        const cv=document.createElement('canvas');
-        cv.id=`cv${idx}`;
-        imgDiv.appendChild(cv);
-      }
 
       const bd=document.createElement('div');
       bd.className='pbody';
-      const capTxt=(post.caption||'').replace(/\\n/g,'\n');
       const badge=isIG
         ?'<span class="pbadge big">📸 Instagram</span>'
         :'<span class="pbadge bli">💼 LinkedIn</span>';
-      bd.innerHTML=`${badge}<div class="pcap">${capTxt.replace(/\n/g,'<br>')}</div><div class="ptags">${post.hashtags||''}</div><div class="pacts"><button class="ab" onclick="cpCap(${idx})">📋 Caption</button><button class="ab" onclick="dlImg(${idx})">⬇️ Image</button><button class="ab" onclick="saveToLeadTracker(${idx})">💾 Save</button><button class="ab p" onclick="cpAll(${idx})">✨ Copy All</button></div>`;
+      const capDisplay=capStripped.replace(/\n/g,'<br>');
+      bd.innerHTML=`${badge}<div class="post-image-slot"><img class="post-image-preview" alt="Attached image preview"><button type="button" class="remove-attach" onclick="removeAttachedImage(${idx})">Remove</button></div><div class="pcap">${capDisplay}</div><div class="pcontact">📞 <strong>905-787-2038</strong>&nbsp;&nbsp;|&nbsp;&nbsp;🌐 <strong>midastech.ca</strong>&nbsp;&nbsp;|&nbsp;&nbsp;✉️ <strong>info@midastech.ca</strong></div><div class="ptags">${post.hashtags||''}</div><div class="mini-row"><span class="mini-check attach-label">No image attached</span><button class="mini-link" type="button" onclick="this.nextElementSibling?.click()">📎 Attach Image</button><input class="post-image-input" type="file" accept="image/*" hidden onchange="attachImageToPost(event, ${idx})"></div><div class="pacts"><button class="ab" onclick="cpCap(${idx})">📋 Caption</button><button class="ab" onclick="saveToLeadTracker(${idx})">💾 Save</button><button class="ab p" onclick="cpAll(${idx})">✨ Copy All</button></div>`;
 
-      card.appendChild(imgDiv);card.appendChild(bd);
-      grid.appendChild(card);
-
-      if(imageEngine==='flux'){
-        const fluxPrompt=buildFluxPrompt(post,isIG);
-        generateFluxImage(fluxApiKey,fluxModel,fluxPrompt,isIG).then((imageUrl)=>{
-          card.dataset.imageUrl=imageUrl;
-          imgDiv.innerHTML=`<img src="${imageUrl}" alt="${post.headline||'Generated image'}" style="width:100%;height:100%;object-fit:cover;display:block">`;
-        }).catch((imageErr)=>{
-          imgDiv.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;height:100%;min-height:260px;color:#fca5a5;font:500 14px Inter,sans-serif;padding:24px;text-align:center">FLUX image failed.<br>${imageErr.message}</div>`;
-        });
-      } else {
-        const cv=document.getElementById(`cv${idx}`);
-        const drawFn=isIG?drawIG:drawLI;
-        const doIt=()=>{
-          if(logoDark.complete&&logoDark.naturalWidth&&logoLight.complete&&logoLight.naturalWidth){
-            drawFn(cv,post);
-          } else {
-            setTimeout(doIt,80);
-          }
-        };
-        setTimeout(doIt,250+idx*70);
-      }
+      card.appendChild(bd);
+      (post.platform === 'instagram' ? document.getElementById('postsGridIG') : document.getElementById('postsGridLI')).appendChild(card);
+      card.dataset.imageStatus='idle';
     });
 
     document.getElementById('statusBar').classList.remove('on');
 
   } catch(err){
-    showErr(err.message+'<br><small>Check your 1min.ai key, credit balance, and FLUX/BFL API key if you are using AI image generation.</small>');
+    showErr(err.message+'<br><small>Check your 1min.ai key and credit balance.</small>');
   }
   btn.disabled=false;
-  btn.innerHTML='⚡ GENERATE POSTS';
+  btn.innerHTML='⚡ GENERATE CONTENT';
 }
 
 function getCard(i){return document.querySelectorAll('.pcard')[i]}
-function cpCap(i){const c=getCard(i);navigator.clipboard.writeText((c.dataset.caption||'').replace(/\\n/g,'\n')).then(()=>toast('✅ Caption copied!'))}
-function cpAll(i){const c=getCard(i);navigator.clipboard.writeText((c.dataset.caption||'').replace(/\\n/g,'\n')+'\n\n'+(c.dataset.hashtags||'')).then(()=>toast('✅ Copied!'))}
+
+function copyCanvaBrief(i){
+  const card=getCard(i);
+  const p=(card&&card._postData)||{};
+  const isIG=(p.platform||'')==='instagram';
+  const size=isIG?'1080×1080 (Instagram post)':'1200×627 (LinkedIn post)';
+  const src=(p.sources||[]).join(' | ');
+  const risks=(p.risks||[]).map(function(r){return '• '+r;}).join('\n');
+  const svcs=(p.services||[]).map(function(s){return '✓ '+s;}).join('\n');
+  const block=[
+    'CANVA FRAME: '+size,'',
+    'HEADLINE: '+String(p.headline||'').toUpperCase(),
+    'BADGE / CATEGORY: '+String(p.category||'').toUpperCase(),
+    'STAT: '+(p.stat||''),
+    'STAT LABEL: '+(p.statLabel||''),
+    '','INTRO (yellow/body):',String(p.body||'').trim().slice(0,400),'',
+    'RISK ROWS:',risks||'• (add risks)','',
+    'SERVICE CHIPS:',svcs||'✓ (add services)','',
+    'SOURCES STRIP:',src||'Source 1 | Source 2','',
+    'CTA HEADLINE:',"Don't Be the Next Headline!",
+    'CTA SUB:','Connect with Midas Tech to strengthen your defenses.',
+    'CTA BUTTON: '+String(p.cta||'CONNECT WITH MIDAS TECH').toUpperCase(),'',
+    'FOOTER:','midastech.ca • 905-787-2038 • info@midastech.ca'
+  ].join('\n');
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(block).then(function(){toast('Copied Canva brief');}).catch(function(){toast('Could not copy');});
+  }else{
+    toast('Clipboard not available in this browser context');
+  }
+}
+
+const _CF='\n\n📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca';
+function _addCF(text){return /905-787-2038/.test(text)?text:text.trimEnd()+_CF;}
+function cpCap(i){const c=getCard(i);const cap=_addCF((c.dataset.caption||'').replace(/\\n/g,'\n'));navigator.clipboard.writeText(cap).then(()=>toast('✅ Caption copied!'))}
+function cpAll(i){const c=getCard(i);const cap=_addCF((c.dataset.caption||'').replace(/\\n/g,'\n'));const tags=c.dataset.hashtags||'';navigator.clipboard.writeText(cap+(tags?'\n\n'+tags:'')).then(()=>toast('✅ Copied!'))}
 async function saveToLeadTracker(i){
   const c=getCard(i);
   const post=c?._postData;
@@ -1906,10 +3664,13 @@ async function saveToLeadTracker(i){
     caption:(c.dataset.caption||'').replace(/\\n/g,'\n'),
     hashtags:c.dataset.hashtags||'',
     cta:post.cta||'',
+    notes:post.notes||'',
     status:'draft',
-    image_engine:c.dataset.imageEngine||currentGenerationContext.imageEngine||'canvas',
-    image_style:post.imageStyle||currentGenerationContext.imageStyle||'alert',
+    image_engine:'post',
+    image_style:'',
     image_url:c.dataset.imageUrl||'',
+    attachment_image_url:c.dataset.attachmentImageUrl||'',
+    attachment_image_name:c.dataset.attachmentImageName||'',
     source_topic:currentGenerationContext.topicContext||'',
     target_audience:audienceLabel,
     brand_voice:voiceLabel,
@@ -1917,32 +3678,28 @@ async function saveToLeadTracker(i){
   };
 
   try{
+    payload.post_payload = { ...(post || {}), visualsRemoved: true, attachedImageUrl: c.dataset.imageUrl || '', attachedImageName: c.dataset.imageName || '', attachmentImageUrl: c.dataset.attachmentImageUrl || '', attachmentImageName: c.dataset.attachmentImageName || '', notes: post.notes || '' };
+    // Check for duplicate before saving (same platform + headline + caption)
+    const { data: existing, error: checkErr } = await db
+      .from('social_posts')
+      .select('id')
+      .eq('platform', payload.platform)
+      .eq('headline', payload.headline)
+      .limit(1);
+    if(checkErr) throw checkErr;
+    if(existing && existing.length > 0){
+      toast('⚠️ This post is already saved — skipping duplicate.');
+      return;
+    }
     const { error } = await db.from('social_posts').insert(payload);
     if(error) throw error;
+    // Mark the save button as saved so user knows
+    const saveBtn=document.querySelectorAll('.pcard')[i]?.querySelector('button[onclick^="saveToLeadTracker"]');
+    if(saveBtn){saveBtn.textContent='✅ Saved';saveBtn.disabled=true;}
+    loadSavedPosts().catch((err) => console.warn('Could not refresh saved posts:', err));
     toast('✅ Saved to Lead Tracker');
   }catch(err){
     showErr(`Could not save to Lead Tracker.<br><small>${err.message||err}</small>`);
-  }
-}
-async function dlImg(i){
-  const c=getCard(i);
-  const imageUrl=c?.dataset.imageUrl;
-  if(imageUrl){
-    const a=document.createElement('a');
-    a.download=`midas-tech-${c.dataset.platform||'post'}-${i+1}.jpg`;
-    a.href=imageUrl;
-    a.target='_blank';
-    a.click();
-    toast('🖼️ FLUX image opened!');
-    return;
-  }
-  const cv=document.getElementById(`cv${i}`);
-  if(cv){
-    const a=document.createElement('a');
-    a.download=`midas-tech-${c.dataset.platform||'post'}-${i+1}.png`;
-    a.href=cv.toDataURL('image/png');
-    a.click();
-    toast('🖼️ Image saved!')
   }
 }
 </script>
