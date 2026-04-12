@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Midas Tech — Lead Tracker</title>
+  <script>
+    if (window.location.protocol === "file:") {
+      window.location.replace("https://midastechinc.github.io/Leads/");
+    }
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -1615,7 +1620,7 @@
       </div>
       <p class="modal-sub" id="userModalError" style="display:none; margin-bottom:0; color:var(--red);"></p>
       <div class="modal-actions">
-        <button class="btn btn-primary" onclick="loginUser()">Sign In</button>
+        <button class="btn btn-primary" id="loginBtn" type="button" onclick="loginUser()">Sign In</button>
       </div>
     </div>
   </div>
@@ -1633,6 +1638,23 @@
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <script>
+    // Keep login buttons from throwing a ReferenceError if the module script
+    // cannot initialize yet, especially when the page is opened from file://.
+    window.loginUser = window.loginUser || function () {
+      const el = document.getElementById("userModalError");
+      if (el) {
+        el.textContent = "Open LeadTracker from a local web server (Launch LeadTracker.bat). Firebase sign-in does not work from file:// URLs.";
+        el.style.display = "block";
+      }
+    };
+    window.dismissBootstrapAdmin = window.dismissBootstrapAdmin || function () {};
+    window.claimBootstrapAdmin = window.claimBootstrapAdmin || function () {};
+    if (window.location.protocol === "file:") {
+      window.location.replace("https://midastechinc.github.io/Leads/");
+    }
+  </script>
 
   <!-- Supabase (LinkedIn Dashboard) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1683,6 +1705,8 @@
     let unsubscribeUsers = null;
     let unsubscribeImportBatches = null;
     let bootstrapAdminDismissed = false;
+    let loginModalTimer = null;
+    let authBusy = false;
 
     // ── CLOSE MODAL (defined early so initUser can call it) ────────
     function closeModal(id) { document.getElementById(id)?.classList.remove("active"); }
@@ -1695,11 +1719,27 @@
       el.textContent = message;
       el.style.display = message ? "block" : "none";
     }
+    function setLoginBusy(isBusy) {
+      authBusy = isBusy;
+      const btn = document.getElementById("loginBtn");
+      if (btn) {
+        btn.disabled = isBusy;
+        btn.textContent = isBusy ? "Signing In..." : "Sign In";
+      }
+    }
+    const fileOriginLoginHint = "Open LeadTracker from a local web server, not by double-clicking index.html. Use Launch LeadTracker.bat so Firebase sign-in runs from http://localhost.";
+    const hostedOriginLoginHint = () => {
+      const origin = `${window.location.protocol}//${window.location.hostname}`;
+      return `Firebase sign-in is blocked for this hosted domain (${origin}). Add this domain to Firebase Authentication > Settings > Authorized domains, then try again.`;
+    };
     function formatAuthError(error) {
       const code = error?.code || "";
       if (window.location.protocol === "file:" &&
           (code === "auth/network-request-failed" || code === "auth/operation-not-supported-in-this-environment")) {
-        return "This app is being opened directly from a file. Run it from a local web server or add the hosting domain in Firebase Authorized Domains before signing in.";
+        return fileOriginLoginHint;
+      }
+      if (code === "auth/unauthorized-domain") {
+        return hostedOriginLoginHint();
       }
       if (code === "auth/invalid-credential" || code === "auth/invalid-login-credentials") {
         return "Email or password is incorrect.";
@@ -1813,6 +1853,28 @@
         .trim()
         .replace(/\b\w/g, ch => ch.toUpperCase()) || "User";
     }
+    function showLoginModal(message = "") {
+      if (loginModalTimer) {
+        clearTimeout(loginModalTimer);
+        loginModalTimer = null;
+      }
+      if (message) setUserModalError(message);
+      document.getElementById("userModal")?.classList.add("active");
+    }
+    function scheduleLoginModal(message = "", delay = 300) {
+      if (loginModalTimer) clearTimeout(loginModalTimer);
+      loginModalTimer = setTimeout(() => {
+        loginModalTimer = null;
+        showLoginModal(message);
+      }, delay);
+    }
+    function hideLoginModal() {
+      if (loginModalTimer) {
+        clearTimeout(loginModalTimer);
+        loginModalTimer = null;
+      }
+      closeModal("userModal");
+    }
     function applyUserDisplay() {
       document.getElementById("userDisplay").textContent = currentUser || "—";
       const assignEl = document.getElementById("newAssigned");
@@ -1837,21 +1899,41 @@
       currentUser = "";
       if (!firebaseUser) return;
       const userRef = doc(db, "users", firebaseUser.uid);
-      let snap = await getDoc(userRef);
-      if (!snap.exists()) {
-        const email = (firebaseUser.email || "").trim().toLowerCase();
-        const fallbackProfile = {
-          name: firebaseUser.displayName || inferNameFromEmail(email),
-          email,
-          role: "rep",
-          createdAt: serverTimestamp(),
-          autoCreated: true
-        };
-        await setDoc(userRef, fallbackProfile);
-        snap = await getDoc(userRef);
+      const email = (firebaseUser.email || "").trim().toLowerCase();
+      const fallbackProfile = {
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || inferNameFromEmail(email),
+        email,
+        role: "rep",
+        autoCreated: true,
+        profileSyncStatus: "local"
+      };
+      try {
+        let snap = await getDoc(userRef);
+        if (!snap.exists()) {
+          try {
+            await setDoc(userRef, {
+              name: fallbackProfile.name,
+              email,
+              role: "rep",
+              createdAt: serverTimestamp(),
+              autoCreated: true
+            });
+            snap = await getDoc(userRef);
+          } catch (writeError) {
+            console.warn("Could not create user profile document:", writeError);
+            currentUserProfile = fallbackProfile;
+            currentUser = fallbackProfile.name || firebaseUser.email || "User";
+            return;
+          }
+        }
+        currentUserProfile = { id: snap.id, ...snap.data() };
+        currentUser = currentUserProfile.name || firebaseUser.email || "User";
+      } catch (readError) {
+        console.warn("Could not load user profile document:", readError);
+        currentUserProfile = fallbackProfile;
+        currentUser = fallbackProfile.name || firebaseUser.email || "User";
       }
-      currentUserProfile = { id: snap.id, ...snap.data() };
-      currentUser = currentUserProfile.name || firebaseUser.email || "User";
     }
     function bindLeadListener() {
       if (unsubscribeLeads) unsubscribeLeads();
@@ -1897,7 +1979,9 @@
       );
     }
     window.loginUser = async function () {
+      if (authBusy) return;
       try {
+        setLoginBusy(true);
         const email = document.getElementById("userEmailInput").value.trim().toLowerCase();
         const password = document.getElementById("userPasswordInput").value;
         if (!email || !password) return setUserModalError("Enter your email and password.");
@@ -1907,6 +1991,9 @@
       } catch(e) {
         console.error("loginUser error:", e);
         setUserModalError(formatAuthError(e));
+        showLoginModal(formatAuthError(e));
+      } finally {
+        setLoginBusy(false);
       }
     };
     window.changeUser = function () {
@@ -1917,7 +2004,22 @@
       setTimeout(() => document.getElementById("userEmailInput").focus(), 100);
     };
     window.logoutUser = async function () {
-      try { await signOut(auth); } catch (e) { console.error("logoutUser error:", e); }
+      try {
+        setLoginBusy(false);
+        await signOut(auth);
+      } catch (e) {
+        console.error("logoutUser error:", e);
+      } finally {
+        document.getElementById("userPasswordInput").value = "";
+        document.getElementById("userEmailInput").value = "";
+        currentUserProfile = null;
+        currentUserId = "";
+        currentUser = "";
+        authBusy = false;
+        setUserModalError("");
+        showLoginModal("Signed out. Enter your email and password to continue.");
+        setTimeout(() => document.getElementById("userEmailInput")?.focus(), 100);
+      }
     };
     window.dismissBootstrapAdmin = function () {
       bootstrapAdminDismissed = true;
@@ -2091,6 +2193,10 @@
       console.warn("auth persistence setup failed:", e);
     }
 
+    if (window.location.protocol === "file:") {
+      setUserModalError(fileOriginLoginHint);
+    }
+
     onAuthStateChanged(auth, async firebaseUser => {
       try {
         if (!firebaseUser) {
@@ -2111,12 +2217,12 @@
             `<div class="empty-workspace"><div class="big">🔐</div><strong>Sign in to view your workspace</strong><p>Your assigned leads will appear here after login.</p></div>`;
           closeBootstrapAdminModal();
           closeModal("importBatchesModal");
-          document.getElementById("userModal").classList.add("active");
+          scheduleLoginModal();
           return;
         }
         await loadCurrentUserProfile(firebaseUser);
         applyUserDisplay();
-        closeModal("userModal");
+        hideLoginModal();
         bindLeadListener();
         if (isAdminUser()) {
           bindUsersListener();
@@ -2133,11 +2239,31 @@
         console.error("auth init error:", e);
         if (e?.message === "No user profile found. Ask an admin to create your account.") {
           try { await signOut(auth); } catch (signOutError) { console.error("profile cleanup signOut error:", signOutError); }
+          setUserModalError(formatAuthError(e));
+        } else if (auth.currentUser) {
+          console.warn("Continuing with signed-in auth user after profile initialization error.");
+          const email = (auth.currentUser.email || "").trim().toLowerCase();
+          currentUserProfile = {
+            id: auth.currentUser.uid,
+            name: auth.currentUser.displayName || inferNameFromEmail(email),
+            email,
+            role: "rep",
+            autoCreated: true,
+            profileSyncStatus: "fallback"
+          };
+          currentUser = currentUserProfile.name || auth.currentUser.email || "User";
+          applyUserDisplay();
+          hideLoginModal();
+          bindLeadListener();
+          setUserModalError("Signed in, but your profile could not sync with Firestore. You may have limited access until the Firestore rules are fixed.");
+        } else {
+          setUserModalError(formatAuthError(e));
         }
-        setUserModalError(formatAuthError(e));
         closeBootstrapAdminModal();
         closeModal("importBatchesModal");
-        document.getElementById("userModal").classList.add("active");
+        if (!auth.currentUser) {
+          scheduleLoginModal();
+        }
       }
     });
 
@@ -3469,7 +3595,7 @@
             <div class="social-post-tags">${hashtags}</div>
             <div class="social-post-actions">
               <button class="btn btn-secondary btn-sm" onclick='navigator.clipboard.writeText(${JSON.stringify((post.caption || "") + "\n\n" + (post.hashtags || ""))})'>Copy Post</button>
-              <button class="btn btn-secondary btn-sm" onclick='window.open(`${getLeadTrackerPostCreatorBaseUrl()}?draft=${encodeURIComponent(String(post.id))}`,"_blank","noopener")'>Open Creator</button>
+              <button class="btn btn-secondary btn-sm" onclick='window.open(${JSON.stringify(`${getLeadTrackerPostCreatorBaseUrl()}?draft=${encodeURIComponent(String(post.id))}`)},"_blank","noopener")'>Open Creator</button>
               <button class="btn btn-secondary btn-sm" onclick='window.open(${JSON.stringify(post.image_url || "")},"_blank","noopener")' ${post.image_url ? "" : "disabled"}>Open Image</button>
             </div>
           </div>`;

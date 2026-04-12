@@ -38,6 +38,15 @@ or run:
 powershell -ExecutionPolicy Bypass -File .\scripts\run_linkedin_pull.ps1 -Bootstrap -Visible
 ```
 
+## Open the LeadTracker app
+
+Do not open `index.html` by double-clicking it. Firebase email/password sign-in needs the app to run from a web server.
+
+Double-click `Launch LeadTracker.bat` to start a local server and open the app in your browser.
+Wait for the browser tab to open automatically before logging in.
+
+If you are using the GitHub Pages site at `https://midastechinc.github.io/Leads/`, make sure `midastechinc.github.io` is listed in Firebase Authentication > Settings > Authorized domains.
+
 ## Manual pull
 
 Double-click `Run LinkedIn Pull.bat`
