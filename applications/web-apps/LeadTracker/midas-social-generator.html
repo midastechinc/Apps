@@ -1387,6 +1387,7 @@ function formatSavedPostDate(value) {
 function renderSavedPostCard(post, index) {
   const isIG = (post.platform || '').toLowerCase() === 'instagram';
   const isGoogle = (post.platform || '').toLowerCase() === 'google';
+  const googleMode = String(post.postType || post?.post_payload?.postType || post?.post_payload?.imageStyle || '').toLowerCase();
   const card = document.createElement('div');
   card.className = 'pcard saved-card';
   card.style.animationDelay = `${index * 0.06}s`;
@@ -1394,7 +1395,7 @@ function renderSavedPostCard(post, index) {
   body.className = 'pbody';
   const badge = isIG
     ? '<span class="pbadge big">📸 Instagram</span>'
-    : (isGoogle ? '<span class="pbadge bgo">🌐 Google Posts</span>' : '<span class="pbadge bli">💼 LinkedIn</span>');
+    : (isGoogle ? `<span class="pbadge bgo">🌐 Google Posts${googleMode ? ` · ${googleMode}` : ''}</span>` : '<span class="pbadge bli">💼 LinkedIn</span>');
   const headline = String(post.headline || '').trim();
   const category = String(post.category || '').trim();
   const caption = String(post.caption || '').trim();
@@ -4056,10 +4057,11 @@ Final Output Check:
       const bd=document.createElement('div');
       bd.className='pbody';
       const isGoogle=post.platform==='google';
+      const googleMode = String(post.postType || post.imageStyle || '').toLowerCase();
       const badge=isIG
         ?'<span class="pbadge big">📸 Instagram</span>'
         :isGoogle
-          ?'<span class="pbadge bgo">🌐 Google Posts</span>'
+          ?`<span class="pbadge bgo">🌐 Google Posts${googleMode ? ` · ${googleMode}` : ''}</span>`
           :'<span class="pbadge bli">💼 LinkedIn</span>';
       const capDisplay=capStripped.replace(/\n/g,'<br>');
       bd.innerHTML=`${badge}<div class="post-image-slot"><img class="post-image-preview" alt="Attached image preview"><button type="button" class="remove-attach" onclick="removeAttachedImage(${idx})">Remove</button></div><div class="pcap">${capDisplay}</div><div class="pcontact">📞 <strong>905-787-2038</strong>&nbsp;&nbsp;|&nbsp;&nbsp;🌐 <strong>midastech.ca</strong>&nbsp;&nbsp;|&nbsp;&nbsp;✉️ <strong>info@midastech.ca</strong></div><div class="ptags">${post.hashtags||''}</div><div class="mini-row"><span class="mini-check attach-label">No image attached</span><button class="mini-link" type="button" onclick="this.nextElementSibling?.click()">📎 Attach Image</button><input class="post-image-input" type="file" accept="image/*" hidden onchange="attachImageToPost(event, ${idx})"></div><div class="pacts"><button class="ab" onclick="cpCap(${idx})">📋 Caption</button><button class="ab" onclick="${isIG ? 'copyInstagramImagePrompt' : (isGoogle ? 'copyGoogleImagePrompt' : 'copyLinkedInImagePrompt')}(${idx})">🖼 Generate Prompt</button><button class="ab" onclick="saveToLeadTracker(${idx})">💾 Save</button><button class="ab p" onclick="cpAll(${idx})">✨ Copy All</button></div>`;
