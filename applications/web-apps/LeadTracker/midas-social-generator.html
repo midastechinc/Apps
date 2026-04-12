@@ -1163,6 +1163,11 @@ function getVisualStyle(post) {
   return 'alert';
 }
 
+function isCybersecurityTopic(text) {
+  const value = String(text || '').toLowerCase();
+  return /\b(cyber|security|secure|mfa|phish|ransom|breach|malware|hack|attack|threat|vulnerab|patch|firewall|endpoint|backup|privacy|compliance|incident|data leak|dark web|m365|office 365|azure|password|authenticator)\b/.test(value);
+}
+
 function normalizeStructuredPosts(posts, forcedStyle) {
   if (forcedStyle === 'post' || forcedStyle === 'caption') {
     return posts.map((post) => ({ ...post }));
@@ -3328,6 +3333,7 @@ async function run(){
   // Get topic source
   let topicContext='';
   let useWebSearch=false;
+  let manualTopicIsCyber = false;
   if(currentMode==='auto'){
     const topics=Array.from(document.querySelectorAll('#topicPills .chip.on')).map(c=>c.dataset.topic);
     if(!topics.length){showErr('Select at least one news topic.');return}
@@ -3336,7 +3342,8 @@ async function run(){
   } else {
     const manual=document.getElementById('manualTopic').value.trim();
     if(!manual){showErr('Please enter your post topic.');return}
-    topicContext=industryKey==='general' ? manual : `${industryCfg.label} | ${manual}`;
+    topicContext=manual;
+    manualTopicIsCyber = isCybersecurityTopic(manual);
     useWebSearch=false;
   }
 
@@ -3421,6 +3428,27 @@ Return ONLY a raw JSON array (nothing before [ or after ]):
       ? 'For law firms, lead with quiet compromise, a single compromised account, and no one notices until it is too late. Focus on contracts, client communications, confidential case files, and reputation. Do not mention vendors, product names, or ROI claims.'
       : 'Avoid vendor mentions, product names, and ROI claims. Keep the focus on business risk, gaps, and real-world scenarios that create urgency.';
     const hashtagString = buildHashtags(industryKey);
+    const manualTopicPrompt = `You are an expert B2B social media writer for Midas Tech Inc., a Richmond Hill, Ontario business technology company.
+
+Create ${perPlat} sets of posts based only on this topic:
+${topicContext}
+
+Audience: ${audienceCfg.label}
+Tone: ${toneMap[tone]}
+Brand voice: ${voiceCfg}
+Industry focus: ${industryCfg.label}
+
+Rules:
+- Stay on the user's topic. Do not turn it into a cybersecurity alert unless the topic explicitly mentions security.
+- If the topic is about automation, productivity, workflows, process improvement, or Microsoft Power Automate, focus on benefits, time saved, fewer manual steps, fewer errors, and day-to-day workflow examples.
+- Keep the copy practical, specific, and easy for a business owner to read.
+- Mention Ontario, GTA, or Richmond Hill naturally only if it helps the post.
+- Do not summarize news.
+- Do not invent facts, stats, or claims.
+- End every caption with: 📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca
+
+Return ONLY raw JSON array (nothing before [ or after ]):
+[{"platform":"instagram","headline":"MAX 12 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","caption":"full IG caption","hashtags":"topic-specific hashtags","cta":"MAX 40 CHAR"},{"platform":"linkedin","headline":"MAX 12 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","caption":"full LI caption","hashtags":"topic-specific hashtags","cta":"MAX 40 CHAR"}]`;
 
     const postsPrompt=`You are an expert B2B social media writer for MSP/cybersecurity companies.
 
@@ -3703,7 +3731,7 @@ Final Output Check:
 - Every sentence must add value, specificity, or tension.
 - End each caption with: 📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca`;
 
-    const postsRaw=await call1min(apiKey,model,postOnlyPrompt,false);
+    const postsRaw=await call1min(apiKey,model,(currentMode==='manual' && !manualTopicIsCyber) ? manualTopicPrompt : postOnlyPrompt,false);
     let posts=normalizeStructuredPosts(safeParsePosts(postsRaw), 'post');
 
     if(!posts.length){
@@ -3713,6 +3741,8 @@ Final Output Check:
       const fallbackSources=['Krebs on Security','The Hacker News','Cybersecurity News'];
       const fallbackRisks=['Weak passwords','No MFA','Outdated systems','No backup strategy'];
       const fallbackServices=['Security audits','Microsoft 365 protection','Endpoint security','Backup solutions'];
+      const manualTopicPlain = topicContext.trim();
+      const looksLikePowerAutomate = /power automate|workflow|automation|process|approval|reminder|task|repetitive/i.test(manualTopicPlain);
       if (industryKey === 'law') {
         posts = [
           {
@@ -3734,6 +3764,35 @@ Final Output Check:
             caption:`⚖️ Ontario law firms are getting hit — quietly.\n\nA single compromised account can expose confidential case files, client communications, and legal records without triggering obvious alarms.\n\nThat can mean:\n→ Lost access to contracts\n→ Exposed client data\n→ Damaged reputation\n\nWhat we see in many firms:\n• No MFA on email or remote access\n• Backups exist, but never tested\n• No incident response plan\n\nThese gaps don’t show up... until something breaks.\n\n✔️ Quick check: If a staff account gets compromised today — do you know what happens next?\n\nMost firms don’t.\n\nHave you reviewed your security setup recently?\n\n📞 905-787-2038\n🌐 midastech.ca\n✉️ info@midastech.ca`,
             hashtags:hashtagString,
             cta:'REVIEW YOUR SETUP'
+          }
+        ];
+      } else if (currentMode === 'manual' && !manualTopicIsCyber) {
+        const benefitLead = looksLikePowerAutomate
+          ? 'Microsoft Power Automate helps remove repetitive work and speed up everyday business processes.'
+          : `${manualTopicPlain} can help your team work faster with fewer manual steps.`;
+        const workflowExamples = looksLikePowerAutomate
+          ? 'Examples: approval routing, reminder emails, invoice follow-ups, and status updates.'
+          : 'Examples: approval routing, reminder emails, task handoffs, and status updates.';
+        posts = [
+          {
+            platform:'instagram',
+            headline:looksLikePowerAutomate ? 'WORK FASTER DAILY' : 'MAKE WORK EASIER',
+            category:'BUSINESS AUTOMATION',
+            stat:null,
+            statLabel:null,
+            caption:`${manualTopicPlain}\n\n${benefitLead}\n\n${workflowExamples}\n\nWhat this can improve:\n• Fewer repetitive admin tasks\n• Faster team handoffs\n• Fewer missed follow-ups\n\nA quick workflow review can usually show where the biggest time savings are.\n\nWant a simple way to make this easier for your team?\n\n📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca`,
+            hashtags:hashtagString,
+            cta:'QUICK WORKFLOW REVIEW'
+          },
+          {
+            platform:'linkedin',
+            headline:looksLikePowerAutomate ? 'WORK FASTER DAILY' : 'MAKE WORK EASIER',
+            category:'BUSINESS AUTOMATION',
+            stat:null,
+            statLabel:null,
+            caption:`${manualTopicPlain}\n\n${benefitLead}\n\n${workflowExamples}\n\nWhat this can improve:\n• Fewer repetitive admin tasks\n• Faster team handoffs\n• Fewer missed follow-ups\n\nAt Midas Tech, we help Ontario businesses turn manual steps into simple, repeatable workflows.\n\nWant a quick workflow review this week?\n\n📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca`,
+            hashtags:hashtagString,
+            cta:'QUICK WORKFLOW REVIEW'
           }
         ];
       } else {
