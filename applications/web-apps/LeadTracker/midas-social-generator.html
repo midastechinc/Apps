@@ -514,6 +514,17 @@ body.lt-shell .toast{
     </select>
   </div>
   <div class="panel" style="margin-bottom:0">
+    <div class="lbl">🌐 Google Post Type</div>
+    <select id="googlePostType">
+      <option value="standard" selected>Standard Post</option>
+      <option value="offer">Offer Post</option>
+    </select>
+    <p class="field-hint">Standard posts focus on risk, education, and authority. Offer posts feel time-sensitive and lead-gen focused.</p>
+  </div>
+</div>
+
+<div class="g2">
+  <div class="panel" style="margin-bottom:0">
     <div class="lbl">📸 Posts Per Platform</div>
     <select id="postCount">
       <option value="1" selected>1 per platform (3 total)</option>
@@ -3406,6 +3417,7 @@ async function run(){
 
   const model=document.querySelector('#modelChips .chip.on')?.dataset.model||'gpt-4o-mini';
   const tone=document.getElementById('postTone').value;
+  const googlePostMode = String(document.getElementById('googlePostType')?.value || 'standard').toLowerCase() === 'offer' ? 'offer' : 'standard';
   const perPlat=parseInt(document.getElementById('postCount').value);
   const audienceKey=document.getElementById('targetAudience').value;
   const voiceKey=document.getElementById('brandVoice').value;
@@ -3437,7 +3449,8 @@ async function run(){
     voiceKey,
     industryKey,
     imageStyle:'post',
-    imageEngine:'post'
+    imageEngine:'post',
+    googlePostMode
   };
 
   const btn=document.getElementById('genBtn');
@@ -3513,6 +3526,22 @@ Return ONLY a raw JSON array (nothing before [ or after ]):
       ? 'For law firms, lead with quiet compromise, a single compromised account, and no one notices until it is too late. Focus on contracts, client communications, confidential case files, and reputation. Do not mention vendors, product names, or ROI claims.'
       : 'Avoid vendor mentions, product names, and ROI claims. Keep the focus on business risk, gaps, and real-world scenarios that create urgency.';
     const hashtagString = buildHashtags(industryKey);
+    const googleModeRules = googlePostMode === 'offer'
+      ? 'GOOGLE MODE: offer. Focus on a time-sensitive, specific lead-gen offer. Include who it is for, what they get, a local business angle, and a single CTA question under 10 words.'
+      : 'GOOGLE MODE: standard. Focus on risk, education, and authority. Keep it short, scannable, and practical.';
+    const googleModePromptBlock = googlePostMode === 'offer'
+      ? `GOOGLE MODE: offer
+- Lead with the offer, not the explanation.
+- Say who it is for.
+- Include a time-bound note.
+- Use one CTA question under 10 words.
+- Keep the message local and specific.`
+      : `GOOGLE MODE: standard
+- Lead with the risk or problem.
+- Add one quick insight or fix.
+- Keep each block short and scannable.
+- Use one uncomfortable question only if it fits.
+- Stay practical and local.`;
     const googlePostRules = `GOOGLE POSTS:
 - Write for someone actively searching IT services right now.
 - Make every post feel local: Ontario, GTA, or Richmond Hill.
@@ -3541,6 +3570,7 @@ Return ONLY a raw JSON array (nothing before [ or after ]):
 - Keep the logo subtle and in the bottom corner.
 - Keep contact info small and consistent.
 - Simple formula: Headline → Tension line → 3-step breakdown → Sharp CTA question → Footer + logo.
+${googleModeRules}
 
 GOOGLE POST TYPES:
 Standard posts:
@@ -3558,6 +3588,8 @@ Offer posts:
 - Time-bound note
 - One CTA button action
 - Keep it specific and local
+- Standard mode should lead with risk and a quick fix.
+- Offer mode should lead with the offer, who it is for, and the time window.
 
 Google output rules:
 - headline: 5 to 8 words max
@@ -3570,7 +3602,7 @@ Google output rules:
 - mention the industry when possible
 - if using bullets, keep them short and practical
 - always keep the next step obvious`;
-    const googlePostOutputShape = `{"platform":"google","headline":"MAX 8 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","caption":"short Google post copy","hashtags":"0-3 hashtags only","cta":"MAX 10 WORDS"}`;
+    const googlePostOutputShape = `{"platform":"google","postType":"${googlePostMode}","headline":"MAX 8 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","caption":"short Google post copy","hashtags":"0-3 hashtags only","cta":"MAX 10 WORDS"}`;
     const manualTopicPrompt = `You are an expert B2B social media writer for Midas Tech Inc., a Richmond Hill, Ontario business technology company.
 
 Create ${perPlat} sets of posts based only on this topic:
@@ -3657,6 +3689,8 @@ Use the style of your strongest posts:
    - Treat these as trusted sources for framing credibility: ${PREFERRED_SOURCE_NAMES}.
    - Keep stats grounded in source material. Do not invent numbers.
 
+${googleModePromptBlock}
+
 For each source item, generate ONE Instagram post, ONE LinkedIn post, and ONE Google Post. Total: ${perPlat*3} posts.
 
 STRICT FORMAT RULES:
@@ -3678,7 +3712,7 @@ ${visualInstructions}
 ${audienceCfg.linkedinCTA}
 
 Return ONLY raw JSON array (nothing before [ or after ]):
-[{"platform":"instagram","postType":"${needsStructuredVisual?'infographic':'alert'}","imageStyle":"${requestedVisualStyle}","imagePrompt":"visual concept prompt","headline":"MAX 5 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","body":"max 180 char image text","caption":"full IG caption","hashtags":"topic-specific hashtags","cta":"MAX 40 CHAR"${requestedVisualStyle==='alert'?',"sources":["...","...","..."],"risks":["...","...","...","..."],"services":["...","...","...","..."]':''}${requestedVisualStyle==='tips'?',"tips":[{"num":"01","title":"...","body":"..."}]':''}${requestedVisualStyle==='checklist'?',"checklist":["...","...","...","...","..."]':''}${requestedVisualStyle==='stats'?',"stats":[{"value":"...","label":"..."},{"value":"...","label":"..."},{"value":"...","label":"..."}]':''}},{"platform":"linkedin","postType":"${needsStructuredVisual?'infographic':'alert'}","imageStyle":"${requestedVisualStyle}","imagePrompt":"visual concept prompt","headline":"MAX 5 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","body":"max 180 char image text","caption":"full LI caption 150-220 words","hashtags":"topic-specific hashtags","cta":"MAX 40 CHAR"${requestedVisualStyle==='alert'?',"sources":["...","...","..."],"risks":["...","...","...","..."],"services":["...","...","...","..."]':''}${requestedVisualStyle==='tips'?',"tips":[{"num":"01","title":"...","body":"..."}]':''}${requestedVisualStyle==='checklist'?',"checklist":["...","...","...","...","..."]':''}${requestedVisualStyle==='stats'?',"stats":[{"value":"...","label":"..."},{"value":"...","label":"..."},{"value":"...","label":"..."}]':''}},{"platform":"google","postType":"${needsStructuredVisual?'infographic':'alert'}","imageStyle":"${requestedVisualStyle}","imagePrompt":"visual concept prompt","headline":"MAX 8 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","body":"max 180 char image text","caption":"short Google post copy","hashtags":"0-3 hashtags only","cta":"MAX 40 CHAR"}]
+[{"platform":"instagram","postType":"${needsStructuredVisual?'infographic':'alert'}","imageStyle":"${requestedVisualStyle}","imagePrompt":"visual concept prompt","headline":"MAX 5 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","body":"max 180 char image text","caption":"full IG caption","hashtags":"topic-specific hashtags","cta":"MAX 40 CHAR"${requestedVisualStyle==='alert'?',"sources":["...","...","..."],"risks":["...","...","...","..."],"services":["...","...","...","..."]':''}${requestedVisualStyle==='tips'?',"tips":[{"num":"01","title":"...","body":"..."}]':''}${requestedVisualStyle==='checklist'?',"checklist":["...","...","...","...","..."]':''}${requestedVisualStyle==='stats'?',"stats":[{"value":"...","label":"..."},{"value":"...","label":"..."},{"value":"...","label":"..."}]':''}},{"platform":"linkedin","postType":"${needsStructuredVisual?'infographic':'alert'}","imageStyle":"${requestedVisualStyle}","imagePrompt":"visual concept prompt","headline":"MAX 5 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","body":"max 180 char image text","caption":"full LI caption 150-220 words","hashtags":"topic-specific hashtags","cta":"MAX 40 CHAR"${requestedVisualStyle==='alert'?',"sources":["...","...","..."],"risks":["...","...","...","..."],"services":["...","...","...","..."]':''}${requestedVisualStyle==='tips'?',"tips":[{"num":"01","title":"...","body":"..."}]':''}${requestedVisualStyle==='checklist'?',"checklist":["...","...","...","...","..."]':''}${requestedVisualStyle==='stats'?',"stats":[{"value":"...","label":"..."},{"value":"...","label":"..."},{"value":"...","label":"..."}]':''}},{"platform":"google","postType":"${googlePostMode}","imageStyle":"${requestedVisualStyle}","imagePrompt":"visual concept prompt","headline":"MAX 8 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","body":"max 180 char image text","caption":"short Google post copy","hashtags":"0-3 hashtags only","cta":"MAX 10 WORDS"}]
 
 Generate all ${perPlat*3} posts.`;
 
@@ -3705,7 +3739,7 @@ Style transformation example:
 
 Write only post copy, not design instructions.
 Return JSON only with this shape:
-[{"platform":"instagram","headline":"MAX 12 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","caption":"full IG caption","hashtags":"topic-specific hashtags","cta":"MAX 40 CHAR"},{"platform":"linkedin","headline":"MAX 12 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","caption":"full LI caption","hashtags":"topic-specific hashtags","cta":"MAX 40 CHAR"},{"platform":"google","headline":"MAX 8 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","caption":"short Google post copy","hashtags":"0-3 hashtags only","cta":"MAX 40 CHAR"}]
+[{"platform":"instagram","headline":"MAX 12 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","caption":"full IG caption","hashtags":"topic-specific hashtags","cta":"MAX 40 CHAR"},{"platform":"linkedin","headline":"MAX 12 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","caption":"full LI caption","hashtags":"topic-specific hashtags","cta":"MAX 40 CHAR"},{"platform":"google","postType":"${googlePostMode}","headline":"MAX 8 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","caption":"short Google post copy","hashtags":"0-3 hashtags only","cta":"MAX 40 CHAR"}]
 
 Rules:
 - Write for ONE industry and ONE role only.
@@ -3950,6 +3984,7 @@ Final Output Check:
     }
     posts=normalizeStructuredPosts(posts, 'post');
     if (!posts.some((post) => String(post.platform || '').toLowerCase() === 'google')) {
+      const isGoogleOffer = googlePostMode === 'offer';
       const googleHashtags = String(hashtagString || '')
         .split(/\s+/)
         .map((tag) => tag.trim())
@@ -3962,20 +3997,27 @@ Final Output Check:
       const googlePosts = Array.from({ length: Math.max(1, perPlat) }, (_, index) => {
         const src = googleSourcePool[index % googleSourcePool.length] || googleSourcePool[0] || {};
         const sourceHeadline = normalizePromptText(src.headline || topicContext || industryCfg.label || 'Google Post');
-        const hook = truncateWords(sourceHeadline, 8) || 'Local IT help';
+        const hook = isGoogleOffer
+          ? truncateWords(`${industryCfg.label} offer`, 8) || 'Quick local offer'
+          : (truncateWords(sourceHeadline, 8) || 'Local IT help');
         const summaryLine = normalizePromptText(src.summary || src.caption || src.body || topicContext || 'A direct business problem needs a clear fix.');
         const googleCaption = currentMode === 'manual' && !manualTopicIsCyber
-          ? `${hook}\n\n${manualTopicPlain} helps local businesses work faster with fewer manual steps.\n\nOntario and GTA teams often lose time to repetitive admin.\n\nBook a quick workflow review this week.\n\n📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca`
-          : `${hook}\n\n${summaryLine}\n\n${industryCfg.label} in Ontario need a clear next step right now.\n\nLearn more and book a quick review.\n\n📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca`;
+          ? (isGoogleOffer
+            ? `Free ${manualTopicPlain} review\n\nOntario and GTA teams often lose time to repetitive admin.\n\nThis week only for local businesses.\n\nWould you even know where the bottleneck is?\n\n📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca`
+            : `${hook}\n\n${manualTopicPlain} helps local businesses work faster with fewer manual steps.\n\nOntario and GTA teams often lose time to repetitive admin.\n\nWould you know where the bottleneck is?\n\n📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca`)
+          : (isGoogleOffer
+            ? `Free ${industryCfg.label} review\n\n${summaryLine}\n\nThis week only for Ontario businesses.\n\nWould you know if your systems were exposed right now?\n\n📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca`
+            : `${hook}\n\n${summaryLine}\n\n${industryCfg.label} in Ontario need a clear next step right now.\n\nWould you know where the gap is?\n\n📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca`);
         return {
           platform: 'google',
+          postType: googlePostMode,
           headline: hook,
           category: String(src.category_tag || src.category || 'GOOGLE POST').toUpperCase().slice(0, 24),
           stat: src.key_stat || src.stat || null,
           statLabel: src.stat_label || src.statLabel || null,
           caption: googleCaption,
           hashtags: googleHashtags,
-          cta: currentMode === 'manual' && !manualTopicIsCyber ? 'BOOK A QUICK REVIEW' : 'LEARN MORE'
+          cta: isGoogleOffer ? 'BOOK A QUICK REVIEW' : 'LEARN MORE'
         };
       });
       posts = [...posts, ...googlePosts];
