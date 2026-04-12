@@ -3522,6 +3522,25 @@ Return ONLY a raw JSON array (nothing before [ or after ]):
 - First 5 to 8 words must grab attention.
 - Include one clear CTA only.
 - Use 0 to 3 hashtags max.
+- Compress language aggressively.
+- Replace long phrases with sharper ones.
+- Use cause → effect chains when possible: Problem → Blindspot → Risk.
+- One idea per section. Do not mix concepts in one block.
+- Headline should be a statement, not an explanation.
+- Subtext should build tension or doubt.
+- CTA should ask an uncomfortable question when it fits.
+- Keep CTA under 10 words.
+- Follow a clear hierarchy: Headline → Subtext → Core content → CTA → Footer.
+- Use flow direction: left → right or top → bottom.
+- Limit the layout to 3 to 5 blocks max.
+- Use contrast over decoration.
+- Keep one accent color only, with red reserved for risk.
+- Use icons to support meaning, not just for decoration.
+- Make the message readable in 3 seconds.
+- Remove filler words and micro-errors.
+- Keep the logo subtle and in the bottom corner.
+- Keep contact info small and consistent.
+- Simple formula: Headline → Tension line → 3-step breakdown → Sharp CTA question → Footer + logo.
 
 GOOGLE POST TYPES:
 Standard posts:
@@ -3529,6 +3548,8 @@ Standard posts:
 - Risk or problem in 1 to 2 short lines
 - Quick insight or fix
 - One CTA button action
+- One idea per block
+- Use arrows for process or consequence
 
 Offer posts:
 - Hook based on the problem
@@ -3536,18 +3557,20 @@ Offer posts:
 - Who it is for
 - Time-bound note
 - One CTA button action
+- Keep it specific and local
 
 Google output rules:
 - headline: 5 to 8 words max
+- headline must be a statement
 - keep captions tight and easy to scan
-- 2 to 4 short blocks max
+- 3 to 5 short blocks max
 - do not write long paragraphs
 - avoid storytelling and filler
 - focus on clarity over flair
 - mention the industry when possible
 - if using bullets, keep them short and practical
 - always keep the next step obvious`;
-    const googlePostOutputShape = `{"platform":"google","headline":"MAX 8 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","caption":"short Google post copy","hashtags":"0-3 hashtags only","cta":"MAX 40 CHAR"}`;
+    const googlePostOutputShape = `{"platform":"google","headline":"MAX 8 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","caption":"short Google post copy","hashtags":"0-3 hashtags only","cta":"MAX 10 WORDS"}`;
     const manualTopicPrompt = `You are an expert B2B social media writer for Midas Tech Inc., a Richmond Hill, Ontario business technology company.
 
 Create ${perPlat} sets of posts based only on this topic:
@@ -3645,7 +3668,7 @@ STRICT FORMAT RULES:
 - "category": short alert type (e.g. "RANSOMWARE ALERT", "SECURITY TIP")
 - Instagram caption: Bold statement hook (no question, no "Did you know") → 1-2 short paragraphs naming exact pain for the target industry → use arrow format for consequences (→ Downtime → Lost trust → Fines) → "What we see in many firms:" + 2-3 bullet gaps (• No MFA • No tested backup • Outdated systems) → low-friction CTA. 90-140 words. Max 2 emojis total.
 - LinkedIn caption: 160-220 words. STRUCTURE EXACTLY AS FOLLOWS — (1) Bold factual hook line. (2) One short context line explaining why now matters. (3) One sentence naming who is being targeted (specific industry + Ontario). (4) Consequence block using arrow format: "One successful attack can mean: → Downtime → Lost client trust → Compliance penalties". (5) Gap list: "What we see in many firms: • No MFA • No tested backup • Outdated systems". (6) One sentence bridge to Midas Tech. (7) One time-bound offer OR one direct CTA, not both. Choose one and stop. — Use single blank lines between every block for LinkedIn spacing. No long paragraphs. No corporate speak. Max 2 Midas Tech mentions.
-- Google Post caption: 60-120 words, split into 2-4 short blocks max. Start with a 5-8 word hook. Keep it direct and local. Include one clear CTA button action only. Use 0-3 hashtags max. Standard posts should focus on risk + quick value. Offer posts should feel time-sensitive and specific.
+- Google Post caption: 60-120 words, split into 3-5 short blocks max. Start with a 5-8 word statement headline. Keep it direct and local. Use cause → effect chains, one idea per block, and a tension-building subtext. Include one uncomfortable CTA question when it fits, under 10 words. Use 0-3 hashtags max. Standard posts should focus on risk + quick value. Offer posts should feel time-sensitive and specific.
 - End EVERY caption (Instagram and LinkedIn) with a blank line followed exactly by this contact line: 📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca
 - Hashtags: Instagram 8-12 varied topic hashtags. LinkedIn 3-5 clean professional hashtags.
 - "imagePrompt": Clean, minimal, high-contrast visual. Best performers: phishing email on screen, padlock breaking, a focused business owner at a laptop with warning indicators, or a simple business scene with obvious tension — relatable Ontario SMB office setting. NOT: abstract glowing shields, generic circuit boards, or busy infographic-style scenes. No text overlays. Think editorial photography style, not stock tech illustration. Leave visual breathing room for the Midas Tech logo/footer overlay.
