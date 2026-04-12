@@ -3984,199 +3984,283 @@ function getPromptBullets(post) {
 
 const IMAGE_PROMPT_TYPES = {
   editorial_photo: {
-    label: 'Editorial Photo',
-    summary: 'A realistic business photo with human tension and no fake overlays.',
+    label: 'Single-Message Graphic',
+    summary: 'One bold headline, optional support line, and lots of breathing room.',
     ig: {
-      intro: 'Create a modern, high-contrast Instagram post (square 1:1) using a realistic editorial photo.',
-      style: 'Style: clean, minimal, photo-led, professional',
-      palette: 'Color palette: dark background (black/navy) with subtle blue accents and restrained urgency',
+      intro: 'Create a single-message Instagram graphic (square 1:1) with one bold headline and an optional support line.',
+      style: 'Style: clean, high-contrast, simple, emotional',
+      palette: 'Color palette: dark or light background with one or two strong accent colors',
       visual: [
-        '- use a real office or workplace scene',
-        '- keep the subject human and relatable',
-        '- avoid diagrams, charts, or fake dashboards'
+        '- one big headline only',
+        '- optional one-line supporting line',
+        '- lots of spacing and no clutter'
       ],
-      mood: 'Mood: realistic, trustworthy, slightly urgent',
-      typography: 'Typography: bold headline, high contrast, easy to read'
+      mood: 'Mood: urgent, curious, memorable',
+      typography: 'Typography: oversized headline, compact support line, strong hierarchy'
     },
     li: {
-      intro: 'Create a clean, professional LinkedIn post image (square 1:1 or landscape 4:5) using a realistic editorial business photo.',
-      style: 'Style: corporate, minimal, trustworthy, modern',
-      palette: 'Color palette: light or dark background with blue/grey tones and subtle accents',
+      intro: 'Create a single-message LinkedIn graphic (square 1:1 or landscape 4:5) with one bold headline and minimal supporting copy.',
+      style: 'Style: executive, simple, high-contrast',
+      palette: 'Color palette: restrained blues, greys, and a single accent color',
       visual: [
-        '- use a real office, team, or workspace scene',
-        '- keep the composition professional and believable',
-        '- avoid heavy infographic treatment'
+        '- one idea only',
+        '- keep the layout clean and spacious',
+        '- let the headline carry the message'
       ],
-      mood: 'Mood: calm, informative, trustworthy',
-      typography: 'Typography: simple, corporate font, strong hierarchy'
+      mood: 'Mood: direct, credible, polished',
+      typography: 'Typography: bold headline, restrained subline, strong spacing'
     }
   },
   infographic: {
     label: 'Infographic',
-    summary: 'A structured visual with sections, icons, and short callouts.',
+    summary: '3 to 5 key points with icons and a structured layout.',
     ig: {
-      intro: 'Create a bold Instagram infographic (square 1:1) with clear sections and strong visual hierarchy.',
+      intro: 'Create an infographic for Instagram (square 1:1) with a clear title and 3 to 5 short key points.',
       style: 'Style: structured, educational, modern',
       palette: 'Color palette: dark or light background with blue, white, and accent colors',
       visual: [
-        '- use 3 to 5 clean sections',
-        '- add icons, numbers, or labeled blocks',
-        '- keep text short and highly readable'
+        '- clear title at the top',
+        '- 3 to 5 icon-led sections',
+        '- short labels, no paragraphs'
       ],
-      mood: 'Mood: informative, crisp, highly scannable',
-      typography: 'Typography: strong headings, compact body copy, clear hierarchy'
+      mood: 'Mood: informative, crisp, scannable',
+      typography: 'Typography: strong headings, short body copy, clean hierarchy'
     },
     li: {
-      intro: 'Create a clean LinkedIn infographic (square 1:1 or landscape 4:5) with clear sections and professional polish.',
+      intro: 'Create an infographic for LinkedIn (square 1:1 or landscape 4:5) with a clear title and 3 to 5 short key points.',
       style: 'Style: corporate, structured, educational',
       palette: 'Color palette: blue/grey tones with enough contrast for readability',
       visual: [
-        '- structure the content into simple blocks',
-        '- use icons and short labels',
-        '- keep the layout readable on mobile'
+        '- organize content into sections or a grid',
+        '- use simple icons for each point',
+        '- keep the layout mobile-friendly'
       ],
       mood: 'Mood: professional, practical, clear',
       typography: 'Typography: simple corporate font, strong hierarchy'
     }
   },
   checklist_card: {
-    label: 'Checklist Card',
-    summary: 'A clean checklist layout for steps, fixes, or action items.',
+    label: 'Checklist / Action Steps',
+    summary: '3 to 5 actionable steps with a do-this-now feel.',
     ig: {
-      intro: 'Create a clean Instagram checklist card (square 1:1) with short action items and strong visual hierarchy.',
-      style: 'Style: minimal, list-driven, easy to scan',
-      palette: 'Color palette: dark background with blue accents and white text',
+      intro: 'Create a checklist graphic for Instagram (square 1:1) with a “Do this now” tone and 3 to 5 action steps.',
+      style: 'Style: direct, practical, list-led',
+      palette: 'Color palette: dark background with blue accents and bright checkmarks',
       visual: [
-        '- use checkmarks or checkbox rows',
-        '- keep to 3 to 5 short items',
-        '- make the list the main focus'
+        '- title should feel action-oriented',
+        '- use checkbox or icon markers for each step',
+        '- keep the wording short and actionable'
       ],
-      mood: 'Mood: practical, direct, useful',
-      typography: 'Typography: bold title, compact list text, clear spacing'
+      mood: 'Mood: helpful, urgent, practical',
+      typography: 'Typography: bold title, readable checklist rows, strong spacing'
     },
     li: {
-      intro: 'Create a clean LinkedIn checklist card (square 1:1 or landscape 4:5) with short action items and a professional finish.',
-      style: 'Style: corporate, organized, practical',
-      palette: 'Color palette: light or dark background with blue/grey tones',
+      intro: 'Create a checklist graphic for LinkedIn (square 1:1 or landscape 4:5) with a “Do this now” tone and 3 to 5 action steps.',
+      style: 'Style: corporate, organized, actionable',
+      palette: 'Color palette: blue/grey tones with simple check icons',
       visual: [
-        '- use checkmarks or numbered checklist items',
-        '- keep the layout clean and uncluttered',
-        '- make the action steps easy to read'
+        '- keep the checklist short and easy to scan',
+        '- use clear checkboxes or numbered steps',
+        '- let the title set the urgency'
       ],
-      mood: 'Mood: helpful, calm, actionable',
-      typography: 'Typography: strong heading, readable checklist rows'
+      mood: 'Mood: calm, useful, decisive',
+      typography: 'Typography: strong title, compact action text, clean hierarchy'
     }
   },
   workflow_diagram: {
-    label: 'Workflow Diagram',
-    summary: 'Best for automation, process changes, and step-by-step flows.',
+    label: 'Problem → Solution',
+    summary: 'A split layout that compares the issue against the fix.',
     ig: {
-      intro: 'Create a workflow diagram Instagram post (square 1:1) that shows steps, arrows, and a simple business process.',
-      style: 'Style: process-driven, clean, modern',
-      palette: 'Color palette: dark or light background with blue accents',
+      intro: 'Create a Problem → Solution Instagram graphic (square 1:1) with a split layout.',
+      style: 'Style: contrast-driven, clean, direct',
+      palette: 'Color palette: red or orange for the problem side, blue or green for the solution side',
       visual: [
-        '- show 3 to 5 connected steps',
-        '- use arrows, flow boxes, or connectors',
-        '- keep labels short and easy to scan'
+        '- left side shows the problem',
+        '- right side shows the solution',
+        '- use icons or symbols instead of long text'
       ],
-      mood: 'Mood: efficient, organized, practical',
-      typography: 'Typography: simple, readable, strong hierarchy'
+      mood: 'Mood: practical, persuasive, clear',
+      typography: 'Typography: short labels, strong contrast, simple hierarchy'
     },
     li: {
-      intro: 'Create a workflow diagram LinkedIn post (square 1:1 or landscape 4:5) that explains a business process with clear steps.',
-      style: 'Style: structured, professional, process-first',
-      palette: 'Color palette: blue/grey tones with subtle contrast',
+      intro: 'Create a Problem → Solution LinkedIn graphic (square 1:1 or landscape 4:5) with a split layout.',
+      style: 'Style: professional comparison, clear contrast',
+      palette: 'Color palette: restrained red vs blue/green contrast',
       visual: [
-        '- show the workflow as a simple sequence',
-        '- use arrows or numbered steps',
-        '- keep the design very readable'
+        '- split the design into problem and solution sides',
+        '- keep labels short and readable',
+        '- make the comparison obvious at a glance'
       ],
-      mood: 'Mood: practical, efficient, business-focused',
-      typography: 'Typography: clean corporate font, clear step labels'
+      mood: 'Mood: credible, structured, persuasive',
+      typography: 'Typography: readable labels, clean layout, clear contrast'
     }
   },
   comparison_card: {
-    label: 'Before / After',
-    summary: 'Good for showing manual vs automated, weak vs improved, or old vs new.',
+    label: 'Case Study / Scenario Visual',
+    summary: 'Situation → Problem → Outcome with a simple flow or timeline.',
     ig: {
-      intro: 'Create a comparison-style Instagram post (square 1:1) with a clear before-and-after layout.',
-      style: 'Style: split-layout, bold, easy to compare',
-      palette: 'Color palette: dark background with contrasting side colors',
+      intro: 'Create a case study or scenario Instagram graphic (square 1:1) using a simple three-part flow.',
+      style: 'Style: narrative, structured, clear',
+      palette: 'Color palette: consistent across all sections with subtle contrast',
       visual: [
-        '- split the image into two clear sides',
-        '- show before/after or old/new states',
-        '- keep each side simple and readable'
+        '- show Situation, Problem, and Outcome',
+        '- use a timeline or flow layout',
+        '- keep each section short'
       ],
-      mood: 'Mood: contrast-driven, persuasive, clear',
-      typography: 'Typography: bold labels, strong contrast, easy comparison'
+      mood: 'Mood: real-world, reflective, persuasive',
+      typography: 'Typography: clear section labels, concise text, strong hierarchy'
     },
     li: {
-      intro: 'Create a comparison-style LinkedIn post (square 1:1 or landscape 4:5) with a clear before-and-after layout.',
-      style: 'Style: professional split-screen, clean comparison',
-      palette: 'Color palette: blue/grey tones with strong contrast between sides',
+      intro: 'Create a case study or scenario LinkedIn graphic (square 1:1 or landscape 4:5) using a simple three-part flow.',
+      style: 'Style: professional, story-led, clean',
+      palette: 'Color palette: blue/grey tones with subtle section contrast',
       visual: [
-        '- compare manual vs automated or old vs improved',
-        '- keep the two sides balanced',
-        '- use simple labels for each side'
+        '- structure the post as a small story',
+        '- keep the three sections easy to follow',
+        '- focus on the business outcome'
       ],
-      mood: 'Mood: persuasive, structured, professional',
-      typography: 'Typography: readable labels, strong visual hierarchy'
+      mood: 'Mood: credible, informative, human',
+      typography: 'Typography: simple labels, readable flow, strong hierarchy'
     }
   },
   stats_card: {
-    label: 'Stats Card',
-    summary: 'Ideal for a big number, metric, or data point that should stand out.',
+    label: 'Stats / Data Highlight',
+    summary: 'One big number with a short explanation and clean typography.',
     ig: {
-      intro: 'Create a bold Instagram stats card (square 1:1) centered around one large number or metric.',
-      style: 'Style: data-forward, minimal, high-impact',
-      palette: 'Color palette: dark background with bright accent color for the number',
+      intro: 'Create a stats highlight Instagram graphic (square 1:1) centered on one big number.',
+      style: 'Style: minimal, bold, data-led',
+      palette: 'Color palette: dark background with a bright accent color for the number',
       visual: [
-        '- make one number the focal point',
-        '- keep supporting text extremely short',
-        '- avoid clutter or too many elements'
+        '- one big number in the center',
+        '- short explanation below',
+        '- optional tiny source line'
       ],
-      mood: 'Mood: sharp, alarming, informative',
-      typography: 'Typography: oversized number, short labels, strong contrast'
+      mood: 'Mood: sharp, credible, urgent',
+      typography: 'Typography: oversized number, short label, strong contrast'
     },
     li: {
-      intro: 'Create a bold LinkedIn stats card (square 1:1 or landscape 4:5) centered around one large number or metric.',
-      style: 'Style: minimal, executive, data-led',
-      palette: 'Color palette: blue/grey tones with a clean highlight color',
+      intro: 'Create a stats highlight LinkedIn graphic (square 1:1 or landscape 4:5) centered on one big number.',
+      style: 'Style: executive, minimal, metric-first',
+      palette: 'Color palette: blue/grey tones with a clean accent color',
       visual: [
-        '- make one number the hero',
-        '- keep the rest of the layout restrained',
-        '- let the metric drive the message'
+        '- let the number dominate the layout',
+        '- keep the explanation short and clean',
+        '- avoid clutter around the metric'
       ],
-      mood: 'Mood: credible, concise, analytical',
-      typography: 'Typography: large number, compact support text, clean hierarchy'
+      mood: 'Mood: analytical, confident, concise',
+      typography: 'Typography: large number, compact explanation, strong hierarchy'
     }
   },
   quote_card: {
-    label: 'Quote Card',
-    summary: 'Best for a bold statement, offer, or memorable line.',
+    label: 'Thought Leadership Quote',
+    summary: 'One strong insight, minimal clutter, and a polished authority feel.',
     ig: {
-      intro: 'Create a bold Instagram quote card (square 1:1) with a minimal background and strong typography.',
-      style: 'Style: statement-led, clean, minimal',
-      palette: 'Color palette: dark background with one accent color',
+      intro: 'Create a thought leadership Instagram graphic (square 1:1) with one strong insight or belief.',
+      style: 'Style: minimal, editorial, authoritative',
+      palette: 'Color palette: clean background with restrained brand accents',
       visual: [
-        '- make the headline the hero',
-        '- keep the background simple',
-        '- leave plenty of negative space'
+        '- one insight or belief only',
+        '- company or name can sit small at the bottom',
+        '- leave lots of breathing room'
       ],
-      mood: 'Mood: direct, confident, memorable',
-      typography: 'Typography: oversized headline, minimal support text'
+      mood: 'Mood: authentic, confident, expert',
+      typography: 'Typography: bold quote text, minimal supporting text'
     },
     li: {
-      intro: 'Create a bold LinkedIn quote card (square 1:1 or landscape 4:5) with a clean background and strong typography.',
-      style: 'Style: executive, minimal, statement-driven',
-      palette: 'Color palette: light or dark background with restrained brand accents',
+      intro: 'Create a thought leadership LinkedIn graphic (square 1:1 or landscape 4:5) with one strong insight or belief.',
+      style: 'Style: executive, polished, minimal',
+      palette: 'Color palette: light or dark background with subtle branding',
       visual: [
-        '- keep the quote or message front and center',
-        '- avoid busy supporting elements',
-        '- use strong contrast and generous spacing'
+        '- keep the design clean and professional',
+        '- use the company or name as a small footer mark',
+        '- make the insight the focal point'
       ],
-      mood: 'Mood: polished, confident, memorable',
-      typography: 'Typography: strong headline, clear hierarchy, minimal clutter'
+      mood: 'Mood: trustworthy, thoughtful, expert',
+      typography: 'Typography: strong quote, clear spacing, minimal clutter'
+    }
+  },
+  carousel_slides: {
+    label: 'Carousel Slides',
+    summary: 'A multi-slide layout with a hook, insights, solution, and CTA.',
+    ig: {
+      intro: 'Create an Instagram carousel with multiple slides. Slide 1 should be a bold hook, slides 2 to 4 should cover the problem or insights, and the last slide should end with a CTA.',
+      style: 'Style: multi-page, consistent, minimalist, high-readability',
+      palette: 'Color palette: consistent across all slides with strong contrast and one accent color',
+      visual: [
+        '- one idea per slide',
+        '- keep every slide very simple',
+        '- maintain the same visual system across the full set'
+      ],
+      mood: 'Mood: educational, persuasive, sequential',
+      typography: 'Typography: large slide headlines, minimal subtext, consistent sizing'
+    },
+    li: {
+      intro: 'Create a LinkedIn carousel with multiple slides. Slide 1 should be a bold hook, slides 2 to 4 should cover the problem or insights, and the final slide should end with a CTA.',
+      style: 'Style: professional, editorial, multi-page',
+      palette: 'Color palette: consistent across slides with restrained brand accents',
+      visual: [
+        '- keep each slide focused on one point',
+        '- use the same spacing, colors, and typography throughout',
+        '- make the slides easy to read on mobile'
+      ],
+      mood: 'Mood: thoughtful, structured, authoritative',
+      typography: 'Typography: strong headline hierarchy, compact supporting copy'
+    }
+  },
+  alert_warning: {
+    label: 'Alert / Warning',
+    summary: 'A sharp warning post with subtle red accents and one clear risk.',
+    ig: {
+      intro: 'Create an alert / warning Instagram graphic (square 1:1) with a strong headline and subtle red accents.',
+      style: 'Style: urgent, minimal, high-contrast',
+      palette: 'Color palette: dark background with restrained red accents and white text',
+      visual: [
+        '- one risk should be obvious immediately',
+        '- keep the mood slightly intense',
+        '- no clutter, no busy overlays'
+      ],
+      mood: 'Mood: urgent, serious, attention-grabbing',
+      typography: 'Typography: bold warning headline, strong contrast, short support text'
+    },
+    li: {
+      intro: 'Create an alert / warning LinkedIn graphic (square 1:1 or landscape 4:5) with a strong headline and subtle red accents.',
+      style: 'Style: professional alert, restrained, clean',
+      palette: 'Color palette: blue/grey base with careful red accents',
+      visual: [
+        '- keep one risk front and center',
+        '- use a serious, business-appropriate tone',
+        '- avoid overly dramatic visuals'
+      ],
+      mood: 'Mood: serious, credible, restrained',
+      typography: 'Typography: clear warning headline, short support line, clean spacing'
+    }
+  },
+  personal_brand_authority: {
+    label: 'Personal Brand / Authority',
+    summary: 'A clean professional portrait with one insight and subtle branding.',
+    ig: {
+      intro: 'Create a personal brand authority Instagram graphic (square 1:1) using a clean professional portrait and one strong insight.',
+      style: 'Style: authentic, professional, minimal',
+      palette: 'Color palette: natural, clean, with subtle brand accents',
+      visual: [
+        '- include a clean professional photo of the person',
+        '- add one insight or belief only',
+        '- keep the branding subtle and authentic'
+      ],
+      mood: 'Mood: confident, human, trustworthy',
+      typography: 'Typography: short headline, small name/company line, strong readability'
+    },
+    li: {
+      intro: 'Create a personal brand authority LinkedIn graphic (square 1:1 or landscape 4:5) using a clean professional portrait and one strong insight.',
+      style: 'Style: professional, editorial, authentic',
+      palette: 'Color palette: restrained and polished, with subtle brand accents',
+      visual: [
+        '- use the person’s photo as the focal point',
+        '- keep the message honest and non-salesy',
+        '- leave room for the name and company at the bottom'
+      ],
+      mood: 'Mood: credible, personal, expert',
+      typography: 'Typography: concise headline, clean name block, strong spacing'
     }
   }
 };
@@ -4201,39 +4285,54 @@ function getImagePromptTypeDetails(type, platform) {
 
 function isPromptTypeRelevant(post, typeId) {
   const text = `${post?.headline || ''} ${post?.category || ''} ${post?.caption || ''} ${post?.notes || ''} ${post?.body || ''} ${currentGenerationContext.topicContext || ''}`.toLowerCase();
-  if (typeId === 'workflow_diagram') return /power automate|workflow|automation|process|approval|reminder|task|manual step|repetitive/.test(text);
-  if (typeId === 'checklist_card') return /checklist|tip|tips|steps|guide|how to|action|fix|audit|review/.test(text);
-  if (typeId === 'stats_card') return /stat|stats|number|trend|percent|percentages|report|data|metric/.test(text);
-  if (typeId === 'comparison_card') return /before|after|compare|versus|vs|old|new|manual|automate|improve|upgrade/.test(text);
-  if (typeId === 'quote_card') return /quote|statement|hook|thought|positioning|authority|offer|lead gen/.test(text);
-  if (typeId === 'infographic') return /guide|how to|tips|steps|process|list|checklist|educational/.test(text);
-  if (typeId === 'editorial_photo') return true;
+  if (typeId === 'editorial_photo') return /risk|alert|warning|hook|urgent|curious|attention|impact|breach|ransom|problem/.test(text);
+  if (typeId === 'infographic') return /guide|how to|tips|steps|process|list|checklist|educational|learn|explain/.test(text);
+  if (typeId === 'carousel_slides') return /carousel|slides|series|multi-page|step by step|steps|guide|how to|5 benefits|multiple/.test(text);
+  if (typeId === 'workflow_diagram') return /problem|solution|before|after|compare|versus|vs|manual|automate|fix|improve|upgrade|power automate|workflow|automation/.test(text);
+  if (typeId === 'stats_card') return /stat|stats|number|trend|percent|percentages|report|data|metric|one big number/.test(text);
+  if (typeId === 'quote_card') return /quote|statement|belief|insight|thought leadership|authority|opinion|commentary/.test(text);
+  if (typeId === 'checklist_card') return /checklist|do this now|steps|action|action steps|fix|audit|review|todo|to-do/.test(text);
+  if (typeId === 'alert_warning') return /alert|warning|risk|threat|urgent|critical|red flag|breach|downtime|attack/.test(text);
+  if (typeId === 'personal_brand_authority') return /personal brand|authority|founder|your photo|authentic|expert|belief|insight|company|name/.test(text);
+  if (typeId === 'comparison_card') return /case study|scenario|story|real-world|situation|outcome|timeline|example/.test(text);
   return false;
 }
 
 function getImagePromptRecommendations(post, platform) {
   const rules = [
-    { type: 'workflow_diagram', reason: 'Best for automation, approvals, repetitive tasks, and process improvements.' },
-    { type: 'checklist_card', reason: 'Great when the post is about steps, fixes, tips, or action items.' },
-    { type: 'comparison_card', reason: 'Useful when showing manual vs automated or before vs after.' },
-    { type: 'stats_card', reason: 'Good when one number or metric should carry the message.' },
+    { type: 'editorial_photo', reason: 'Great for a bold hook post with one emotional message and lots of spacing.' },
     { type: 'infographic', reason: 'Works well for educational posts that need sections and icons.' },
-    { type: 'quote_card', reason: 'Best for a bold statement, offer, or short attention-grabbing line.' },
-    { type: 'editorial_photo', reason: 'Most flexible when you want a human, realistic business scene.' }
+    { type: 'carousel_slides', reason: 'Best when you want to tell a story across multiple slides.' },
+    { type: 'workflow_diagram', reason: 'Useful when showing the issue on one side and the fix on the other.' },
+    { type: 'stats_card', reason: 'Good when one number or metric should carry the message.' },
+    { type: 'quote_card', reason: 'Best for a strong insight, belief, or authority-style statement.' },
+    { type: 'checklist_card', reason: 'Great when the post is about steps, fixes, tips, or action items.' },
+    { type: 'comparison_card', reason: 'Useful for real-world situations, outcomes, and short story formats.' },
+    { type: 'alert_warning', reason: 'Best for urgent warnings, risk alerts, and high-contrast posts.' },
+    { type: 'personal_brand_authority', reason: 'Good when the post is centered on a face, a founder voice, or expert positioning.' }
   ];
+  const text = `${post?.headline || ''} ${post?.category || ''} ${post?.caption || ''} ${post?.notes || ''} ${post?.body || ''} ${currentGenerationContext.topicContext || ''}`.toLowerCase();
+  const seedMap = {
+    editorial_photo: /risk|alert|warning|hook|urgent|curious|attention|impact|breach|ransom|problem/.test(text) ? 5 : 2,
+    infographic: /guide|how to|tips|steps|process|list|checklist|educational|learn|explain/.test(text) ? 5 : 2,
+    carousel_slides: /carousel|slides|series|multi-page|step by step|steps|guide|how to|5 benefits|multiple/.test(text) ? 5 : 1,
+    workflow_diagram: /problem|solution|before|after|compare|versus|vs|manual|automate|fix|improve|upgrade|power automate|workflow|automation/.test(text) ? 5 : 1,
+    stats_card: /stat|stats|number|trend|percent|percentages|report|data|metric|one big number/.test(text) ? 5 : 1,
+    quote_card: /quote|statement|belief|insight|thought leadership|authority|opinion|commentary/.test(text) ? 5 : 1,
+    checklist_card: /checklist|do this now|steps|action|action steps|fix|audit|review|todo|to-do/.test(text) ? 5 : 1,
+    comparison_card: /case study|scenario|story|real-world|situation|outcome|timeline|example/.test(text) ? 5 : 1,
+    alert_warning: /alert|warning|risk|threat|urgent|critical|red flag|breach|downtime|attack/.test(text) ? 5 : 1,
+    personal_brand_authority: /personal brand|authority|founder|your photo|authentic|expert|belief|insight|company|name/.test(text) ? 5 : 1
+  };
   const scored = rules.map((item) => ({
     ...item,
-    score: isPromptTypeRelevant(post, item.type) ? 1 : 0
+    score: seedMap[item.type] + (isPromptTypeRelevant(post, item.type) ? 2 : 0)
   })).sort((a, b) => b.score - a.score);
-  const lead = scored.filter((item) => item.score > 0).slice(0, 4);
-  const fallback = scored.filter((item) => item.score === 0).slice(0, 2);
+  const lead = scored.filter((item) => item.score >= 5).slice(0, 4);
+  const fallback = scored.filter((item) => item.score < 5).slice(0, 2);
   const result = [...lead, ...fallback];
   if (!result.some((item) => item.type === IMAGE_PROMPT_DEFAULT_TYPE)) {
-    result.unshift({
-      type: IMAGE_PROMPT_DEFAULT_TYPE,
-      reason: 'Safe default when you want a polished photo-led prompt.',
-      score: 0
-    });
+    result.unshift({ type: IMAGE_PROMPT_DEFAULT_TYPE, reason: 'Safe default when you want a polished hook-led graphic.', score: 0 });
   }
   return result.slice(0, 5);
 }
@@ -4324,45 +4423,47 @@ function buildImagePrompt(post, platform, imageType) {
     quotePromptText(supportLine),
   ];
 
-  if (type === 'workflow_diagram') {
+  if (type === 'carousel_slides') {
     lines.push(
       '',
-      'Workflow layout:',
-      '- show the process as 3 to 5 connected steps',
-      '- use arrows, boxes, or a simple sequence',
-      '- keep labels short and practical'
+      'Carousel blueprint:',
+      '- Slide 1: bold hook with curiosity or urgency',
+      '- Slides 2 to 4: problem, insights, or explanation',
+      '- Next slides: solution, tips, or action steps',
+      '- Last slide: CTA with a clean ending',
+      '- keep one idea per slide'
     );
-  } else if (type === 'comparison_card') {
+  } else if (type === 'workflow_diagram') {
     lines.push(
       '',
-      'Comparison layout:',
-      '- show before vs after or manual vs automated',
-      '- make the contrast obvious at a glance',
-      '- keep each side balanced'
+      'Split layout:',
+      '- left side shows the problem',
+      '- right side shows the solution',
+      '- use icons or symbols instead of long text'
     );
   } else if (type === 'stats_card') {
     lines.push(
       '',
-      'Data layout:',
+      'Stats layout:',
       '- make one big number the hero',
-      '- keep all supporting copy minimal',
-      '- leave room around the metric so it stands out'
+      '- keep the explanation short',
+      '- source text can stay small and subtle'
     );
   } else if (type === 'checklist_card') {
     lines.push(
       '',
       'Checklist layout:',
-      '- use 3 to 5 checkboxes or short bullet rows',
-      '- keep each item under one short line if possible',
-      '- make the list the visual focus'
+      '- title should feel action-oriented',
+      '- use 3 to 5 steps max',
+      '- use checkbox or icon markers'
     );
   } else if (type === 'quote_card') {
     lines.push(
       '',
-      'Statement layout:',
-      '- keep the headline as the main focal point',
-      '- use generous negative space',
-      '- make the message feel bold and memorable'
+      'Quote layout:',
+      '- one strong insight or belief only',
+      '- company or name can appear small at the bottom',
+      '- keep the design minimal and authentic'
     );
   } else if (type === 'infographic') {
     lines.push(
@@ -4372,17 +4473,41 @@ function buildImagePrompt(post, platform, imageType) {
       '- use icons, numbers, or labeled blocks',
       '- keep the structure simple and scannable'
     );
+  } else if (type === 'alert_warning') {
+    lines.push(
+      '',
+      'Alert layout:',
+      '- strong warning headline',
+      '- subtle red accents only',
+      '- one clear risk, no clutter'
+    );
+  } else if (type === 'personal_brand_authority') {
+    lines.push(
+      '',
+      'Authority layout:',
+      '- use a clean professional portrait if available',
+      '- place the name and company small at the bottom',
+      '- keep the message authentic and non-salesy'
+    );
+  } else if (type === 'comparison_card') {
+    lines.push(
+      '',
+      'Scenario layout:',
+      '- show Situation → Problem → Outcome',
+      '- keep the structure short and simple',
+      '- use a timeline or flow format'
+    );
   } else {
     lines.push(
       '',
-      'Photo layout:',
-      '- use a real office or business scene',
-      '- keep the subject human and relatable',
-      '- avoid fake dashboards, charts, or diagrams'
+      'Single-message layout:',
+      '- one big headline only',
+      '- optional one-line support text',
+      '- lots of breathing room'
     );
   }
 
-  if (bullets.length && type !== 'workflow_diagram' && type !== 'comparison_card' && type !== 'stats_card' && type !== 'quote_card') {
+  if (bullets.length && !['editorial_photo', 'carousel_slides', 'workflow_diagram', 'stats_card', 'quote_card', 'checklist_card', 'comparison_card', 'alert_warning', 'personal_brand_authority'].includes(type)) {
     lines.push(
       '',
       'Optional bullets (if needed, keep max 2–3):',
