@@ -903,6 +903,7 @@ let currentGenerationContext = {
 };
 const PREFERRED_CYBER_NEWS_SOURCES = [
   { name: 'Dark Reading', domain: 'darkreading.com', focus: 'technical and SOC-level insights' },
+  { name: 'Cybersecurity News', domain: 'cybersecuritynews.com', focus: 'broad cybersecurity headlines and current threat coverage' },
   { name: 'Krebs on Security', domain: 'krebsonsecurity.com', focus: 'investigative reporting with very low noise' },
   { name: 'Cybersecurity Dive', domain: 'cybersecuritydive.com', focus: 'trend breakdowns and business impact' },
   { name: 'SC Media', domain: 'scmagazine.com', focus: 'compliance, regulations, and enterprise risk' },
@@ -1172,7 +1173,7 @@ function normalizeStructuredPosts(posts, forcedStyle) {
     const style = getVisualStyle(next);
     if (style === 'alert') {
       if (!Array.isArray(next.sources) || !next.sources.length) {
-        next.sources = ['Krebs on Security', 'The Hacker News', 'BleepingComputer'];
+        next.sources = ['Krebs on Security', 'The Hacker News', 'Cybersecurity News'];
       } else {
         next.sources = next.sources.slice(0, 3);
       }
@@ -2602,7 +2603,7 @@ function drawIG_AlertLayout(ctx, W, H, post) {
   const isRed = /ransomware|breach|hack|attack|malware|downtime|leak/i.test(cat);
   const accent = isRed ? '#ffb020' : '#49b8ff';
   const bodyText = (post.body || '').slice(0, 150);
-  const sources = (post.sources || ['Krebs on Security', 'The Hacker News', 'BleepingComputer']).slice(0, 3);
+  const sources = (post.sources || ['Krebs on Security', 'The Hacker News', 'Cybersecurity News']).slice(0, 3);
   const risks = (post.risks || ['Weak passwords', 'No MFA', 'Outdated systems', 'No backup strategy']).slice(0, ig ? 3 : 4);
   const services = (post.services || ['Security audits', 'Microsoft 365 protection', 'Endpoint security', 'Backup solutions']).slice(0, 4);
 
@@ -2994,7 +2995,7 @@ function drawLI_AlertLayout(ctx, W, H, post) {
   const danger=isRed?'#ff5b57':'#35b0ff';
   const bodyText=(post.body||'').slice(0,135);
   const ctaTxt=(post.cta||'CONNECT WITH MIDAS TECH').toUpperCase();
-  const sources=(post.sources||['Krebs on Security','The Hacker News','BleepingComputer']).slice(0,3);
+  const sources=(post.sources||['Krebs on Security','The Hacker News','Cybersecurity News']).slice(0,3);
   const risks=(post.risks||['Weak passwords','No MFA','Outdated systems','No backup strategy']).slice(0,li?3:4);
   const services=(post.services||['Security audits','Microsoft 365 protection','Endpoint security','Backup solutions']).slice(0,4);
 
@@ -3371,6 +3372,7 @@ Preferred cybersecurity sources to prioritize first:
 ${PREFERRED_SOURCE_GUIDE}
 
 Search rules:
+- Check Cybersecurity News first when it has relevant coverage for the topic.
 - Prioritize stories from these preferred sources whenever they have relevant coverage.
 - If a preferred source does not have a strong match for a specific topic, use another credible primary cybersecurity or official source.
 - Prefer concrete incidents, threat campaigns, regulatory developments, or security guidance that matter to business leaders.
@@ -3708,7 +3710,7 @@ Final Output Check:
       const fallbackTips=[{num:"01",title:"Enable MFA Today",body:"Blocks 99% of automated credential attacks on your accounts."},{num:"02",title:"Patch All Software",body:"Unpatched systems are the #1 entry point for ransomware attacks."},{num:"03",title:"Train Your Team",body:"80% of breaches start with a phishing click from untrained staff."}];
       const fallbackChecklist=['Enable MFA for email','Test backups monthly','Patch critical systems fast','Train staff on phishing','Document incident response'];
       const fallbackStats=[{value:'24/7',label:'monitoring reduces blind spots'},{value:'3X',label:'faster response with a plan'},{value:'1',label:'weak point can halt operations'}];
-      const fallbackSources=['Krebs on Security','The Hacker News','BleepingComputer'];
+      const fallbackSources=['Krebs on Security','The Hacker News','Cybersecurity News'];
       const fallbackRisks=['Weak passwords','No MFA','Outdated systems','No backup strategy'];
       const fallbackServices=['Security audits','Microsoft 365 protection','Endpoint security','Backup solutions'];
       if (industryKey === 'law') {
