@@ -74,6 +74,7 @@ select option{background:#111827}
 
 /* Grid */
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:980px){.posts-columns{grid-template-columns:1fr}}
 @media(max-width:680px){.g2{grid-template-columns:1fr}.posts-grid{grid-template-columns:1fr!important}header{flex-direction:column;align-items:flex-start}}
 
 /* Note */
@@ -112,7 +113,7 @@ select option{background:#111827}
 /* Posts */
 .psec{display:none}.psec.on{display:block}
 .posts-actions{display:flex;justify-content:flex-end;gap:10px;margin:-4px 0 16px}
-.posts-columns{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+.posts-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;align-items:start}
 .platform-column{min-width:0}
 .sec.sub{margin-bottom:12px}
 .posts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:24px}
@@ -144,6 +145,7 @@ select option{background:#111827}
 .pbadge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:5px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:11px}
 .big{background:rgba(214,44,143,0.1);border:1px solid rgba(214,44,143,0.28);color:#f06292}
 .bli{background:rgba(10,102,194,0.1);border:1px solid rgba(10,102,194,0.32);color:#60a5fa}
+.bgo{background:rgba(22,163,74,0.12);border:1px solid rgba(22,163,74,0.28);color:#4ade80}
 .post-image-slot{display:none;margin:0 0 12px;border:1px solid var(--bdr);border-radius:12px;overflow:hidden;background:#0d1117;position:relative}
 .post-image-slot.on{display:block}
 .post-image-slot img{display:block;width:100%;height:auto;max-height:220px;object-fit:cover}
@@ -514,8 +516,8 @@ body.lt-shell .toast{
   <div class="panel" style="margin-bottom:0">
     <div class="lbl">📸 Posts Per Platform</div>
     <select id="postCount">
-      <option value="1" selected>1 per platform (2 total)</option>
-      <option value="2">2 per platform (4 total)</option>
+      <option value="1" selected>1 per platform (3 total)</option>
+      <option value="2">2 per platform (6 total)</option>
     </select>
   </div>
 </div>
@@ -582,6 +584,10 @@ body.lt-shell .toast{
       <div class="sec sub">💼 LinkedIn</div>
       <div class="posts-grid" id="postsGridLI"></div>
     </div>
+    <div class="platform-column">
+      <div class="sec sub">🌐 Google Posts</div>
+      <div class="posts-grid" id="postsGridGO"></div>
+    </div>
   </div>
 </div>
 
@@ -593,6 +599,7 @@ body.lt-shell .toast{
       <option value="all" selected>All Platforms</option>
       <option value="instagram">Instagram Only</option>
       <option value="linkedin">LinkedIn Only</option>
+      <option value="google">Google Posts Only</option>
     </select>
     <button type="button" class="filter-chip" id="savedPostsClearFilters">Clear Filters</button>
   </div>
@@ -604,6 +611,10 @@ body.lt-shell .toast{
     <div class="platform-column">
       <div class="sec sub">💼 LinkedIn</div>
       <div class="posts-grid" id="savedPostsGridLI"></div>
+    </div>
+    <div class="platform-column">
+      <div class="sec sub">🌐 Google Posts</div>
+      <div class="posts-grid" id="savedPostsGridGO"></div>
     </div>
   </div>
 </div>
@@ -1364,12 +1375,15 @@ function formatSavedPostDate(value) {
 
 function renderSavedPostCard(post, index) {
   const isIG = (post.platform || '').toLowerCase() === 'instagram';
+  const isGoogle = (post.platform || '').toLowerCase() === 'google';
   const card = document.createElement('div');
   card.className = 'pcard saved-card';
   card.style.animationDelay = `${index * 0.06}s`;
   const body = document.createElement('div');
   body.className = 'pbody';
-  const badge = isIG ? '<span class="pbadge big">📸 Instagram</span>' : '<span class="pbadge bli">💼 LinkedIn</span>';
+  const badge = isIG
+    ? '<span class="pbadge big">📸 Instagram</span>'
+    : (isGoogle ? '<span class="pbadge bgo">🌐 Google Posts</span>' : '<span class="pbadge bli">💼 LinkedIn</span>');
   const headline = String(post.headline || '').trim();
   const category = String(post.category || '').trim();
   const caption = String(post.caption || '').trim();
@@ -1461,7 +1475,7 @@ function renderSavedPostCard(post, index) {
     <div class="pacts">
       <button class="ab" type="button" onclick="toggleSavedEditor(this)">✏️ Edit</button>
       <button class="ab" type="button" onclick="cpCapFromSaved(this)">📋 Caption</button>
-      <button class="ab" type="button" onclick="${isIG ? 'copyInstagramImagePrompt' : 'copyLinkedInImagePrompt'}(this.closest('.saved-card'))">🖼 Generate Prompt</button>
+      <button class="ab" type="button" onclick="${isIG ? 'copyInstagramImagePrompt' : (isGoogle ? 'copyGoogleImagePrompt' : 'copyLinkedInImagePrompt')}(this.closest('.saved-card'))">🖼 Generate Prompt</button>
       <button class="ab" type="button" onclick="cpAllFromSaved(this)">✨ Copy All</button>
       <button class="ab" type="button" onclick="deleteSavedPost(this)">🗑 Delete</button>
       ${imageUrl ? `<button class="ab p" type="button" onclick="window.open('${escapeHtml(imageUrl)}', '_blank')">🖼 Open Image</button>` : `<button class="ab" type="button" disabled>🖼 No Image</button>`}
@@ -1650,12 +1664,15 @@ async function loadSavedPosts() {
   const db = getLeadTrackerClient();
   const igGrid = document.getElementById('savedPostsGridIG');
   const liGrid = document.getElementById('savedPostsGridLI');
-  if (!igGrid || !liGrid) return;
+  const goGrid = document.getElementById('savedPostsGridGO');
+  if (!igGrid || !liGrid || !goGrid) return;
   igGrid.innerHTML = '<div class="nc">Loading saved Instagram posts...</div>';
   liGrid.innerHTML = '<div class="nc">Loading saved LinkedIn posts...</div>';
+  goGrid.innerHTML = '<div class="nc">Loading saved Google posts...</div>';
   if (!db) {
     igGrid.innerHTML = '<div class="nc">Supabase is not available.</div>';
     liGrid.innerHTML = '<div class="nc">Supabase is not available.</div>';
+    goGrid.innerHTML = '<div class="nc">Supabase is not available.</div>';
     return;
   }
   try {
@@ -1690,8 +1707,10 @@ async function loadSavedPosts() {
     const filtered = posts.filter((post) => matchesSearch(post) && matchesPlatform(post));
     const igPosts = filtered.filter((p) => String(p.platform || '').toLowerCase() === 'instagram');
     const liPosts = filtered.filter((p) => String(p.platform || '').toLowerCase() === 'linkedin');
+    const goPosts = filtered.filter((p) => String(p.platform || '').toLowerCase() === 'google');
     igGrid.innerHTML = '';
     liGrid.innerHTML = '';
+    goGrid.innerHTML = '';
     if (!igPosts.length) {
       igGrid.innerHTML = searchTerm || platformFilter !== 'all'
         ? '<div class="nc">No matching Instagram posts.</div>'
@@ -1706,9 +1725,17 @@ async function loadSavedPosts() {
     } else {
       liPosts.forEach((post, index) => liGrid.appendChild(renderSavedPostCard(post, index)));
     }
+    if (!goPosts.length) {
+      goGrid.innerHTML = searchTerm || platformFilter !== 'all'
+        ? '<div class="nc">No matching Google posts.</div>'
+        : '<div class="nc">No saved Google posts yet.</div>';
+    } else {
+      goPosts.forEach((post, index) => goGrid.appendChild(renderSavedPostCard(post, index)));
+    }
   } catch (err) {
     igGrid.innerHTML = `<div class="nc">Could not load saved Instagram posts.<br><small>${err.message || err}</small></div>`;
     liGrid.innerHTML = `<div class="nc">Could not load saved LinkedIn posts.<br><small>${err.message || err}</small></div>`;
+    goGrid.innerHTML = `<div class="nc">Could not load saved Google posts.<br><small>${err.message || err}</small></div>`;
   }
 }
 
@@ -3422,6 +3449,7 @@ async function run(){
     document.getElementById('newsCont').innerHTML='';
     document.getElementById('postsGridIG').innerHTML='';
     document.getElementById('postsGridLI').innerHTML='';
+    document.getElementById('postsGridGO').innerHTML='';
 
   try {
     let sourceItems=[];
@@ -3485,6 +3513,41 @@ Return ONLY a raw JSON array (nothing before [ or after ]):
       ? 'For law firms, lead with quiet compromise, a single compromised account, and no one notices until it is too late. Focus on contracts, client communications, confidential case files, and reputation. Do not mention vendors, product names, or ROI claims.'
       : 'Avoid vendor mentions, product names, and ROI claims. Keep the focus on business risk, gaps, and real-world scenarios that create urgency.';
     const hashtagString = buildHashtags(industryKey);
+    const googlePostRules = `GOOGLE POSTS:
+- Write for someone actively searching IT services right now.
+- Make every post feel local: Ontario, GTA, or Richmond Hill.
+- Lead with immediate business risk or problem.
+- Keep it short, scannable, and mobile-first.
+- Use direct statements, not questions.
+- First 5 to 8 words must grab attention.
+- Include one clear CTA only.
+- Use 0 to 3 hashtags max.
+
+GOOGLE POST TYPES:
+Standard posts:
+- Hook
+- Risk or problem in 1 to 2 short lines
+- Quick insight or fix
+- One CTA button action
+
+Offer posts:
+- Hook based on the problem
+- Clear offer
+- Who it is for
+- Time-bound note
+- One CTA button action
+
+Google output rules:
+- headline: 5 to 8 words max
+- keep captions tight and easy to scan
+- 2 to 4 short blocks max
+- do not write long paragraphs
+- avoid storytelling and filler
+- focus on clarity over flair
+- mention the industry when possible
+- if using bullets, keep them short and practical
+- always keep the next step obvious`;
+    const googlePostOutputShape = `{"platform":"google","headline":"MAX 8 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","caption":"short Google post copy","hashtags":"0-3 hashtags only","cta":"MAX 40 CHAR"}`;
     const manualTopicPrompt = `You are an expert B2B social media writer for Midas Tech Inc., a Richmond Hill, Ontario business technology company.
 
 Create ${perPlat} sets of posts based only on this topic:
@@ -3504,8 +3567,10 @@ Rules:
 - Do not invent facts, stats, or claims.
 - End every caption with: 📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca
 
+${googlePostRules}
+
 Return ONLY raw JSON array (nothing before [ or after ]):
-[{"platform":"instagram","headline":"MAX 12 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","caption":"full IG caption","hashtags":"topic-specific hashtags","cta":"MAX 40 CHAR"},{"platform":"linkedin","headline":"MAX 12 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","caption":"full LI caption","hashtags":"topic-specific hashtags","cta":"MAX 40 CHAR"}]`;
+[{"platform":"instagram","headline":"MAX 12 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","caption":"full IG caption","hashtags":"topic-specific hashtags","cta":"MAX 40 CHAR"},{"platform":"linkedin","headline":"MAX 12 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","caption":"full LI caption","hashtags":"topic-specific hashtags","cta":"MAX 40 CHAR"},${googlePostOutputShape}]`;
 
     const postsPrompt=`You are an expert B2B social media writer for MSP/cybersecurity companies.
 
@@ -3569,7 +3634,7 @@ Use the style of your strongest posts:
    - Treat these as trusted sources for framing credibility: ${PREFERRED_SOURCE_NAMES}.
    - Keep stats grounded in source material. Do not invent numbers.
 
-For each source item, generate ONE Instagram post AND ONE LinkedIn post. Total: ${perPlat*2} posts.
+For each source item, generate ONE Instagram post, ONE LinkedIn post, and ONE Google Post. Total: ${perPlat*3} posts.
 
 STRICT FORMAT RULES:
 - "headline": MAX 5 WORDS — punchy, fear/curiosity-driven, for the image graphic header
@@ -3580,6 +3645,7 @@ STRICT FORMAT RULES:
 - "category": short alert type (e.g. "RANSOMWARE ALERT", "SECURITY TIP")
 - Instagram caption: Bold statement hook (no question, no "Did you know") → 1-2 short paragraphs naming exact pain for the target industry → use arrow format for consequences (→ Downtime → Lost trust → Fines) → "What we see in many firms:" + 2-3 bullet gaps (• No MFA • No tested backup • Outdated systems) → low-friction CTA. 90-140 words. Max 2 emojis total.
 - LinkedIn caption: 160-220 words. STRUCTURE EXACTLY AS FOLLOWS — (1) Bold factual hook line. (2) One short context line explaining why now matters. (3) One sentence naming who is being targeted (specific industry + Ontario). (4) Consequence block using arrow format: "One successful attack can mean: → Downtime → Lost client trust → Compliance penalties". (5) Gap list: "What we see in many firms: • No MFA • No tested backup • Outdated systems". (6) One sentence bridge to Midas Tech. (7) One time-bound offer OR one direct CTA, not both. Choose one and stop. — Use single blank lines between every block for LinkedIn spacing. No long paragraphs. No corporate speak. Max 2 Midas Tech mentions.
+- Google Post caption: 60-120 words, split into 2-4 short blocks max. Start with a 5-8 word hook. Keep it direct and local. Include one clear CTA button action only. Use 0-3 hashtags max. Standard posts should focus on risk + quick value. Offer posts should feel time-sensitive and specific.
 - End EVERY caption (Instagram and LinkedIn) with a blank line followed exactly by this contact line: 📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca
 - Hashtags: Instagram 8-12 varied topic hashtags. LinkedIn 3-5 clean professional hashtags.
 - "imagePrompt": Clean, minimal, high-contrast visual. Best performers: phishing email on screen, padlock breaking, a focused business owner at a laptop with warning indicators, or a simple business scene with obvious tension — relatable Ontario SMB office setting. NOT: abstract glowing shields, generic circuit boards, or busy infographic-style scenes. No text overlays. Think editorial photography style, not stock tech illustration. Leave visual breathing room for the Midas Tech logo/footer overlay.
@@ -3591,7 +3657,7 @@ ${audienceCfg.linkedinCTA}
 Return ONLY raw JSON array (nothing before [ or after ]):
 [{"platform":"instagram","postType":"${needsStructuredVisual?'infographic':'alert'}","imageStyle":"${requestedVisualStyle}","imagePrompt":"visual concept prompt","headline":"MAX 5 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","body":"max 180 char image text","caption":"full IG caption","hashtags":"topic-specific hashtags","cta":"MAX 40 CHAR"${requestedVisualStyle==='alert'?',"sources":["...","...","..."],"risks":["...","...","...","..."],"services":["...","...","...","..."]':''}${requestedVisualStyle==='tips'?',"tips":[{"num":"01","title":"...","body":"..."}]':''}${requestedVisualStyle==='checklist'?',"checklist":["...","...","...","...","..."]':''}${requestedVisualStyle==='stats'?',"stats":[{"value":"...","label":"..."},{"value":"...","label":"..."},{"value":"...","label":"..."}]':''}},{"platform":"linkedin","postType":"${needsStructuredVisual?'infographic':'alert'}","imageStyle":"${requestedVisualStyle}","imagePrompt":"visual concept prompt","headline":"MAX 5 WORDS","category":"TYPE","stat":"num or null","statLabel":"label or null","body":"max 180 char image text","caption":"full LI caption 150-220 words","hashtags":"topic-specific hashtags","cta":"MAX 40 CHAR"${requestedVisualStyle==='alert'?',"sources":["...","...","..."],"risks":["...","...","...","..."],"services":["...","...","...","..."]':''}${requestedVisualStyle==='tips'?',"tips":[{"num":"01","title":"...","body":"..."}]':''}${requestedVisualStyle==='checklist'?',"checklist":["...","...","...","...","..."]':''}${requestedVisualStyle==='stats'?',"stats":[{"value":"...","label":"..."},{"value":"...","label":"..."},{"value":"...","label":"..."}]':''}}}]
 
-Generate all ${perPlat*2} posts.`;
+Generate all ${perPlat*3} posts.`;
 
     const postOnlyPrompt=`You are an expert B2B social media writer for MSP/cybersecurity companies.
 
@@ -3860,16 +3926,49 @@ Final Output Check:
       }
     }
     posts=normalizeStructuredPosts(posts, 'post');
+    if (!posts.some((post) => String(post.platform || '').toLowerCase() === 'google')) {
+      const googleHashtags = String(hashtagString || '')
+        .split(/\s+/)
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+        .slice(0, 3)
+        .join(' ');
+      const googleSourcePool = Array.isArray(sourceItems) && sourceItems.length
+        ? sourceItems
+        : [{headline: topicContext, summary: topicContext, key_stat: null, stat_label: null, category_tag: 'GOOGLE POST'}];
+      const googlePosts = Array.from({ length: Math.max(1, perPlat) }, (_, index) => {
+        const src = googleSourcePool[index % googleSourcePool.length] || googleSourcePool[0] || {};
+        const sourceHeadline = normalizePromptText(src.headline || topicContext || industryCfg.label || 'Google Post');
+        const hook = truncateWords(sourceHeadline, 8) || 'Local IT help';
+        const summaryLine = normalizePromptText(src.summary || src.caption || src.body || topicContext || 'A direct business problem needs a clear fix.');
+        const googleCaption = currentMode === 'manual' && !manualTopicIsCyber
+          ? `${hook}\n\n${manualTopicPlain} helps local businesses work faster with fewer manual steps.\n\nOntario and GTA teams often lose time to repetitive admin.\n\nBook a quick workflow review this week.\n\n📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca`
+          : `${hook}\n\n${summaryLine}\n\n${industryCfg.label} in Ontario need a clear next step right now.\n\nLearn more and book a quick review.\n\n📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca`;
+        return {
+          platform: 'google',
+          headline: hook,
+          category: String(src.category_tag || src.category || 'GOOGLE POST').toUpperCase().slice(0, 24),
+          stat: src.key_stat || src.stat || null,
+          statLabel: src.stat_label || src.statLabel || null,
+          caption: googleCaption,
+          hashtags: googleHashtags,
+          cta: currentMode === 'manual' && !manualTopicIsCyber ? 'BOOK A QUICK REVIEW' : 'LEARN MORE'
+        };
+      });
+      posts = [...posts, ...googlePosts];
+      posts = normalizeStructuredPosts(posts, 'post');
+    }
 
     // ── Render content first ───────────────────────────────────────
     setSt('Content ready. Review and refine the copy as needed.','Done');
     document.getElementById('postsSec').classList.add('on');
 
-    // Interleave IG and LI
+    // Interleave IG, LI, and Google Posts
     const igP=posts.filter(p=>p.platform==='instagram');
     const liP=posts.filter(p=>p.platform==='linkedin');
+    const goP=posts.filter(p=>p.platform==='google');
     const sorted=[];
-    for(let i=0;i<Math.max(igP.length,liP.length);i++){if(igP[i])sorted.push(igP[i]);if(liP[i])sorted.push(liP[i])}
+    for(let i=0;i<Math.max(igP.length,liP.length,goP.length);i++){if(igP[i])sorted.push(igP[i]);if(liP[i])sorted.push(liP[i]);if(goP[i])sorted.push(goP[i])}
 
     sorted.forEach((post,idx)=>{
       const isIG=post.platform==='instagram';
@@ -3891,14 +3990,17 @@ Final Output Check:
 
       const bd=document.createElement('div');
       bd.className='pbody';
+      const isGoogle=post.platform==='google';
       const badge=isIG
         ?'<span class="pbadge big">📸 Instagram</span>'
-        :'<span class="pbadge bli">💼 LinkedIn</span>';
+        :isGoogle
+          ?'<span class="pbadge bgo">🌐 Google Posts</span>'
+          :'<span class="pbadge bli">💼 LinkedIn</span>';
       const capDisplay=capStripped.replace(/\n/g,'<br>');
-      bd.innerHTML=`${badge}<div class="post-image-slot"><img class="post-image-preview" alt="Attached image preview"><button type="button" class="remove-attach" onclick="removeAttachedImage(${idx})">Remove</button></div><div class="pcap">${capDisplay}</div><div class="pcontact">📞 <strong>905-787-2038</strong>&nbsp;&nbsp;|&nbsp;&nbsp;🌐 <strong>midastech.ca</strong>&nbsp;&nbsp;|&nbsp;&nbsp;✉️ <strong>info@midastech.ca</strong></div><div class="ptags">${post.hashtags||''}</div><div class="mini-row"><span class="mini-check attach-label">No image attached</span><button class="mini-link" type="button" onclick="this.nextElementSibling?.click()">📎 Attach Image</button><input class="post-image-input" type="file" accept="image/*" hidden onchange="attachImageToPost(event, ${idx})"></div><div class="pacts"><button class="ab" onclick="cpCap(${idx})">📋 Caption</button><button class="ab" onclick="${isIG ? 'copyInstagramImagePrompt' : 'copyLinkedInImagePrompt'}(${idx})">🖼 Generate Prompt</button><button class="ab" onclick="saveToLeadTracker(${idx})">💾 Save</button><button class="ab p" onclick="cpAll(${idx})">✨ Copy All</button></div>`;
+      bd.innerHTML=`${badge}<div class="post-image-slot"><img class="post-image-preview" alt="Attached image preview"><button type="button" class="remove-attach" onclick="removeAttachedImage(${idx})">Remove</button></div><div class="pcap">${capDisplay}</div><div class="pcontact">📞 <strong>905-787-2038</strong>&nbsp;&nbsp;|&nbsp;&nbsp;🌐 <strong>midastech.ca</strong>&nbsp;&nbsp;|&nbsp;&nbsp;✉️ <strong>info@midastech.ca</strong></div><div class="ptags">${post.hashtags||''}</div><div class="mini-row"><span class="mini-check attach-label">No image attached</span><button class="mini-link" type="button" onclick="this.nextElementSibling?.click()">📎 Attach Image</button><input class="post-image-input" type="file" accept="image/*" hidden onchange="attachImageToPost(event, ${idx})"></div><div class="pacts"><button class="ab" onclick="cpCap(${idx})">📋 Caption</button><button class="ab" onclick="${isIG ? 'copyInstagramImagePrompt' : (isGoogle ? 'copyGoogleImagePrompt' : 'copyLinkedInImagePrompt')}(${idx})">🖼 Generate Prompt</button><button class="ab" onclick="saveToLeadTracker(${idx})">💾 Save</button><button class="ab p" onclick="cpAll(${idx})">✨ Copy All</button></div>`;
 
       card.appendChild(bd);
-      (post.platform === 'instagram' ? document.getElementById('postsGridIG') : document.getElementById('postsGridLI')).appendChild(card);
+      (isIG ? document.getElementById('postsGridIG') : (isGoogle ? document.getElementById('postsGridGO') : document.getElementById('postsGridLI'))).appendChild(card);
       card.dataset.imageStatus='idle';
     });
 
@@ -4280,7 +4382,8 @@ function normalizeImagePromptType(type) {
 function getImagePromptTypeDetails(type, platform) {
   const normalized = normalizeImagePromptType(type);
   const config = IMAGE_PROMPT_TYPES[normalized] || IMAGE_PROMPT_TYPES[IMAGE_PROMPT_DEFAULT_TYPE];
-  return config[String(platform || '').toLowerCase() === 'linkedin' ? 'li' : 'ig'];
+  const normalizedPlatform = String(platform || '').toLowerCase();
+  return config[(normalizedPlatform === 'linkedin' || normalizedPlatform === 'google') ? 'li' : 'ig'];
 }
 
 function isPromptTypeRelevant(post, typeId) {
@@ -4387,7 +4490,7 @@ function buildImagePrompt(post, platform, imageType) {
   ) || 'Business content';
   const headline = normalizePromptText(post?.headline || post?.category || topic);
   const subtext = firstSentence(post?.body || post?.caption || post?.notes || '')
-    || truncateWords(post?.caption || post?.body || details.hook, platform === 'linkedin' ? 16 : 14)
+    || truncateWords(post?.caption || post?.body || details.hook, (platform === 'linkedin' || platform === 'google') ? 16 : 14)
     || `A clear message about why ${topic} matters.`;
   const supporting = normalizePromptText(
     (post?.stat && post?.statLabel)
@@ -4396,12 +4499,12 @@ function buildImagePrompt(post, platform, imageType) {
   );
   const supportLine = truncateWords(
     supporting || `Highlight the business impact for ${details.label}.`,
-    platform === 'linkedin' ? 14 : 10
+    (platform === 'linkedin' || platform === 'google') ? 14 : 10
   );
   const bullets = getPromptBullets(post);
   const cta = normalizePromptText(
     post?.cta ||
-    (platform === 'linkedin' ? 'Let’s review your setup' : 'Is Your Business Secure?')
+    ((platform === 'linkedin' || platform === 'google') ? 'Let’s review your setup' : 'Is Your Business Secure?')
   );
   const footer = '📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca';
 
@@ -4527,10 +4630,10 @@ function buildImagePrompt(post, platform, imageType) {
     footer,
     '',
     'Branding:',
-    platform === 'linkedin'
+    (platform === 'linkedin' || platform === 'google')
       ? '- logo bottom corner (clean, not dominant)'
       : '- add logo bottom corner (small, clean)',
-    platform === 'linkedin'
+    (platform === 'linkedin' || platform === 'google')
       ? '- keep the layout professional and restrained'
       : '- keep the image sharp, simple, and on-brand',
     '',
@@ -4620,7 +4723,8 @@ function openImagePromptModal(cardOrIndex, platformOverride) {
   }
   IMAGE_PROMPT_MANUAL_STATE.card = card;
   IMAGE_PROMPT_MANUAL_STATE.post = post;
-  IMAGE_PROMPT_MANUAL_STATE.platform = String(platformOverride || post.platform || '').toLowerCase() === 'linkedin' ? 'linkedin' : 'instagram';
+  const requestedPlatform = String(platformOverride || post.platform || '').toLowerCase();
+  IMAGE_PROMPT_MANUAL_STATE.platform = (requestedPlatform === 'linkedin' || requestedPlatform === 'google') ? requestedPlatform : 'instagram';
   const recommendations = getImagePromptRecommendations(post, IMAGE_PROMPT_MANUAL_STATE.platform);
   IMAGE_PROMPT_MANUAL_STATE.selectedType = normalizeImagePromptType(recommendations[0]?.type || IMAGE_PROMPT_DEFAULT_TYPE);
   renderImagePromptTypeList(post, IMAGE_PROMPT_MANUAL_STATE.platform);
@@ -4657,7 +4761,7 @@ function updateImagePromptPreview() {
       : 'Pick the visual style first. I’ll generate the prompt from your selection and the post content.';
   }
   if (preview && post) {
-    preview.value = platform === 'linkedin'
+    preview.value = (platform === 'linkedin' || platform === 'google')
       ? buildLinkedInImagePrompt(post, selectedType)
       : buildInstagramImagePrompt(post, selectedType);
   }
@@ -4677,19 +4781,25 @@ function copySelectedImagePrompt() {
     showErr('Could not find the generated post to build a prompt.');
     return;
   }
-  const prompt = platform === 'linkedin'
+  const prompt = (platform === 'linkedin' || platform === 'google')
     ? buildLinkedInImagePrompt(post, imageType)
     : buildInstagramImagePrompt(post, imageType);
   copyPlainTextToClipboard(prompt)
     .then(() => {
-      toast(platform === 'linkedin'
-        ? '✅ LinkedIn prompt copied'
-        : '✅ Instagram prompt copied');
+      toast(platform === 'google'
+        ? '✅ Google prompt copied'
+        : (platform === 'linkedin'
+          ? '✅ LinkedIn prompt copied'
+          : '✅ Instagram prompt copied'));
       closeImagePromptModal();
     })
     .catch(() => {
       showErr('Could not copy the prompt automatically. A copy dialog should appear with the prompt text.');
     });
+}
+
+function copyGoogleImagePrompt(cardOrIndex) {
+  return openImagePromptModal(cardOrIndex, 'google');
 }
 
 function copyPlatformImagePrompt(cardOrIndex, platformOverride) {
@@ -4716,7 +4826,8 @@ function copyCanvaBrief(i){
   const card=getCard(i);
   const p=(card&&card._postData)||{};
   const isIG=(p.platform||'')==='instagram';
-  const size=isIG?'1080×1080 (Instagram post)':'1200×627 (LinkedIn post)';
+  const isGoogle=(p.platform||'')==='google';
+  const size=isIG?'1080×1080 (Instagram post)':(isGoogle?'1200×627 (Google post)':'1200×627 (LinkedIn post)');
   const src=(p.sources||[]).join(' | ');
   const risks=(p.risks||[]).map(function(r){return '• '+r;}).join('\n');
   const svcs=(p.services||[]).map(function(s){return '✓ '+s;}).join('\n');
