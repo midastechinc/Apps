@@ -188,6 +188,34 @@ select option{background:#111827}
 .mini-link:hover{text-decoration:underline}
 .toast{position:fixed;bottom:26px;right:26px;background:linear-gradient(130deg,#0057a8,#00a8e0);color:#fff;padding:10px 18px;border-radius:9px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transform:translateY(6px);transition:all .22s;pointer-events:none}
 .toast.on{opacity:1;transform:translateY(0)}
+.prompt-modal-backdrop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(3,8,18,.72);backdrop-filter:blur(10px);z-index:10000}
+.prompt-modal-backdrop.on{display:flex}
+.prompt-modal{width:min(920px,100%);max-height:min(88vh,920px);overflow:auto;background:linear-gradient(180deg,rgba(17,24,39,.98),rgba(12,18,31,.98));border:1px solid rgba(255,255,255,.08);border-radius:22px;box-shadow:0 28px 70px rgba(0,0,0,.38);padding:22px}
+.prompt-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+.prompt-modal-kicker{font-size:10.5px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:var(--c);margin-bottom:6px}
+.prompt-modal-title{font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.02em}
+.prompt-modal-sub{margin-top:6px;color:var(--mt);font-size:13px;line-height:1.55;max-width:760px}
+.prompt-modal-close{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#fff;border-radius:12px;width:38px;height:38px;font-size:18px;line-height:1;cursor:pointer;flex-shrink:0}
+.prompt-modal-close:hover{border-color:var(--c);background:rgba(0,174,239,.08)}
+.prompt-modal-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:16px}
+.prompt-modal-card{border:1px solid rgba(255,255,255,.08);border-radius:18px;background:rgba(255,255,255,.03);padding:16px}
+.prompt-modal-label{font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--c);margin-bottom:10px}
+.prompt-type-select{margin-bottom:14px}
+.prompt-type-select select{background-color:rgba(7,12,22,.82)}
+.prompt-type-list{display:grid;gap:10px}
+.prompt-type-item{border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 13px;background:rgba(255,255,255,.03);cursor:pointer;transition:all .2s ease}
+.prompt-type-item:hover{border-color:rgba(0,174,239,.24);transform:translateY(-1px)}
+.prompt-type-item.on{border-color:var(--c);background:rgba(0,174,239,.09)}
+.prompt-type-item strong{display:block;font-size:13px;color:#fff;margin-bottom:4px}
+.prompt-type-item span{display:block;font-size:12px;color:var(--mt);line-height:1.5}
+.prompt-type-badge{display:inline-flex;align-items:center;gap:6px;margin-bottom:7px;font-size:10px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--c)}
+.prompt-preview{width:100%;min-height:390px;resize:vertical;line-height:1.55;font-size:12px;white-space:pre-wrap}
+.prompt-reco{margin-top:14px}
+.prompt-reco-list{display:grid;gap:8px;margin-top:10px}
+.prompt-reco-item{padding:10px 12px;border-radius:12px;background:rgba(0,174,239,.06);border:1px solid rgba(0,174,239,.14);color:var(--tx);font-size:12px;line-height:1.5}
+.prompt-reco-item strong{color:#fff}
+.prompt-modal-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:16px}
+.prompt-modal-actions .ab{flex:0 0 auto;min-width:150px}
 .spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .62s linear infinite;flex-shrink:0}
 @keyframes sp{to{transform:rotate(360deg)}}
 .lt-shell{
@@ -582,6 +610,35 @@ body.lt-shell .toast{
 
 </div><!-- wrap -->
 <div class="toast" id="toast"></div>
+<div class="prompt-modal-backdrop" id="promptModalBackdrop" aria-hidden="true">
+  <div class="prompt-modal" role="dialog" aria-modal="true" aria-labelledby="promptModalTitle">
+    <div class="prompt-modal-head">
+      <div>
+        <div class="prompt-modal-kicker">Image Prompt Builder</div>
+        <div class="prompt-modal-title" id="promptModalTitle">Choose an image type</div>
+        <div class="prompt-modal-sub" id="promptModalSub">Pick the visual style first. I’ll generate the prompt from your selection and the post content.</div>
+      </div>
+      <button class="prompt-modal-close" type="button" onclick="closeImagePromptModal()" aria-label="Close image prompt chooser">×</button>
+    </div>
+    <div class="prompt-modal-grid">
+      <div class="prompt-modal-card">
+        <div class="prompt-modal-label">Recommended Types</div>
+        <div class="prompt-type-list" id="promptTypeList"></div>
+      </div>
+      <div class="prompt-modal-card">
+        <div class="prompt-modal-label">Prompt Preview</div>
+        <div class="prompt-type-select">
+          <select id="promptTypeSelect"></select>
+        </div>
+        <textarea class="prompt-preview" id="promptPreview" readonly></textarea>
+      </div>
+    </div>
+    <div class="prompt-modal-actions">
+      <button class="ab" type="button" onclick="closeImagePromptModal()">Cancel</button>
+      <button class="ab p" type="button" onclick="copySelectedImagePrompt()">Copy Prompt</button>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -3925,6 +3982,441 @@ function getPromptBullets(post) {
   return bulletSet.slice(0, 3);
 }
 
+const IMAGE_PROMPT_TYPES = {
+  editorial_photo: {
+    label: 'Editorial Photo',
+    summary: 'A realistic business photo with human tension and no fake overlays.',
+    ig: {
+      intro: 'Create a modern, high-contrast Instagram post (square 1:1) using a realistic editorial photo.',
+      style: 'Style: clean, minimal, photo-led, professional',
+      palette: 'Color palette: dark background (black/navy) with subtle blue accents and restrained urgency',
+      visual: [
+        '- use a real office or workplace scene',
+        '- keep the subject human and relatable',
+        '- avoid diagrams, charts, or fake dashboards'
+      ],
+      mood: 'Mood: realistic, trustworthy, slightly urgent',
+      typography: 'Typography: bold headline, high contrast, easy to read'
+    },
+    li: {
+      intro: 'Create a clean, professional LinkedIn post image (square 1:1 or landscape 4:5) using a realistic editorial business photo.',
+      style: 'Style: corporate, minimal, trustworthy, modern',
+      palette: 'Color palette: light or dark background with blue/grey tones and subtle accents',
+      visual: [
+        '- use a real office, team, or workspace scene',
+        '- keep the composition professional and believable',
+        '- avoid heavy infographic treatment'
+      ],
+      mood: 'Mood: calm, informative, trustworthy',
+      typography: 'Typography: simple, corporate font, strong hierarchy'
+    }
+  },
+  infographic: {
+    label: 'Infographic',
+    summary: 'A structured visual with sections, icons, and short callouts.',
+    ig: {
+      intro: 'Create a bold Instagram infographic (square 1:1) with clear sections and strong visual hierarchy.',
+      style: 'Style: structured, educational, modern',
+      palette: 'Color palette: dark or light background with blue, white, and accent colors',
+      visual: [
+        '- use 3 to 5 clean sections',
+        '- add icons, numbers, or labeled blocks',
+        '- keep text short and highly readable'
+      ],
+      mood: 'Mood: informative, crisp, highly scannable',
+      typography: 'Typography: strong headings, compact body copy, clear hierarchy'
+    },
+    li: {
+      intro: 'Create a clean LinkedIn infographic (square 1:1 or landscape 4:5) with clear sections and professional polish.',
+      style: 'Style: corporate, structured, educational',
+      palette: 'Color palette: blue/grey tones with enough contrast for readability',
+      visual: [
+        '- structure the content into simple blocks',
+        '- use icons and short labels',
+        '- keep the layout readable on mobile'
+      ],
+      mood: 'Mood: professional, practical, clear',
+      typography: 'Typography: simple corporate font, strong hierarchy'
+    }
+  },
+  checklist_card: {
+    label: 'Checklist Card',
+    summary: 'A clean checklist layout for steps, fixes, or action items.',
+    ig: {
+      intro: 'Create a clean Instagram checklist card (square 1:1) with short action items and strong visual hierarchy.',
+      style: 'Style: minimal, list-driven, easy to scan',
+      palette: 'Color palette: dark background with blue accents and white text',
+      visual: [
+        '- use checkmarks or checkbox rows',
+        '- keep to 3 to 5 short items',
+        '- make the list the main focus'
+      ],
+      mood: 'Mood: practical, direct, useful',
+      typography: 'Typography: bold title, compact list text, clear spacing'
+    },
+    li: {
+      intro: 'Create a clean LinkedIn checklist card (square 1:1 or landscape 4:5) with short action items and a professional finish.',
+      style: 'Style: corporate, organized, practical',
+      palette: 'Color palette: light or dark background with blue/grey tones',
+      visual: [
+        '- use checkmarks or numbered checklist items',
+        '- keep the layout clean and uncluttered',
+        '- make the action steps easy to read'
+      ],
+      mood: 'Mood: helpful, calm, actionable',
+      typography: 'Typography: strong heading, readable checklist rows'
+    }
+  },
+  workflow_diagram: {
+    label: 'Workflow Diagram',
+    summary: 'Best for automation, process changes, and step-by-step flows.',
+    ig: {
+      intro: 'Create a workflow diagram Instagram post (square 1:1) that shows steps, arrows, and a simple business process.',
+      style: 'Style: process-driven, clean, modern',
+      palette: 'Color palette: dark or light background with blue accents',
+      visual: [
+        '- show 3 to 5 connected steps',
+        '- use arrows, flow boxes, or connectors',
+        '- keep labels short and easy to scan'
+      ],
+      mood: 'Mood: efficient, organized, practical',
+      typography: 'Typography: simple, readable, strong hierarchy'
+    },
+    li: {
+      intro: 'Create a workflow diagram LinkedIn post (square 1:1 or landscape 4:5) that explains a business process with clear steps.',
+      style: 'Style: structured, professional, process-first',
+      palette: 'Color palette: blue/grey tones with subtle contrast',
+      visual: [
+        '- show the workflow as a simple sequence',
+        '- use arrows or numbered steps',
+        '- keep the design very readable'
+      ],
+      mood: 'Mood: practical, efficient, business-focused',
+      typography: 'Typography: clean corporate font, clear step labels'
+    }
+  },
+  comparison_card: {
+    label: 'Before / After',
+    summary: 'Good for showing manual vs automated, weak vs improved, or old vs new.',
+    ig: {
+      intro: 'Create a comparison-style Instagram post (square 1:1) with a clear before-and-after layout.',
+      style: 'Style: split-layout, bold, easy to compare',
+      palette: 'Color palette: dark background with contrasting side colors',
+      visual: [
+        '- split the image into two clear sides',
+        '- show before/after or old/new states',
+        '- keep each side simple and readable'
+      ],
+      mood: 'Mood: contrast-driven, persuasive, clear',
+      typography: 'Typography: bold labels, strong contrast, easy comparison'
+    },
+    li: {
+      intro: 'Create a comparison-style LinkedIn post (square 1:1 or landscape 4:5) with a clear before-and-after layout.',
+      style: 'Style: professional split-screen, clean comparison',
+      palette: 'Color palette: blue/grey tones with strong contrast between sides',
+      visual: [
+        '- compare manual vs automated or old vs improved',
+        '- keep the two sides balanced',
+        '- use simple labels for each side'
+      ],
+      mood: 'Mood: persuasive, structured, professional',
+      typography: 'Typography: readable labels, strong visual hierarchy'
+    }
+  },
+  stats_card: {
+    label: 'Stats Card',
+    summary: 'Ideal for a big number, metric, or data point that should stand out.',
+    ig: {
+      intro: 'Create a bold Instagram stats card (square 1:1) centered around one large number or metric.',
+      style: 'Style: data-forward, minimal, high-impact',
+      palette: 'Color palette: dark background with bright accent color for the number',
+      visual: [
+        '- make one number the focal point',
+        '- keep supporting text extremely short',
+        '- avoid clutter or too many elements'
+      ],
+      mood: 'Mood: sharp, alarming, informative',
+      typography: 'Typography: oversized number, short labels, strong contrast'
+    },
+    li: {
+      intro: 'Create a bold LinkedIn stats card (square 1:1 or landscape 4:5) centered around one large number or metric.',
+      style: 'Style: minimal, executive, data-led',
+      palette: 'Color palette: blue/grey tones with a clean highlight color',
+      visual: [
+        '- make one number the hero',
+        '- keep the rest of the layout restrained',
+        '- let the metric drive the message'
+      ],
+      mood: 'Mood: credible, concise, analytical',
+      typography: 'Typography: large number, compact support text, clean hierarchy'
+    }
+  },
+  quote_card: {
+    label: 'Quote Card',
+    summary: 'Best for a bold statement, offer, or memorable line.',
+    ig: {
+      intro: 'Create a bold Instagram quote card (square 1:1) with a minimal background and strong typography.',
+      style: 'Style: statement-led, clean, minimal',
+      palette: 'Color palette: dark background with one accent color',
+      visual: [
+        '- make the headline the hero',
+        '- keep the background simple',
+        '- leave plenty of negative space'
+      ],
+      mood: 'Mood: direct, confident, memorable',
+      typography: 'Typography: oversized headline, minimal support text'
+    },
+    li: {
+      intro: 'Create a bold LinkedIn quote card (square 1:1 or landscape 4:5) with a clean background and strong typography.',
+      style: 'Style: executive, minimal, statement-driven',
+      palette: 'Color palette: light or dark background with restrained brand accents',
+      visual: [
+        '- keep the quote or message front and center',
+        '- avoid busy supporting elements',
+        '- use strong contrast and generous spacing'
+      ],
+      mood: 'Mood: polished, confident, memorable',
+      typography: 'Typography: strong headline, clear hierarchy, minimal clutter'
+    }
+  }
+};
+
+const IMAGE_PROMPT_DEFAULT_TYPE = 'editorial_photo';
+const IMAGE_PROMPT_MANUAL_STATE = {
+  card: null,
+  platform: 'instagram',
+  post: null,
+  selectedType: IMAGE_PROMPT_DEFAULT_TYPE
+};
+
+function normalizeImagePromptType(type) {
+  return IMAGE_PROMPT_TYPES[type] ? type : IMAGE_PROMPT_DEFAULT_TYPE;
+}
+
+function getImagePromptTypeDetails(type, platform) {
+  const normalized = normalizeImagePromptType(type);
+  const config = IMAGE_PROMPT_TYPES[normalized] || IMAGE_PROMPT_TYPES[IMAGE_PROMPT_DEFAULT_TYPE];
+  return config[String(platform || '').toLowerCase() === 'linkedin' ? 'li' : 'ig'];
+}
+
+function isPromptTypeRelevant(post, typeId) {
+  const text = `${post?.headline || ''} ${post?.category || ''} ${post?.caption || ''} ${post?.notes || ''} ${post?.body || ''} ${currentGenerationContext.topicContext || ''}`.toLowerCase();
+  if (typeId === 'workflow_diagram') return /power automate|workflow|automation|process|approval|reminder|task|manual step|repetitive/.test(text);
+  if (typeId === 'checklist_card') return /checklist|tip|tips|steps|guide|how to|action|fix|audit|review/.test(text);
+  if (typeId === 'stats_card') return /stat|stats|number|trend|percent|percentages|report|data|metric/.test(text);
+  if (typeId === 'comparison_card') return /before|after|compare|versus|vs|old|new|manual|automate|improve|upgrade/.test(text);
+  if (typeId === 'quote_card') return /quote|statement|hook|thought|positioning|authority|offer|lead gen/.test(text);
+  if (typeId === 'infographic') return /guide|how to|tips|steps|process|list|checklist|educational/.test(text);
+  if (typeId === 'editorial_photo') return true;
+  return false;
+}
+
+function getImagePromptRecommendations(post, platform) {
+  const rules = [
+    { type: 'workflow_diagram', reason: 'Best for automation, approvals, repetitive tasks, and process improvements.' },
+    { type: 'checklist_card', reason: 'Great when the post is about steps, fixes, tips, or action items.' },
+    { type: 'comparison_card', reason: 'Useful when showing manual vs automated or before vs after.' },
+    { type: 'stats_card', reason: 'Good when one number or metric should carry the message.' },
+    { type: 'infographic', reason: 'Works well for educational posts that need sections and icons.' },
+    { type: 'quote_card', reason: 'Best for a bold statement, offer, or short attention-grabbing line.' },
+    { type: 'editorial_photo', reason: 'Most flexible when you want a human, realistic business scene.' }
+  ];
+  const scored = rules.map((item) => ({
+    ...item,
+    score: isPromptTypeRelevant(post, item.type) ? 1 : 0
+  })).sort((a, b) => b.score - a.score);
+  const lead = scored.filter((item) => item.score > 0).slice(0, 4);
+  const fallback = scored.filter((item) => item.score === 0).slice(0, 2);
+  const result = [...lead, ...fallback];
+  if (!result.some((item) => item.type === IMAGE_PROMPT_DEFAULT_TYPE)) {
+    result.unshift({
+      type: IMAGE_PROMPT_DEFAULT_TYPE,
+      reason: 'Safe default when you want a polished photo-led prompt.',
+      score: 0
+    });
+  }
+  return result.slice(0, 5);
+}
+
+function renderImagePromptTypeList(post, platform) {
+  const list = document.getElementById('promptTypeList');
+  const select = document.getElementById('promptTypeSelect');
+  if (!list || !select) return;
+  const recommendations = getImagePromptRecommendations(post, platform);
+  const recommendedTypes = recommendations.map((item) => item.type);
+  const allTypes = Object.entries(IMAGE_PROMPT_TYPES);
+  const currentType = normalizeImagePromptType(IMAGE_PROMPT_MANUAL_STATE.selectedType);
+
+  list.innerHTML = recommendations.map((item) => {
+    const typeConfig = IMAGE_PROMPT_TYPES[item.type];
+    const label = typeConfig.label;
+    const isActive = item.type === currentType;
+    return `<button type="button" class="prompt-type-item ${isActive ? 'on' : ''}" data-image-type="${item.type}">
+      <span class="prompt-type-badge">${recommendedTypes.indexOf(item.type) === 0 ? 'Top pick' : 'Recommended'}</span>
+      <strong>${label}</strong>
+      <span>${typeConfig.summary}</span>
+      <span>${item.reason}</span>
+    </button>`;
+  }).join('');
+
+  select.innerHTML = allTypes.map(([id, config]) => {
+    const active = id === currentType ? ' selected' : '';
+    const prefix = recommendedTypes[0] === id ? 'Recommended - ' : '';
+    return `<option value="${id}"${active}>${prefix}${config.label}</option>`;
+  }).join('');
+
+  list.querySelectorAll('.prompt-type-item').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const type = btn.dataset.imageType || IMAGE_PROMPT_DEFAULT_TYPE;
+      IMAGE_PROMPT_MANUAL_STATE.selectedType = normalizeImagePromptType(type);
+      select.value = IMAGE_PROMPT_MANUAL_STATE.selectedType;
+      updateImagePromptPreview();
+      renderImagePromptTypeList(IMAGE_PROMPT_MANUAL_STATE.post, IMAGE_PROMPT_MANUAL_STATE.platform);
+    });
+  });
+}
+
+function buildImagePrompt(post, platform, imageType) {
+  const details = getPromptIndustryDetails(post);
+  const type = normalizeImagePromptType(imageType);
+  const config = getImagePromptTypeDetails(type, platform);
+  const topic = normalizePromptText(
+    currentGenerationContext.topicContext ||
+    post?.category ||
+    post?.headline ||
+    details.hook
+  ) || 'Business content';
+  const headline = normalizePromptText(post?.headline || post?.category || topic);
+  const subtext = firstSentence(post?.body || post?.caption || post?.notes || '')
+    || truncateWords(post?.caption || post?.body || details.hook, platform === 'linkedin' ? 16 : 14)
+    || `A clear message about why ${topic} matters.`;
+  const supporting = normalizePromptText(
+    (post?.stat && post?.statLabel)
+      ? `${post.stat} ${post.statLabel}`
+      : post?.notes || post?.body || post?.caption || ''
+  );
+  const supportLine = truncateWords(
+    supporting || `Highlight the business impact for ${details.label}.`,
+    platform === 'linkedin' ? 14 : 10
+  );
+  const bullets = getPromptBullets(post);
+  const cta = normalizePromptText(
+    post?.cta ||
+    (platform === 'linkedin' ? 'Let’s review your setup' : 'Is Your Business Secure?')
+  );
+  const footer = '📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca';
+
+  const lines = [
+    config.intro,
+    '',
+    `Topic: ${topic}`,
+    '',
+    config.style,
+    config.palette,
+    '',
+    'Main headline (large, bold):',
+    quotePromptText(headline),
+    '',
+    'Subtext (smaller):',
+    quotePromptText(subtext),
+    '',
+    'Supporting text (keep short, optional):',
+    quotePromptText(supportLine),
+  ];
+
+  if (type === 'workflow_diagram') {
+    lines.push(
+      '',
+      'Workflow layout:',
+      '- show the process as 3 to 5 connected steps',
+      '- use arrows, boxes, or a simple sequence',
+      '- keep labels short and practical'
+    );
+  } else if (type === 'comparison_card') {
+    lines.push(
+      '',
+      'Comparison layout:',
+      '- show before vs after or manual vs automated',
+      '- make the contrast obvious at a glance',
+      '- keep each side balanced'
+    );
+  } else if (type === 'stats_card') {
+    lines.push(
+      '',
+      'Data layout:',
+      '- make one big number the hero',
+      '- keep all supporting copy minimal',
+      '- leave room around the metric so it stands out'
+    );
+  } else if (type === 'checklist_card') {
+    lines.push(
+      '',
+      'Checklist layout:',
+      '- use 3 to 5 checkboxes or short bullet rows',
+      '- keep each item under one short line if possible',
+      '- make the list the visual focus'
+    );
+  } else if (type === 'quote_card') {
+    lines.push(
+      '',
+      'Statement layout:',
+      '- keep the headline as the main focal point',
+      '- use generous negative space',
+      '- make the message feel bold and memorable'
+    );
+  } else if (type === 'infographic') {
+    lines.push(
+      '',
+      'Infographic layout:',
+      '- break the content into short sections',
+      '- use icons, numbers, or labeled blocks',
+      '- keep the structure simple and scannable'
+    );
+  } else {
+    lines.push(
+      '',
+      'Photo layout:',
+      '- use a real office or business scene',
+      '- keep the subject human and relatable',
+      '- avoid fake dashboards, charts, or diagrams'
+    );
+  }
+
+  if (bullets.length && type !== 'workflow_diagram' && type !== 'comparison_card' && type !== 'stats_card' && type !== 'quote_card') {
+    lines.push(
+      '',
+      'Optional bullets (if needed, keep max 2–3):',
+      ...bullets.map((bullet) => `- ${bullet}`)
+    );
+  }
+
+  lines.push(
+    '',
+    'Visual elements:',
+    ...config.visual,
+    '',
+    'Call to action (bottom):',
+    quotePromptText(cta),
+    '',
+    'Footer (small text):',
+    footer,
+    '',
+    'Branding:',
+    platform === 'linkedin'
+      ? '- logo bottom corner (clean, not dominant)'
+      : '- add logo bottom corner (small, clean)',
+    platform === 'linkedin'
+      ? '- keep the layout professional and restrained'
+      : '- keep the image sharp, simple, and on-brand',
+    '',
+    config.mood,
+    'Quality: sharp, high-resolution, clean spacing, highly readable',
+    config.typography
+  );
+
+  return lines.join('\n');
+}
+
 function dataUrlToBlob(dataUrl) {
   const [header, body] = String(dataUrl || '').split(',');
   const mimeMatch = header.match(/data:([^;]+);base64/i);
@@ -3986,184 +4478,114 @@ function buildPromptBulletsFromText(text) {
     .slice(0, 3);
 }
 
-function buildInstagramImagePrompt(post) {
-  const details = getPromptIndustryDetails(post);
-  const topic = normalizePromptText(
-    currentGenerationContext.topicContext ||
-    post?.category ||
-    post?.headline ||
-    details.hook
-  ) || 'Cybersecurity risk';
-  const headline = normalizePromptText(post?.headline || post?.category || topic);
-  const subtext = firstSentence(post?.body || post?.caption || post?.notes || '')
-    || truncateWords(post?.caption || post?.body || details.hook, 14)
-    || `A clear message about why ${topic} matters.`;
-  const supporting = normalizePromptText(
-    (post?.stat && post?.statLabel)
-      ? `${post.stat} ${post.statLabel}`
-      : post?.notes || post?.body || post?.caption || ''
-  );
-  const supportLine = truncateWords(supporting || `Highlight the business risk for ${details.label}.`, 10);
-  const bullets = getPromptBullets(post);
-  const cta = normalizePromptText(post?.cta || post?.caption || 'Is Your Business Secure?');
-  const footer = '📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca';
-
-  const lines = [
-    'Create a modern, high-contrast Instagram post (square 1:1).',
-    '',
-    `Topic: ${topic}`,
-    '',
-    'Style: clean, minimal, professional, tech-focused',
-    'Color palette: dark background (black/navy) with neon blue/purple accents + subtle red for urgency',
-    '',
-    'Main headline (large, bold):',
-    quotePromptText(headline),
-    '',
-    'Subtext (smaller):',
-    quotePromptText(subtext),
-    '',
-    'Supporting text (keep short, optional):',
-    quotePromptText(supportLine),
-  ];
-
-  if (bullets.length) {
-    lines.push(
-      '',
-      'Optional bullets (if needed, keep max 2–3):',
-      ...bullets.map((bullet) => `- ${bullet}`)
-    );
-  }
-
-  lines.push(
-    '',
-    'Visual elements:',
-    '- cybersecurity-related icon (lock, shield, alert, login screen)',
-    `- subtle industry element (${details.scene})`,
-    '- digital grid / network lines background',
-    '- glow effects + depth shadows',
-    '',
-    'Call to action (bottom):',
-    quotePromptText(cta),
-    '',
-    'Footer (small text):',
-    footer,
-    '',
-    'Branding:',
-    '- add logo bottom corner (small, clean)',
-    '- keep brand colors consistent',
-    '',
-    'Mood: professional, slightly urgent, trustworthy',
-    'Quality: sharp, high-resolution, clean layout, not cluttered',
-    'Typography: bold headline, high contrast, easy to read'
-  );
-
-  return lines.join('\n');
+function buildInstagramImagePrompt(post, imageType = IMAGE_PROMPT_DEFAULT_TYPE) {
+  return buildImagePrompt(post, 'instagram', imageType);
 }
 
-function buildLinkedInImagePrompt(post) {
-  const details = getPromptIndustryDetails(post);
-  const topic = normalizePromptText(
-    currentGenerationContext.topicContext ||
-    post?.category ||
-    post?.headline ||
-    details.hook
-  ) || 'Cybersecurity risk';
-  const headline = normalizePromptText(post?.headline || post?.category || topic);
-  const subtext = firstSentence(post?.body || post?.caption || post?.notes || '')
-    || truncateWords(post?.caption || post?.body || details.hook, 16)
-    || `A clear message about why ${topic} matters.`;
-  const supporting = normalizePromptText(
-    post?.notes ||
-    post?.body ||
-    post?.caption ||
-    (post?.stat && post?.statLabel ? `${post.stat} ${post.statLabel}` : '')
-  );
-  const supportLine = truncateWords(supporting || `Highlight the business impact for ${details.label}.`, 14);
-  const bullets = getPromptBullets(post);
-  const cta = normalizePromptText(post?.cta || 'Let’s review your security setup');
-  const footer = '📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca';
-
-  const lines = [
-    'Create a clean, professional LinkedIn post image (square 1:1 or landscape 4:5).',
-    '',
-    `Topic: ${topic}`,
-    '',
-    'Style: corporate, minimal, trustworthy, modern',
-    'Color palette: light or dark background with blue/grey tones (subtle accents, no neon overload)',
-    '',
-    'Main headline (large, bold):',
-    quotePromptText(headline),
-    '',
-    'Subtext (smaller):',
-    quotePromptText(subtext),
-    '',
-    'Supporting text (optional, very short):',
-    quotePromptText(supportLine),
-  ];
-
-  if (bullets.length) {
-    lines.push(
-      '',
-      'Optional bullets (max 2–3):',
-      ...bullets.map((bullet) => `• ${bullet}`)
-    );
-  }
-
-  lines.push(
-    '',
-    'Visual elements:',
-    '- subtle office / business / industry-related background',
-    '- clean icons (shield, cloud, alert, login)',
-    '- light gradients or soft shadows (no heavy glow)',
-    '- structured layout with clear sections',
-    '',
-    'Call to action (bottom):',
-    quotePromptText(cta),
-    '',
-    'Footer (small, clean):',
-    footer,
-    '',
-    'Branding:',
-    '- logo bottom corner (clean, not dominant)',
-    '- consistent brand colors',
-    '',
-    'Mood: professional, calm, informative, trustworthy',
-    'Quality: sharp, high-resolution, clean spacing, highly readable',
-    'Typography: simple, corporate font, strong hierarchy'
-  );
-
-  return lines.join('\n');
+function buildLinkedInImagePrompt(post, imageType = IMAGE_PROMPT_DEFAULT_TYPE) {
+  return buildImagePrompt(post, 'linkedin', imageType);
 }
 
-function copyPlatformImagePrompt(cardOrIndex, platformOverride) {
+function openImagePromptModal(cardOrIndex, platformOverride) {
   const card = typeof cardOrIndex === 'number' ? getCard(cardOrIndex) : cardOrIndex;
   const post = getPromptCardPost(card);
   if (!card || !post) {
     showErr('Could not find the generated post to build a prompt.');
     return;
   }
-  const platform = String(platformOverride || post.platform || '').toLowerCase();
+  IMAGE_PROMPT_MANUAL_STATE.card = card;
+  IMAGE_PROMPT_MANUAL_STATE.post = post;
+  IMAGE_PROMPT_MANUAL_STATE.platform = String(platformOverride || post.platform || '').toLowerCase() === 'linkedin' ? 'linkedin' : 'instagram';
+  const recommendations = getImagePromptRecommendations(post, IMAGE_PROMPT_MANUAL_STATE.platform);
+  IMAGE_PROMPT_MANUAL_STATE.selectedType = normalizeImagePromptType(recommendations[0]?.type || IMAGE_PROMPT_DEFAULT_TYPE);
+  renderImagePromptTypeList(post, IMAGE_PROMPT_MANUAL_STATE.platform);
+  updateImagePromptPreview();
+  const modal = document.getElementById('promptModalBackdrop');
+  if (modal) {
+    modal.classList.add('on');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+}
+
+function closeImagePromptModal() {
+  const modal = document.getElementById('promptModalBackdrop');
+  if (modal) {
+    modal.classList.remove('on');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function updateImagePromptPreview() {
+  const post = IMAGE_PROMPT_MANUAL_STATE.post;
+  const platform = IMAGE_PROMPT_MANUAL_STATE.platform;
+  const select = document.getElementById('promptTypeSelect');
+  const preview = document.getElementById('promptPreview');
+  const sub = document.getElementById('promptModalSub');
+  const selectedType = normalizeImagePromptType(select?.value || IMAGE_PROMPT_MANUAL_STATE.selectedType);
+  IMAGE_PROMPT_MANUAL_STATE.selectedType = selectedType;
+  if (select && select.value !== selectedType) select.value = selectedType;
+  if (sub && post) {
+    const recommendations = getImagePromptRecommendations(post, platform);
+    const firstPick = recommendations[0];
+    sub.textContent = firstPick
+      ? `Top pick: ${IMAGE_PROMPT_TYPES[firstPick.type].label}. ${firstPick.reason}`
+      : 'Pick the visual style first. I’ll generate the prompt from your selection and the post content.';
+  }
+  if (preview && post) {
+    preview.value = platform === 'linkedin'
+      ? buildLinkedInImagePrompt(post, selectedType)
+      : buildInstagramImagePrompt(post, selectedType);
+  }
+  const list = document.getElementById('promptTypeList');
+  if (list) {
+    list.querySelectorAll('.prompt-type-item').forEach((item) => {
+      item.classList.toggle('on', (item.dataset.imageType || '') === selectedType);
+    });
+  }
+}
+
+function copySelectedImagePrompt() {
+  const post = IMAGE_PROMPT_MANUAL_STATE.post;
+  const platform = IMAGE_PROMPT_MANUAL_STATE.platform;
+  const imageType = normalizeImagePromptType(IMAGE_PROMPT_MANUAL_STATE.selectedType);
+  if (!post) {
+    showErr('Could not find the generated post to build a prompt.');
+    return;
+  }
   const prompt = platform === 'linkedin'
-    ? buildLinkedInImagePrompt(post)
-    : buildInstagramImagePrompt(post);
+    ? buildLinkedInImagePrompt(post, imageType)
+    : buildInstagramImagePrompt(post, imageType);
   copyPlainTextToClipboard(prompt)
     .then(() => {
       toast(platform === 'linkedin'
         ? '✅ LinkedIn prompt copied'
         : '✅ Instagram prompt copied');
+      closeImagePromptModal();
     })
     .catch(() => {
       showErr('Could not copy the prompt automatically. A copy dialog should appear with the prompt text.');
-  });
+    });
+}
+
+function copyPlatformImagePrompt(cardOrIndex, platformOverride) {
+  return openImagePromptModal(cardOrIndex, platformOverride);
 }
 
 function copyInstagramImagePrompt(cardOrIndex) {
-  return copyPlatformImagePrompt(cardOrIndex, 'instagram');
+  return openImagePromptModal(cardOrIndex, 'instagram');
 }
 
 function copyLinkedInImagePrompt(cardOrIndex) {
-  return copyPlatformImagePrompt(cardOrIndex, 'linkedin');
+  return openImagePromptModal(cardOrIndex, 'linkedin');
 }
+
+document.getElementById('promptTypeSelect')?.addEventListener('change', updateImagePromptPreview);
+document.getElementById('promptModalBackdrop')?.addEventListener('click', (ev) => {
+  if (ev.target?.id === 'promptModalBackdrop') closeImagePromptModal();
+});
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape') closeImagePromptModal();
+});
 
 function copyCanvaBrief(i){
   const card=getCard(i);
