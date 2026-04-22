@@ -115,3 +115,10 @@ applications/workflows/Document-Scan-Flow/*
 applications/workflows/Master-Categories-Flow/*
 !applications/workflows/Master-Categories-Flow/MidasTechMasterCategoriesFlow_20260326010536.zip
 !applications/workflows/Master-Categories-Flow/SharePoint_Action_Map.doc
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example

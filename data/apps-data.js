@@ -643,6 +643,36 @@ window.MIDAS_APPS_DATA = {
       ]
     },
     {
+      "name": "Reminder and Notes",
+      "category": "Web App",
+      "folderPath": "applications/web-apps/Reminder and Notes",
+      "description": "One-screen Microsoft 365 dashboard with live Microsoft sign-in and Graph reads for OneNote, To Do, calendar items, and flagged email.",
+      "status": "Development",
+      "lastUpdated": "2026-04-08",
+      "manual": [
+        "Use Launch to open the one-screen Microsoft 365 dashboard in your browser.",
+        "Fill in m365-config.js before using live Microsoft sign-in.",
+        "Search across OneNote, To Do, Calendar, and flagged email from the shared search bar."
+      ],
+      "notes": [
+        "Registered with register-dashboard-app.ps1."
+      ],
+      "apis": [],
+      "databases": [],
+      "links": [
+        {
+          "label": "Launch",
+          "url": "applications/web-apps/Reminder and Notes/index.html",
+          "type": "app"
+        },
+        {
+          "label": "GitHub",
+          "url": "https://github.com/midastechinc/Apps/tree/main/applications/web-apps/Reminder%20and%20Notes",
+          "type": "github"
+        }
+      ]
+    },
+    {
       "name": "Search Tool",
       "category": "Web App",
       "folderPath": "applications/web-apps/Search Tool",
@@ -832,16 +862,16 @@ window.MIDAS_APPS_DATA = {
       ]
     },
     {
-      "name": "Reminder and Notes",
+      "name": "Midas Client Hub",
       "category": "Web App",
-      "folderPath": "applications/web-apps/Reminder and Notes",
-      "description": "One-screen Microsoft 365 dashboard with live Microsoft sign-in and Graph reads for OneNote, To Do, calendar items, and flagged email.",
-      "status": "Development",
-      "lastUpdated": "2026-04-08",
+      "folderPath": "applications/web-apps/Midas Client Hub",
+      "description": "Centralized client management web app for MSP operations, with user, device, security, credentials, and document linking across Datto RMM, Huntress, Microsoft 365, and shared vault references.",
+      "status": "Planning",
+      "lastUpdated": "2026-04-18",
       "manual": [
-        "Use Launch to open the one-screen Microsoft 365 dashboard in your browser.",
-        "Fill in m365-config.js before using live Microsoft sign-in.",
-        "Search across OneNote, To Do, Calendar, and flagged email from the shared search bar."
+        "Use the client hub as the system of record for users, devices, credentials, and documents.",
+        "Keep existing MSP tool links as launch targets inside the dashboard.",
+        "Link secrets by reference only; do not store raw passwords in the browser."
       ],
       "notes": [
         "Registered with register-dashboard-app.ps1."
@@ -851,12 +881,12 @@ window.MIDAS_APPS_DATA = {
       "links": [
         {
           "label": "Launch",
-          "url": "applications/web-apps/Reminder and Notes/index.html",
+          "url": "applications/web-apps/Midas Client Hub/index.html",
           "type": "app"
         },
         {
           "label": "GitHub",
-          "url": "https://github.com/midastechinc/Apps/tree/main/applications/web-apps/Reminder%20and%20Notes",
+          "url": "https://github.com/midastechinc/Apps",
           "type": "github"
         }
       ]
