@@ -4,7 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const { getConfig, updateConfig } = require('./config-manager');
 const { processMessage, clearHistory, listConversations } = require('./agents');
-const { start: startWhatsApp, getStatus } = require('./whatsapp');
+const { start: startWhatsApp, getStatus, refreshNumberResolution } = require('./whatsapp');
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_KEY = process.env.ADMIN_KEY || '';
@@ -43,6 +43,9 @@ app.put('/api/config', requireAdminKey, (req, res) => {
     }
     const updated = updateConfig(patch);
     const safe = { ...updated, llm: { ...updated.llm, apiKey: updated.llm.apiKey ? '••••••••' : '' } };
+    if (patch.mainNumber !== undefined || patch.familyNumbers !== undefined) {
+      refreshNumberResolution().catch(err => console.log('[WA] Number refresh failed:', err.message));
+    }
     res.json(safe);
   } catch (err) {
     res.status(500).json({ error: err.message });

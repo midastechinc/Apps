@@ -12,8 +12,49 @@ let isConnected = false;
 let connectedAt = null;
 let sock = null;
 let onMessage = null;
+let isResolvingNumbers = false;
+
+const lidToPhone = {};
 
 const logger = pino({ level: 'warn' });
+
+async function resolveNumbers(phoneNumbers) {
+  if (!sock || !isConnected) return;
+  for (const phone of phoneNumbers) {
+    if (!phone) continue;
+    try {
+      const normalized = phone.replace(/\D/g, '');
+      const results = await sock.onWhatsApp(`+${normalized}`);
+      console.log(`[WA] onWhatsApp(+${normalized}):`, JSON.stringify(results));
+      if (results?.length > 0 && results[0].exists) {
+        const info = results[0];
+        const lidRaw = info.lid || info.jid;
+        if (lidRaw) {
+          const lidNum = String(lidRaw).replace(/@.*$/, '');
+          lidToPhone[lidNum] = normalized;
+          console.log(`[WA] Resolved +${normalized} → LID ${lidNum}`);
+        }
+      }
+    } catch (err) {
+      console.log(`[WA] Could not resolve +${phone}: ${err.message}`);
+    }
+  }
+}
+
+async function refreshNumberResolution() {
+  if (isResolvingNumbers || !isConnected) return;
+  isResolvingNumbers = true;
+  try {
+    const { getConfig } = require('./config-manager');
+    const config = getConfig();
+    const allNumbers = [config.mainNumber, ...(config.familyNumbers || [])].filter(Boolean);
+    if (allNumbers.length > 0) {
+      await resolveNumbers(allNumbers);
+    }
+  } finally {
+    isResolvingNumbers = false;
+  }
+}
 
 async function start(messageHandler) {
   onMessage = messageHandler;
@@ -51,6 +92,11 @@ async function connect() {
       currentQR = null;
       qrDataUrl = null;
       console.log('WhatsApp connected.');
+      setTimeout(() => {
+        refreshNumberResolution().catch(err => {
+          console.log('[WA] Initial number resolution failed:', err.message);
+        });
+      }, 5000);
     }
 
     if (connection === 'close') {
@@ -79,20 +125,40 @@ async function connect() {
 
       if (!text) continue;
 
-      const sender = msg.key.remoteJid;
-      if (!sender) continue;
+      const rawJid = msg.key.remoteJid;
+      if (!rawJid) continue;
+
+      let sender = rawJid;
+
+      // Resolve @lid JID to phone-based JID for routing
+      if (rawJid.endsWith('@lid')) {
+        const lidNum = rawJid.replace(/@.*$/, '');
+        const phone = lidToPhone[lidNum];
+        if (phone) {
+          sender = `${phone}@s.whatsapp.net`;
+          console.log(`[WA] LID resolved: ${rawJid} → ${sender}`);
+        } else {
+          console.log(`[WA] Unknown LID ${rawJid}, triggering resolution...`);
+          await refreshNumberResolution().catch(() => {});
+          const resolvedPhone = lidToPhone[lidNum];
+          if (resolvedPhone) {
+            sender = `${resolvedPhone}@s.whatsapp.net`;
+            console.log(`[WA] LID resolved (on-the-fly): ${rawJid} → ${sender}`);
+          }
+        }
+      }
 
       try {
         if (onMessage) {
           const reply = await onMessage(sender, text);
           if (reply && sock) {
-            await sock.sendMessage(sender, { text: reply });
+            await sock.sendMessage(rawJid, { text: reply });
           }
         }
       } catch (err) {
         console.error('Error processing message from', sender, err.message);
         if (sock) {
-          await sock.sendMessage(sender, {
+          await sock.sendMessage(rawJid, {
             text: 'Something went wrong. Please try again.'
           }).catch(() => {});
         }
@@ -109,4 +175,4 @@ function getStatus() {
   };
 }
 
-module.exports = { start, getStatus };
+module.exports = { start, getStatus, refreshNumberResolution };
