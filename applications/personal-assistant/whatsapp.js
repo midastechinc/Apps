@@ -91,7 +91,7 @@ async function connect() {
       connectedAt = new Date().toISOString();
       currentQR = null;
       qrDataUrl = null;
-      console.log('WhatsApp connected.');
+      console.log(`WhatsApp connected. Bot JID: ${sock.user?.id}`);
       setTimeout(() => {
         refreshNumberResolution().catch(err => {
           console.log('[WA] Initial number resolution failed:', err.message);
@@ -148,11 +148,15 @@ async function connect() {
         }
       }
 
+      // Mark as read and give session a moment to stabilise
+      await sock.readMessages([msg.key]).catch(() => {});
+      await new Promise(r => setTimeout(r, 500));
+
       try {
         if (onMessage) {
           const reply = await onMessage(sender, text);
           if (reply && sock) {
-            await sock.sendMessage(rawJid, { text: reply }, { quoted: msg });
+            await sock.sendMessage(rawJid, { text: reply });
             console.log(`[WA] Reply sent to ${rawJid}`);
           }
         }
@@ -161,7 +165,7 @@ async function connect() {
         if (sock) {
           await sock.sendMessage(rawJid, {
             text: 'Something went wrong. Please try again.'
-          }, { quoted: msg }).catch(e => console.error('[WA] Error reply failed:', e.message));
+          }).catch(e => console.error('[WA] Error reply failed:', e.message));
         }
       }
     }
