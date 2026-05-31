@@ -152,15 +152,16 @@ async function connect() {
         if (onMessage) {
           const reply = await onMessage(sender, text);
           if (reply && sock) {
-            await sock.sendMessage(sender, { text: reply });
+            await sock.sendMessage(rawJid, { text: reply }, { quoted: msg });
+            console.log(`[WA] Reply sent to ${rawJid}`);
           }
         }
       } catch (err) {
-        console.error('Error processing message from', sender, err.message);
+        console.error(`[WA] Failed to send reply to ${rawJid}:`, err.message);
         if (sock) {
-          await sock.sendMessage(sender, {
+          await sock.sendMessage(rawJid, {
             text: 'Something went wrong. Please try again.'
-          }).catch(() => {});
+          }, { quoted: msg }).catch(e => console.error('[WA] Error reply failed:', e.message));
         }
       }
     }
