@@ -125,15 +125,13 @@ applications/workflows/Master-Categories-Flow/*
 !applications/workflows/Master-Categories-Flow/MidasTechMasterCategoriesFlow_20260326010536.zip
 !applications/workflows/Master-Categories-Flow/SharePoint_Action_Map.doc
 !applications/personal-assistant/
-applications/personal-assistant/*
-!applications/personal-assistant/server.js
-!applications/personal-assistant/agents.js
-!applications/personal-assistant/whatsapp.js
-!applications/personal-assistant/config-manager.js
-!applications/personal-assistant/package.json
-!applications/personal-assistant/railway.json
-!applications/personal-assistant/.env.example
-!applications/personal-assistant/.gitignore
+!applications/personal-assistant/**
+applications/personal-assistant/node_modules/
+applications/personal-assistant/node_modules/**
+applications/personal-assistant/auth_info/
+applications/personal-assistant/auth_info/**
+applications/personal-assistant/.env
+applications/personal-assistant/config.json
 
 # wrangler files
 .wrangler
