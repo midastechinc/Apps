@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Assistant AI — Midas Tech</title>
+    <meta name="description" content="Manage the Midas Tech Personal Assistant AI agents: configure system prompts, phone numbers, and LLM settings.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="css/assistant.css">
+</head>
+<body>
+    <header class="hero">
+        <div class="hero-panel">
+            <div class="hero-copy">
+                <p class="eyebrow">Midas Tech — Personal Assistant AI</p>
+                <h1>Two agents. One for business, one for family.</h1>
+                <p class="hero-text">Configure your WhatsApp-connected AI agents here. Family numbers always talk to the Family Agent. Your main number uses the Business Agent by default — prefix with <code>!fam</code> to reach the Family Agent.</p>
+            </div>
+            <div class="hero-side">
+                <div class="hero-callout" id="statusCallout">
+                    <span class="callout-label">WhatsApp Status</span>
+                    <span class="callout-value" id="statusText">Checking…</span>
+                </div>
+                <div class="hero-callout subdued">
+                    <span class="callout-label">Backend URL</span>
+                    <button class="hero-link" type="button" id="changeBackendBtn">Configure</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="page-shell">
+
+        <section id="qrBanner" class="qr-banner" style="display:none" aria-live="polite">
+            <div class="qr-inner">
+                <div class="qr-copy">
+                    <p class="eyebrow">Action Required</p>
+                    <h2>Scan to link WhatsApp</h2>
+                    <p>Open WhatsApp on your phone → Linked Devices → Link a Device → scan the code on the right. Once linked the banner will disappear.</p>
+                </div>
+                <div class="qr-frame">
+                    <img id="qrImage" src="" alt="WhatsApp QR code" width="220" height="220">
+                </div>
+            </div>
+        </section>
+
+        <section class="tab-shell">
+            <div class="tabs" role="tablist" aria-label="Assistant settings">
+                <button id="tab-status-btn" class="tab-button active" type="button" role="tab" aria-selected="true" aria-controls="tab-status" data-tab="status">Status</button>
+                <button id="tab-agents-btn" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tab-agents" data-tab="agents">Agents</button>
+                <button id="tab-contacts-btn" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tab-contacts" data-tab="contacts">Contacts</button>
+                <button id="tab-llm-btn" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tab-llm" data-tab="llm">LLM</button>
+                <button id="tab-convos-btn" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tab-convos" data-tab="convos">Conversations</button>
+            </div>
+
+            <!-- STATUS TAB -->
+            <section id="tab-status" class="tab-content active" role="tabpanel" aria-labelledby="tab-status-btn">
+                <div class="section-intro">
+                    <h2>Connection Status</h2>
+                    <p>Live view of the WhatsApp connection and active agent routing.</p>
+                </div>
+
+                <div class="status-grid">
+                    <article class="stat-card">
+                        <p class="stat-label">WhatsApp</p>
+                        <span id="statusBadge" class="stat-value status-unknown">—</span>
+                    </article>
+                    <article class="stat-card">
+                        <p class="stat-label">Connected At</p>
+                        <span id="connectedAt" class="stat-value stat-value--small">—</span>
+                    </article>
+                    <article class="stat-card">
+                        <p class="stat-label">Business Agent</p>
+                        <span id="bizAgentName" class="stat-value stat-value--small">—</span>
+                    </article>
+                    <article class="stat-card">
+                        <p class="stat-label">Family Agent</p>
+                        <span id="famAgentName" class="stat-value stat-value--small">—</span>
+                    </article>
+                </div>
+
+                <div class="routing-guide">
+                    <p class="services-label">Message Routing Rules</p>
+                    <ul class="routing-list">
+                        <li><code>Your main number</code> → Business Agent (default)</li>
+                        <li><code>!biz [message]</code> from main → Business Agent (explicit)</li>
+                        <li><code>!fam [message]</code> from main → Family Agent</li>
+                        <li><code>Family number</code> → Family Agent always</li>
+                        <li><em>Unknown numbers are ignored.</em></li>
+                    </ul>
+                </div>
+
+                <div class="action-row">
+                    <button class="app-link" type="button" id="refreshStatusBtn">Refresh Status</button>
+                </div>
+            </section>
+
+            <!-- AGENTS TAB -->
+            <section id="tab-agents" class="tab-content" role="tabpanel" aria-labelledby="tab-agents-btn">
+                <div class="section-intro">
+                    <h2>Agent Configuration</h2>
+                    <p>Set the name and system prompt (instructions) for each agent. The system prompt shapes the agent's personality, knowledge, and response style.</p>
+                </div>
+
+                <form id="agentsForm" class="settings-form" novalidate>
+                    <div class="agent-grid">
+                        <div class="agent-panel">
+                            <div class="agent-panel-header biz">
+                                <span class="agent-badge">Business Agent</span>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="bizName">Agent Name</label>
+                                <input class="form-input" type="text" id="bizName" name="bizName" placeholder="e.g. Midas Business Assistant" autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="bizPrompt">System Prompt</label>
+                                <textarea class="form-textarea" id="bizPrompt" name="bizPrompt" rows="9" placeholder="You are a professional business assistant…"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="agent-panel">
+                            <div class="agent-panel-header fam">
+                                <span class="agent-badge">Family Agent</span>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="famName">Agent Name</label>
+                                <input class="form-input" type="text" id="famName" name="famName" placeholder="e.g. Family Helper" autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="famPrompt">System Prompt</label>
+                                <textarea class="form-textarea" id="famPrompt" name="famPrompt" rows="9" placeholder="You are a warm and helpful family assistant…"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="app-link" type="submit" id="saveAgentsBtn">Save Agent Settings</button>
+                        <span class="save-feedback" id="agentsFeedback" aria-live="polite"></span>
+                    </div>
+                </form>
+            </section>
+
+            <!-- CONTACTS TAB -->
+            <section id="tab-contacts" class="tab-content" role="tabpanel" aria-labelledby="tab-contacts-btn">
+                <div class="section-intro">
+                    <h2>Phone Numbers</h2>
+                    <p>Enter numbers in international format without spaces or dashes (e.g. <code>14165551234</code> for +1 416 555 1234).</p>
+                </div>
+
+                <form id="contactsForm" class="settings-form" novalidate>
+                    <div class="form-group">
+                        <label class="form-label" for="mainNumber">Your Main Number</label>
+                        <p class="form-hint">This number has access to both agents. Use <code>!fam</code> prefix for Family Agent.</p>
+                        <input class="form-input" type="text" id="mainNumber" name="mainNumber" placeholder="14165551234" autocomplete="tel" maxlength="20">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="familyNumbers">Family Numbers</label>
+                        <p class="form-hint">One number per line. These numbers always reach the Family Agent.</p>
+                        <textarea class="form-textarea" id="familyNumbers" name="familyNumbers" rows="6" placeholder="14165557890&#10;14165552345"></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="app-link" type="submit" id="saveContactsBtn">Save Contacts</button>
+                        <span class="save-feedback" id="contactsFeedback" aria-live="polite"></span>
+                    </div>
+                </form>
+            </section>
+
+            <!-- LLM TAB -->
+            <section id="tab-llm" class="tab-content" role="tabpanel" aria-labelledby="tab-llm-btn">
+                <div class="section-intro">
+                    <h2>LLM Settings</h2>
+                    <p>This backend is API-agnostic — any OpenAI-compatible endpoint works (Claude via proxy, OpenAI, Ollama, Groq, etc.).</p>
+                </div>
+
+                <form id="llmForm" class="settings-form" novalidate>
+                    <div class="llm-presets">
+                        <p class="services-label">Quick Presets</p>
+                        <div class="preset-pills">
+                            <button class="preset-pill" type="button" data-base="https://api.openai.com/v1" data-model="gpt-4o">OpenAI GPT-4o</button>
+                            <button class="preset-pill" type="button" data-base="https://api.anthropic.com/v1" data-model="claude-sonnet-4-6">Claude Sonnet 4.6</button>
+                            <button class="preset-pill" type="button" data-base="https://api.groq.com/openai/v1" data-model="llama-3.3-70b-versatile">Groq Llama 3.3</button>
+                            <button class="preset-pill" type="button" data-base="http://localhost:11434/v1" data-model="llama3.2">Ollama (local)</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="llmBaseUrl">API Base URL</label>
+                        <input class="form-input" type="url" id="llmBaseUrl" name="llmBaseUrl" placeholder="https://api.openai.com/v1" autocomplete="off">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="llmApiKey">API Key</label>
+                        <p class="form-hint">Stored on your Railway server — never in the browser.</p>
+                        <input class="form-input" type="password" id="llmApiKey" name="llmApiKey" placeholder="sk-…" autocomplete="off">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="llmModel">Model</label>
+                        <input class="form-input" type="text" id="llmModel" name="llmModel" placeholder="gpt-4o" autocomplete="off">
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="app-link" type="submit" id="saveLlmBtn">Save LLM Settings</button>
+                        <span class="save-feedback" id="llmFeedback" aria-live="polite"></span>
+                    </div>
+                </form>
+            </section>
+
+            <!-- CONVERSATIONS TAB -->
+            <section id="tab-convos" class="tab-content" role="tabpanel" aria-labelledby="tab-convos-btn">
+                <div class="section-intro">
+                    <h2>Active Conversations</h2>
+                    <p>In-memory conversation history for each sender. Clearing a conversation resets the agent's context for that contact.</p>
+                </div>
+
+                <div class="action-row">
+                    <button class="app-link" type="button" id="refreshConvosBtn">Refresh</button>
+                </div>
+
+                <div id="convosGrid" class="convos-grid">
+                    <p class="empty-state">No active conversations yet.</p>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; 2026 Midas Tech Inc. — Personal Assistant AI · <a href="https://github.com/midastechinc/Apps" target="_blank" rel="noopener noreferrer">Dashboard Repo</a></p>
+    </footer>
+
+    <!-- Backend URL modal -->
+    <dialog class="launcher-dialog" id="backendDialog">
+        <form method="dialog" class="launcher-dialog-panel">
+            <div class="launcher-dialog-head">
+                <div>
+                    <p class="launcher-kicker">Configuration</p>
+                    <h2>Backend URL &amp; Admin Key</h2>
+                </div>
+                <button type="submit" class="launcher-close" aria-label="Close">Close</button>
+            </div>
+            <p class="launcher-body">Enter the Railway URL for your Personal Assistant backend and your ADMIN_KEY. These are saved in your browser only.</p>
+            <div class="launcher-block">
+                <label class="launcher-label" for="backendUrl">Backend URL</label>
+                <input class="form-input" type="url" id="backendUrl" placeholder="https://your-app.railway.app" autocomplete="off">
+            </div>
+            <div class="launcher-block">
+                <label class="launcher-label" for="adminKeyInput">Admin Key</label>
+                <input class="form-input" type="password" id="adminKeyInput" placeholder="your-admin-key" autocomplete="off">
+            </div>
+            <div class="launcher-footer">
+                <button type="button" class="app-link" id="saveBackendBtn">Save &amp; Connect</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script src="js/assistant.js"></script>
+</body>
+</html>

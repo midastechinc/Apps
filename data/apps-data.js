@@ -862,6 +862,52 @@ window.MIDAS_APPS_DATA = {
       ]
     },
     {
+      "name": "Personal Assistant AI",
+      "category": "Web App",
+      "folderPath": "applications/web-apps/Personal Assistant AI",
+      "description": "WhatsApp-connected AI agent system with two specialized agents: a Business Agent for Midas Tech operations and a Family Agent for personal tasks. Family phone numbers always reach the Family Agent; your main number defaults to the Business Agent with an optional !fam prefix to switch. Backed by any OpenAI-compatible LLM API.",
+      "status": "Development",
+      "lastUpdated": "2026-05-31",
+      "manual": [
+        "Deploy the backend from applications/personal-assistant/ to Railway — set PORT and ADMIN_KEY environment variables.",
+        "Open the management UI (Launch), enter your Railway URL and Admin Key, then scan the QR code to link WhatsApp.",
+        "Configure agent instructions and phone numbers in the Agents and Contacts tabs.",
+        "Set your LLM API credentials (endpoint, key, model) in the LLM tab. Any OpenAI-compatible API works."
+      ],
+      "notes": [
+        "Backend requires a persistent server (Railway) — Vercel serverless is not compatible with Baileys.",
+        "Auth session is stored in auth_info/ on the Railway volume — set up a Railway Volume for persistence across deploys.",
+        "Family numbers reach the Family Agent only. Main number routes to Business Agent by default; prefix !fam to reach Family Agent."
+      ],
+      "apis": [
+        {
+          "name": "OpenAI-Compatible LLM API",
+          "type": "AI Service",
+          "cost": "Varies by provider",
+          "url": "https://platform.openai.com/docs/api-reference"
+        },
+        {
+          "name": "WhatsApp (Baileys / unofficial)",
+          "type": "Messaging",
+          "cost": "Free",
+          "url": "https://github.com/WhiskeySockets/Baileys"
+        }
+      ],
+      "databases": [],
+      "links": [
+        {
+          "label": "Launch",
+          "url": "applications/web-apps/Personal Assistant AI/index.html",
+          "type": "app"
+        },
+        {
+          "label": "GitHub",
+          "url": "https://github.com/midastechinc/Apps/tree/main/applications/web-apps/Personal%20Assistant%20AI",
+          "type": "github"
+        }
+      ]
+    },
+    {
       "name": "Midas Client Hub",
       "category": "Web App",
       "folderPath": "applications/web-apps/Midas Client Hub",
