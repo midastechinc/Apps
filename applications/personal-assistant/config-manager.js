@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const CONFIG_PATH = path.join(__dirname, 'config.json');
+const CONFIG_PATH = path.join(__dirname, 'auth_info', 'config.json');
 
 const DEFAULT_CONFIG = {
   mainNumber: '',
@@ -24,6 +24,9 @@ const DEFAULT_CONFIG = {
 };
 
 function getConfig() {
+  const dir = path.dirname(CONFIG_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
   if (!fs.existsSync(CONFIG_PATH)) {
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(DEFAULT_CONFIG, null, 2));
     return structuredClone(DEFAULT_CONFIG);
