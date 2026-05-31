@@ -70,6 +70,15 @@ applications/web-apps/LeadTracker/scripts/*
 !applications/web-apps/Reminder and Notes/
 applications/web-apps/Reminder and Notes/*
 !applications/web-apps/Reminder and Notes/index.html
+!applications/web-apps/Personal Assistant AI/
+applications/web-apps/Personal Assistant AI/*
+!applications/web-apps/Personal Assistant AI/index.html
+!applications/web-apps/Personal Assistant AI/css/
+applications/web-apps/Personal Assistant AI/css/*
+!applications/web-apps/Personal Assistant AI/css/assistant.css
+!applications/web-apps/Personal Assistant AI/js/
+applications/web-apps/Personal Assistant AI/js/*
+!applications/web-apps/Personal Assistant AI/js/assistant.js
 !applications/web-apps/Reminder and Notes/styles.css
 !applications/web-apps/Reminder and Notes/app.js
 !applications/web-apps/Reminder and Notes/README.md
@@ -115,6 +124,16 @@ applications/workflows/Document-Scan-Flow/*
 applications/workflows/Master-Categories-Flow/*
 !applications/workflows/Master-Categories-Flow/MidasTechMasterCategoriesFlow_20260326010536.zip
 !applications/workflows/Master-Categories-Flow/SharePoint_Action_Map.doc
+!applications/personal-assistant/
+applications/personal-assistant/*
+!applications/personal-assistant/server.js
+!applications/personal-assistant/agents.js
+!applications/personal-assistant/whatsapp.js
+!applications/personal-assistant/config-manager.js
+!applications/personal-assistant/package.json
+!applications/personal-assistant/railway.json
+!applications/personal-assistant/.env.example
+!applications/personal-assistant/.gitignore
 
 # wrangler files
 .wrangler
