@@ -152,13 +152,13 @@ async function connect() {
         if (onMessage) {
           const reply = await onMessage(sender, text);
           if (reply && sock) {
-            await sock.sendMessage(rawJid, { text: reply });
+            await sock.sendMessage(sender, { text: reply });
           }
         }
       } catch (err) {
         console.error('Error processing message from', sender, err.message);
         if (sock) {
-          await sock.sendMessage(rawJid, {
+          await sock.sendMessage(sender, {
             text: 'Something went wrong. Please try again.'
           }).catch(() => {});
         }
