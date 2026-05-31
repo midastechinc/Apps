@@ -8,10 +8,16 @@ function routeMessage(senderJid, text) {
   const senderNumber = jidToNumber(senderJid);
   const { mainNumber, familyNumbers } = config;
 
-  const isMain = mainNumber && senderNumber === normalizeNumber(mainNumber);
+  const normalizedMain = normalizeNumber(mainNumber);
+  const isMain = mainNumber && senderNumber === normalizedMain;
   const isFamily = familyNumbers.some(n => normalizeNumber(n) === senderNumber);
 
-  if (!isMain && !isFamily) return null;
+  console.log(`[MSG] from=${senderJid} number=${senderNumber} isMain=${isMain} isFamily=${isFamily} mainConfigured=${normalizedMain}`);
+
+  if (!isMain && !isFamily) {
+    console.log(`[MSG] IGNORED — number not in whitelist`);
+    return null;
+  }
 
   let agent, cleanText;
 
@@ -32,9 +38,11 @@ function routeMessage(senderJid, text) {
 }
 
 async function processMessage(senderJid, text) {
+  console.log(`[MSG] received: "${text.slice(0, 60)}" from ${senderJid}`);
   const routed = routeMessage(senderJid, text);
   if (!routed) return null;
 
+  console.log(`[MSG] routed to agent: ${routed.agent.name}`);
   const { agent, cleanText, config } = routed;
   return callLLM(senderJid, cleanText, agent, config.llm);
 }
@@ -67,8 +75,10 @@ async function callLLM(senderJid, userText, agent, llmConfig) {
 
   if (!response.ok) {
     const errBody = await response.text().catch(() => '');
+    console.error(`[LLM] error ${response.status}: ${errBody}`);
     throw new Error(`LLM API error ${response.status}: ${errBody}`);
   }
+  console.log(`[LLM] response received successfully`);
 
   const data = await response.json();
   const reply = data.choices?.[0]?.message?.content ?? 'Sorry, I could not process your request.';
