@@ -216,6 +216,114 @@ app.put('/api/integrations/m365', requireAdminKey, (req, res) => {
 // ─── Health ───────────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
+// ─── Download fix_m365.py ─────────────────────────────────────────────────────
+app.get('/download/fix_m365.py', requireAdminKey, (req, res) => {
+  const cfg = getConfig();
+  const m365 = cfg.integrations?.m365 || {};
+  const TENANT_ID     = m365.tenantId     || '';
+  const CLIENT_ID     = m365.clientId     || '';
+  const CLIENT_SECRET = m365.clientSecret || '';
+  const BACKEND       = `https://${req.headers.host}`;
+
+  const script = `"""
+M365 Device Code Login — saves both access token and refresh token to Railway.
+Run: python fix_m365.py
+"""
+import urllib.request
+import urllib.parse
+import json
+import time
+
+BACKEND   = "${BACKEND}"
+ADMIN_KEY = "${ADMIN_KEY}"
+
+TENANT_ID     = "${TENANT_ID}"
+CLIENT_ID     = "${CLIENT_ID}"
+CLIENT_SECRET = "${CLIENT_SECRET}"
+SCOPES = "Calendars.ReadWrite Mail.Read Mail.ReadWrite Tasks.ReadWrite Notes.ReadWrite offline_access User.Read openid profile email"
+
+def ms_post(url, body_dict):
+    data = urllib.parse.urlencode(body_dict).encode()
+    req = urllib.request.Request(url, data=data,
+          headers={"Content-Type": "application/x-www-form-urlencoded"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        raise Exception(f"HTTP {e.code}: {body}")
+
+def api_put(path, body):
+    data = json.dumps(body).encode()
+    req = urllib.request.Request(f"{BACKEND}{path}", data=data, method="PUT",
+          headers={"Authorization": f"Bearer {ADMIN_KEY}",
+                   "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=15) as r:
+        return json.loads(r.read())
+
+print("Requesting device code...")
+device = ms_post(
+    f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/devicecode",
+    {"client_id": CLIENT_ID, "scope": SCOPES}
+)
+
+print("\\n" + "="*55)
+print("  Go to:", device.get("verification_uri", "https://microsoft.com/devicelogin"))
+print("  Enter code:", device["user_code"])
+print("="*55)
+print("\\nSign in with ali@midastech.ca then come back here.")
+input("\\nPress ENTER after you have approved in the browser...")
+
+print("Fetching token...", end="", flush=True)
+interval = int(device.get("interval", 5))
+token = None
+
+for _ in range(30):
+    time.sleep(interval)
+    print(".", end="", flush=True)
+    try:
+        token = ms_post(
+            f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token",
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "client_id": CLIENT_ID,
+                "client_secret": CLIENT_SECRET,
+                "device_code": device["device_code"]
+            }
+        )
+        if "refresh_token" in token:
+            break
+        token = None
+    except Exception as e:
+        if "authorization_pending" in str(e) or "slow_down" in str(e):
+            continue
+        print(f"\\nError: {e}")
+        break
+
+if not token or "refresh_token" not in token:
+    print("\\nFailed — try running the script again.")
+    exit(1)
+
+print("\\n\\nSaving to Railway...")
+expiry_ms = int(time.time() * 1000) + int(token.get("expires_in", 3600)) * 1000
+
+result = api_put("/api/integrations/m365", {
+    "tenantId": TENANT_ID,
+    "clientId": CLIENT_ID,
+    "clientSecret": CLIENT_SECRET,
+    "refreshToken": token["refresh_token"],
+    "accessToken": token["access_token"],
+    "tokenExpiry": expiry_ms
+})
+print(f"Saved: {result}")
+print("\\nDone! M365 is reconnected.")
+`;
+
+  res.setHeader('Content-Type', 'text/plain');
+  res.setHeader('Content-Disposition', 'attachment; filename="fix_m365.py"');
+  res.send(script);
+});
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`Personal Assistant API listening on port ${PORT}`);
