@@ -7,6 +7,25 @@ const pino = require('pino');
 
 const AUTH_DIR = path.join(__dirname, 'auth_info');
 
+async function transcribeAudio(buffer, llmConfig) {
+  if (!llmConfig?.apiKey) throw new Error('No API key configured');
+  const baseUrl = (llmConfig.baseUrl || 'https://api.openai.com/v1').replace(/\/$/, '');
+  const form = new FormData();
+  form.append('file', new Blob([buffer], { type: 'audio/ogg' }), 'voice.ogg');
+  form.append('model', 'whisper-1');
+  const response = await fetch(`${baseUrl}/audio/transcriptions`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${llmConfig.apiKey}` },
+    body: form
+  });
+  if (!response.ok) {
+    const err = await response.text().catch(() => '');
+    throw new Error(`Whisper API ${response.status}: ${err.slice(0, 200)}`);
+  }
+  const data = await response.json();
+  return data.text?.trim() || null;
+}
+
 let currentQR = null;
 let qrDataUrl = null;
 let isConnected = false;
@@ -175,6 +194,27 @@ async function connect() {
           console.log(`[WA] Image downloaded ${Math.round(buffer.length / 1024)}KB, caption: "${text || ''}"`);
         } catch (err) {
           console.error('[WA] Image download failed:', err.message);
+        }
+      }
+
+      // Handle voice notes and audio messages
+      const audioMsg = msg.message?.audioMessage;
+      if (audioMsg && !text && !imageInfo) {
+        try {
+          const { getConfig } = require('./config-manager');
+          const llmConfig = getConfig().llm;
+          const buffer = await downloadMediaMessage(msg, 'buffer', {}, { logger, reuploadRequest: sock.updateMediaMessage });
+          console.log(`[WA] Audio downloaded ${Math.round(buffer.length / 1024)}KB (ptt=${audioMsg.ptt})`);
+          const transcript = await transcribeAudio(buffer, llmConfig);
+          if (transcript) {
+            text = transcript;
+            console.log(`[WA] Transcribed: "${transcript.slice(0, 100)}"`);
+          } else {
+            text = '[Voice note received but no speech detected — please try again]';
+          }
+        } catch (err) {
+          console.error('[WA] Voice transcription failed:', err.message);
+          text = `[Voice note transcription failed: ${err.message}]`;
         }
       }
 
