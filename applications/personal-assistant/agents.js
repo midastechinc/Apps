@@ -97,6 +97,12 @@ function buildSystemPrompt(agent, config, agentType) {
     }
   }
 
+  const familyCalId = config.googleFamilyCalendarId;
+  if (familyCalId) {
+    prompt += `\n\nFamily shared Google Calendar ID: ${familyCalId}`;
+    prompt += `\nAlways use calendar_id="${familyCalId}" when calling google_list_events or google_create_event for family events.`;
+  }
+
   const now = new Date();
   const localTime = now.toLocaleString('en-CA', {
     timeZone: 'America/Toronto',

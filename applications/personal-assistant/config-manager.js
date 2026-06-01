@@ -7,6 +7,7 @@ const DEFAULT_CONFIG = {
   mainNumber: '',
   familyNumbers: [],
   familyMembers: [],
+  googleFamilyCalendarId: '',
   businessAgent: {
     name: 'Business Assistant',
     systemPrompt:
