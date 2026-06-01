@@ -24,6 +24,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const llmForm = document.getElementById('llmForm');
     const refreshConvosBtn = document.getElementById('refreshConvosBtn');
     const convosGrid = document.getElementById('convosGrid');
+    const resetSessionBtn = document.getElementById('resetSessionBtn');
+    const resetFeedback = document.getElementById('resetFeedback');
 
     const tabButtons = Array.from(document.querySelectorAll('.tab-button'));
     tabButtons.forEach(btn => btn.addEventListener('click', () => activateTab(btn.dataset.tab)));
@@ -35,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     agentsForm.addEventListener('submit', saveAgents);
     contactsForm.addEventListener('submit', saveContacts);
     llmForm.addEventListener('submit', saveLlm);
+    resetSessionBtn.addEventListener('click', resetWhatsAppSession);
 
     document.querySelectorAll('.preset-pill').forEach(pill => {
         pill.addEventListener('click', () => {
@@ -318,4 +321,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function escapeAttr(v) { return escapeHtml(v); }
+
+    async function resetWhatsAppSession() {
+        if (!confirm('This will disconnect WhatsApp and require a new QR scan. Your config (contacts, LLM) will be preserved. Continue?')) return;
+        resetSessionBtn.disabled = true;
+        try {
+            await apiFetch('/api/reset-session', { method: 'POST' });
+            showFeedback(resetFeedback, 'Session cleared. Scan the new QR code below.', 'ok');
+            setTimeout(loadStatus, 2000);
+        } catch (err) {
+            showFeedback(resetFeedback, `Error: ${err.message}`, 'err');
+        } finally {
+            resetSessionBtn.disabled = false;
+        }
+    }
 });

@@ -4,7 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const { getConfig, updateConfig } = require('./config-manager');
 const { processMessage, clearHistory, listConversations } = require('./agents');
-const { start: startWhatsApp, getStatus, refreshNumberResolution } = require('./whatsapp');
+const { start: startWhatsApp, getStatus, refreshNumberResolution, resetSession } = require('./whatsapp');
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_KEY = process.env.ADMIN_KEY || '';
@@ -59,6 +59,15 @@ app.get('/api/conversations', requireAdminKey, (_req, res) => {
 app.delete('/api/conversations/:jid', requireAdminKey, (req, res) => {
   clearHistory(decodeURIComponent(req.params.jid));
   res.json({ ok: true });
+});
+
+app.post('/api/reset-session', requireAdminKey, async (_req, res) => {
+  try {
+    await resetSession();
+    res.json({ ok: true, message: 'Session cleared. Scan new QR code.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/health', (_req, res) => res.json({ ok: true }));

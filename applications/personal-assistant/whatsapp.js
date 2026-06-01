@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs');
 const { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const { Boom } = require('@hapi/boom');
 const QRCode = require('qrcode');
@@ -180,4 +181,28 @@ function getStatus() {
   };
 }
 
-module.exports = { start, getStatus, refreshNumberResolution };
+async function resetSession() {
+  // Close existing connection
+  if (sock) {
+    sock.ev.removeAllListeners();
+    sock.end?.();
+    sock = null;
+  }
+  isConnected = false;
+  connectedAt = null;
+  currentQR = null;
+  qrDataUrl = null;
+
+  // Delete all auth_info files EXCEPT config.json
+  if (fs.existsSync(AUTH_DIR)) {
+    for (const file of fs.readdirSync(AUTH_DIR)) {
+      if (file !== 'config.json') {
+        fs.rmSync(path.join(AUTH_DIR, file), { recursive: true, force: true });
+      }
+    }
+  }
+  console.log('[WA] Session cleared. Reconnecting for fresh QR...');
+  await connect();
+}
+
+module.exports = { start, getStatus, refreshNumberResolution, resetSession };
