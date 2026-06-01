@@ -70,6 +70,88 @@ async function graphFetch(endpoint, options = {}) {
   return resp.json();
 }
 
+async function graphFetchText(endpoint) {
+  const token = await getAccessToken();
+  if (!token) return null;
+  try {
+    const resp = await fetch(`https://graph.microsoft.com/v1.0${endpoint}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!resp.ok) return null;
+    return resp.text();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchYouTubeTitle(url) {
+  try {
+    const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+    const resp = await fetch(oembedUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    if (!resp.ok) return 'Untitled YouTube Video';
+    const data = await resp.json();
+    return data.title || 'Untitled YouTube Video';
+  } catch {
+    return 'Untitled YouTube Video';
+  }
+}
+
+async function saveYouTubeLink({ url }) {
+  const title = await fetchYouTubeTitle(url);
+
+  // Find "YouTube Links" page
+  const params = new URLSearchParams({
+    '$filter': "title eq 'YouTube Links'",
+    '$select': 'id,title',
+    '$top': '1'
+  });
+  let data = await graphFetch(`/me/onenote/pages?${params}`);
+
+  // Fallback: search if filter returned nothing
+  if (!data.error && !(data.value || []).length) {
+    const searchParams = new URLSearchParams({ search: 'YouTube Links', '$top': '5', '$select': 'id,title' });
+    data = await graphFetch(`/me/onenote/pages?${searchParams}`);
+  }
+
+  if (data.error) return data;
+
+  const page = (data.value || []).find(p => p.title === 'YouTube Links') || (data.value || [])[0];
+  if (!page) {
+    return { error: 'Could not find "YouTube Links" page in OneNote. Please create it first.' };
+  }
+
+  // Read current content to determine next number
+  const html = await graphFetchText(`/me/onenote/pages/${page.id}/content`);
+  const numbers = html
+    ? [...html.matchAll(/>\s*(\d+)\.\s/g)].map(m => parseInt(m[1]))
+    : [];
+  const nextNumber = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+
+  // Append entry
+  const appendBody = JSON.stringify([{
+    target: 'body',
+    action: 'append',
+    content: `<p>${nextNumber}. ${title} — ${url}</p>`
+  }]);
+
+  const token = await getAccessToken();
+  const patchResp = await fetch(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: appendBody
+  });
+
+  if (!patchResp.ok) {
+    const errText = await patchResp.text();
+    return { error: `Failed to append to OneNote: ${patchResp.status}: ${errText}` };
+  }
+
+  return { success: true, number: nextNumber, title, url };
+}
+
 async function listCalendarEvents({ days_ahead = 7, top = 10 } = {}) {
   const now = new Date();
   const end = new Date(now.getTime() + days_ahead * 86400000);
@@ -231,4 +313,4 @@ function isConfigured() {
   return !!(m365?.enabled && m365?.clientId && m365?.tenantId && (m365?.accessToken || m365?.refreshToken));
 }
 
-module.exports = { listCalendarEvents, createCalendarEvent, listEmails, listTodos, createTodo, searchOneNote, isConfigured };
+module.exports = { listCalendarEvents, createCalendarEvent, listEmails, listTodos, createTodo, searchOneNote, saveYouTubeLink, isConfigured };
