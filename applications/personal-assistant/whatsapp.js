@@ -158,14 +158,16 @@ async function connect() {
         if (onMessage) {
           const reply = await onMessage(sender, text);
           if (reply && sock) {
-            await sock.sendMessage(rawJid, { text: reply });
-            console.log(`[WA] Reply sent to ${rawJid}`);
+            // Send to resolved phone JID (@s.whatsapp.net) — same format native app uses
+            const replyJid = sender !== rawJid ? sender : rawJid;
+            await sock.sendMessage(replyJid, { text: reply });
+            console.log(`[WA] Reply sent to ${replyJid}`);
           }
         }
       } catch (err) {
-        console.error(`[WA] Failed to send reply to ${rawJid}:`, err.message);
+        console.error(`[WA] Failed to send reply:`, err.message);
         if (sock) {
-          await sock.sendMessage(rawJid, {
+          await sock.sendMessage(sender !== rawJid ? sender : rawJid, {
             text: 'Something went wrong. Please try again.'
           }).catch(e => console.error('[WA] Error reply failed:', e.message));
         }
