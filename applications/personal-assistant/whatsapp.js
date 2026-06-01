@@ -230,7 +230,11 @@ async function connect() {
           }
         } catch (err) {
           console.error('[WA] Voice transcription failed:', err.message);
-          text = `[Voice note transcription failed: ${err.message}]`;
+          // Send raw error directly — bypasses LLM so we see the exact message
+          if (sock && msg.key.remoteJid) {
+            await sock.sendMessage(msg.key.remoteJid, { text: `[Voice note error] ${err.message}` }).catch(() => {});
+          }
+          continue;
         }
       }
 
