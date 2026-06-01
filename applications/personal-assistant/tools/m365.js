@@ -88,33 +88,90 @@ async function fetchYouTubeTitle(url) {
   try {
     const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
     const resp = await fetch(oembedUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-    if (!resp.ok) return 'Untitled YouTube Video';
+    if (!resp.ok) return null;
     const data = await resp.json();
-    return data.title || 'Untitled YouTube Video';
+    return data.title || null;
   } catch {
-    return 'Untitled YouTube Video';
+    return null;
   }
 }
 
-// Hardcoded page ID for the "YouTube Links" OneNote page (from onenote-youtube.py)
-const YOUTUBE_LINKS_PAGE_ID = '1-a9da38968f2a4e05826e53d9b8c8f5e4!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e';
+async function fetchPageTitle(url) {
+  try {
+    const resp = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+        'Accept': 'text/html,application/xhtml+xml'
+      }
+    });
+    if (!resp.ok) return null;
+    const html = await resp.text();
+    const ogMatch = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
+                 || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i);
+    if (ogMatch) return ogMatch[1].trim();
+    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    if (titleMatch) return titleMatch[1].replace(/ [|\-–•] Facebook$/, '').replace(/ [|\-–•] Instagram$/, '').trim();
+    return null;
+  } catch {
+    return null;
+  }
+}
 
-async function saveYouTubeLink({ url }) {
-  const title = await fetchYouTubeTitle(url);
-  console.log('[OneNote] Saving YouTube link:', { url, title });
+function detectPlatform(url) {
+  if (/youtube\.com|youtu\.be/i.test(url)) return 'youtube';
+  if (/facebook\.com|fb\.com|fb\.watch/i.test(url)) return 'facebook';
+  if (/instagram\.com|instagr\.am/i.test(url)) return 'instagram';
+  return null;
+}
 
+const PLATFORM_CONFIG = {
+  youtube:   { pageName: 'YouTube Links',   pageIdKey: 'youtubeLinksPageId',   hardcodedId: '1-a9da38968f2a4e05826e53d9b8c8f5e4!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e' },
+  facebook:  { pageName: 'Facebook Links',  pageIdKey: 'facebookLinksPageId',  hardcodedId: null },
+  instagram: { pageName: 'Instagram Links', pageIdKey: 'instagramLinksPageId', hardcodedId: null }
+};
+
+async function findOneNotePageByTitle(titleToFind) {
+  const lower = titleToFind.toLowerCase();
+  const notebooksData = await graphFetch('/me/onenote/notebooks?$select=id,displayName&$top=50');
+  if (notebooksData.error) return null;
+  for (const nb of (notebooksData.value || [])) {
+    const sectionsData = await graphFetch(`/me/onenote/notebooks/${nb.id}/sections?$select=id,displayName&$top=50`);
+    if (sectionsData.error) continue;
+    for (const sec of (sectionsData.value || [])) {
+      const pagesData = await graphFetch(`/me/onenote/sections/${sec.id}/pages?$select=id,title&$top=100`);
+      if (pagesData.error) continue;
+      const found = (pagesData.value || []).find(p => p.title?.toLowerCase() === lower);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+async function getPageId(platform) {
+  const cfg = PLATFORM_CONFIG[platform];
+  if (!cfg) return null;
+  if (cfg.hardcodedId) return cfg.hardcodedId;
+
+  // Check config cache
+  const config = getConfig();
+  const cached = config.integrations?.m365?.[cfg.pageIdKey];
+  if (cached) return cached;
+
+  // Search notebooks
+  const page = await findOneNotePageByTitle(cfg.pageName);
+  if (!page) return null;
+
+  // Cache for next time
+  const m365 = config.integrations?.m365 || {};
+  updateConfig({ integrations: { m365: { ...m365, [cfg.pageIdKey]: page.id } } });
+  console.log(`[OneNote] Cached ${cfg.pageIdKey} = ${page.id}`);
+  return page.id;
+}
+
+async function appendToOneNotePage(pageId, nextNumber, title, url) {
   const token = await getAccessToken();
   if (!token) return { error: 'M365 token unavailable' };
 
-  // Read current content to determine next number
-  const html = await graphFetchText(`/me/onenote/pages/${YOUTUBE_LINKS_PAGE_ID}/content`);
-  const numbers = html
-    ? [...html.matchAll(/>\s*(\d+)\.\s/g)].map(m => parseInt(m[1]))
-    : [];
-  const nextNumber = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
-  console.log('[OneNote] Next entry number:', nextNumber);
-
-  // Append with anchor tag (matching original onenote-youtube.py format)
   const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const patchBody = JSON.stringify([{
     target: 'body',
@@ -122,12 +179,9 @@ async function saveYouTubeLink({ url }) {
     content: `<p>${nextNumber}. <a href="${url}">${safeTitle}</a></p>`
   }]);
 
-  const patchResp = await fetch(`https://graph.microsoft.com/v1.0/me/onenote/pages/${YOUTUBE_LINKS_PAGE_ID}/content`, {
+  const patchResp = await fetch(`https://graph.microsoft.com/v1.0/me/onenote/pages/${pageId}/content`, {
     method: 'PATCH',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: patchBody
   });
 
@@ -137,16 +191,44 @@ async function saveYouTubeLink({ url }) {
     return { error: `OneNote write failed (${patchResp.status}): ${errText}` };
   }
 
-  // Verify the write actually committed (204 can be a silent false-success)
+  // Verify the write actually committed
   await new Promise(r => setTimeout(r, 1500));
-  const verifyHtml = await graphFetchText(`/me/onenote/pages/${YOUTUBE_LINKS_PAGE_ID}/content`);
+  const verifyHtml = await graphFetchText(`/me/onenote/pages/${pageId}/content`);
   if (verifyHtml && !verifyHtml.includes(url)) {
-    console.error('[OneNote] PATCH returned 204 but content not found in page after write');
-    return { error: 'OneNote accepted the request but the entry did not appear. This usually means the token scope is insufficient (needs Notes.ReadWrite.All) or the notebook is read-only.' };
+    return { error: 'OneNote accepted the request but the entry did not appear. Token may need Notes.ReadWrite.All scope.' };
+  }
+  return null;
+}
+
+async function saveLink({ url }) {
+  const platform = detectPlatform(url);
+  if (!platform) return { error: 'URL is not from YouTube, Facebook, or Instagram.' };
+
+  const cfg = PLATFORM_CONFIG[platform];
+  console.log(`[OneNote] Saving ${platform} link:`, url);
+
+  // Fetch title
+  let title = platform === 'youtube'
+    ? await fetchYouTubeTitle(url)
+    : await fetchPageTitle(url);
+  if (!title) title = `${cfg.pageName.replace(' Links', '')} Post`;
+
+  // Get page ID
+  const pageId = await getPageId(platform);
+  if (!pageId) {
+    return { error: `Could not find "${cfg.pageName}" page in OneNote. Please create it first.` };
   }
 
-  console.log('[OneNote] Successfully appended entry', nextNumber);
-  return { success: true, number: nextNumber, title, url };
+  // Count existing entries
+  const html = await graphFetchText(`/me/onenote/pages/${pageId}/content`);
+  const numbers = html ? [...html.matchAll(/>\s*(\d+)\.\s/g)].map(m => parseInt(m[1])) : [];
+  const nextNumber = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+
+  const err = await appendToOneNotePage(pageId, nextNumber, title, url);
+  if (err) return err;
+
+  console.log(`[OneNote] Saved ${platform} entry #${nextNumber}`);
+  return { success: true, number: nextNumber, title, url, platform, page: cfg.pageName };
 }
 
 async function listCalendarEvents({ days_ahead = 7, top = 10 } = {}) {
@@ -330,5 +412,5 @@ function isConfigured() {
   return !!(m365?.enabled && m365?.clientId && m365?.tenantId && (m365?.accessToken || m365?.refreshToken));
 }
 
-module.exports = { listCalendarEvents, createCalendarEvent, listEmails, listTodos, createTodo, searchOneNote, saveYouTubeLink, listOneNoteStructure, isConfigured };
+module.exports = { listCalendarEvents, createCalendarEvent, listEmails, listTodos, createTodo, searchOneNote, saveLink, listOneNoteStructure, isConfigured };
 

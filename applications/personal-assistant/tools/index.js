@@ -153,15 +153,15 @@ const DEFINITIONS = {
       }
     }
   },
-  m365_save_youtube_link: {
+  m365_save_link: {
     type: 'function',
     function: {
-      name: 'm365_save_youtube_link',
-      description: 'Save a YouTube link to the "YouTube Links" OneNote page with its title and the next sequential number.',
+      name: 'm365_save_link',
+      description: 'Save a YouTube, Facebook, or Instagram link to the matching OneNote page (YouTube Links, Facebook Links, or Instagram Links) with a sequential number and the page title.',
       parameters: {
         type: 'object',
         properties: {
-          url: { type: 'string', description: 'The full YouTube URL to save' }
+          url: { type: 'string', description: 'The full URL to save (YouTube, Facebook, or Instagram)' }
         },
         required: ['url']
       }
@@ -183,7 +183,7 @@ const AGENT_TOOLS = {
     'google_list_events', 'google_create_event', 'google_list_calendars',
     'm365_list_calendar_events', 'm365_create_calendar_event',
     'm365_list_emails', 'm365_list_todos', 'm365_create_todo',
-    'm365_search_onenote', 'm365_save_youtube_link', 'm365_list_onenote_structure'
+    'm365_search_onenote', 'm365_save_link', 'm365_list_onenote_structure'
   ],
   family: [
     'get_current_time', 'get_current_date',
@@ -221,7 +221,7 @@ async function executeTool(toolName, args) {
       case 'm365_list_todos':             return await m365.listTodos(args);
       case 'm365_create_todo':            return await m365.createTodo(args);
       case 'm365_search_onenote':         return await m365.searchOneNote(args);
-      case 'm365_save_youtube_link':         return await m365.saveYouTubeLink(args);
+      case 'm365_save_link':                  return await m365.saveLink(args);
       case 'm365_list_onenote_structure':    return await m365.listOneNoteStructure();
       default:                               return { error: `Unknown tool: ${toolName}` };
     }
