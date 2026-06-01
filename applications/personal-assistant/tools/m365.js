@@ -21,8 +21,10 @@ async function getAccessToken() {
           client_id: m365.clientId,
           client_secret: m365.clientSecret,
           refresh_token: m365.refreshToken,
-          grant_type: 'refresh_token',
-          scope: 'Calendars.ReadWrite Mail.Read Mail.ReadWrite Tasks.ReadWrite Notes.ReadWrite.All Notes.Create Files.ReadWrite Sites.Read.All offline_access User.Read'
+          grant_type: 'refresh_token'
+          // No scope — reuses originally-consented scopes from initial auth.
+          // Adding scopes here causes Microsoft to reject the refresh for tokens
+          // that don't yet have consent for those scopes.
         })
       }
     );
