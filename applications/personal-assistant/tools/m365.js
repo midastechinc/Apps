@@ -22,7 +22,7 @@ async function getAccessToken() {
           client_secret: m365.clientSecret,
           refresh_token: m365.refreshToken,
           grant_type: 'refresh_token',
-          scope: 'Calendars.ReadWrite Mail.Read Mail.ReadWrite Tasks.ReadWrite Notes.ReadWrite.All Notes.Create offline_access User.Read'
+          scope: 'Calendars.ReadWrite Mail.Read Mail.ReadWrite Tasks.ReadWrite Notes.ReadWrite.All Notes.Create Files.ReadWrite Sites.Read.All offline_access User.Read'
         })
       }
     );
@@ -444,11 +444,149 @@ async function getPageIdsForLinkPages() {
   return result;
 }
 
+// ─── OneDrive ─────────────────────────────────────────────────────────────────
+
+function escapeODataQuery(q) {
+  return String(q).replace(/'/g, "''");
+}
+
+async function searchOneDrive({ query, top = 10 } = {}) {
+  const params = new URLSearchParams({
+    $top: String(top),
+    $select: 'id,name,size,lastModifiedDateTime,webUrl,file,folder,parentReference'
+  });
+  const data = await graphFetch(`/me/drive/search(q='${escapeODataQuery(query)}')?${params}`);
+  if (data.error) return data;
+  return {
+    query,
+    items: (data.value || []).map(item => ({
+      id: item.id,
+      name: item.name,
+      type: item.file ? 'file' : 'folder',
+      size: item.size ? `${Math.round(item.size / 1024)}KB` : null,
+      modified: item.lastModifiedDateTime,
+      url: item.webUrl,
+      path: (item.parentReference?.path || '').replace('/drive/root:', '') || '/'
+    }))
+  };
+}
+
+async function listOneDriveFolder({ folder_path = '/' } = {}) {
+  const base = (folder_path === '/' || !folder_path)
+    ? '/me/drive/root/children'
+    : `/me/drive/root:${encodeURIComponent(folder_path)}:/children`;
+  const params = new URLSearchParams({
+    $top: '50',
+    $select: 'id,name,size,lastModifiedDateTime,webUrl,file,folder',
+    $orderby: 'name'
+  });
+  const data = await graphFetch(`${base}?${params}`);
+  if (data.error) return data;
+  return {
+    folder: folder_path,
+    items: (data.value || []).map(item => ({
+      id: item.id,
+      name: item.name,
+      type: item.file ? 'file' : 'folder',
+      size: item.size ? `${Math.round(item.size / 1024)}KB` : null,
+      modified: item.lastModifiedDateTime,
+      url: item.webUrl
+    }))
+  };
+}
+
+async function getOneDriveShareLink({ item_id, link_type = 'view' }) {
+  const data = await graphFetch(`/me/drive/items/${item_id}/createLink`, {
+    method: 'POST',
+    body: JSON.stringify({ type: link_type, scope: 'organization' })
+  });
+  if (data.error) return data;
+  return { success: true, item_id, link: data.link?.webUrl, type: data.link?.type };
+}
+
+// ─── SharePoint ───────────────────────────────────────────────────────────────
+
+async function listSharePointSites({ search = '' } = {}) {
+  const params = new URLSearchParams({
+    search: search || '*',
+    $top: '20',
+    $select: 'id,displayName,webUrl,description'
+  });
+  const data = await graphFetch(`/sites?${params}`);
+  if (data.error) return data;
+  return {
+    sites: (data.value || []).map(s => ({
+      id: s.id,
+      name: s.displayName,
+      url: s.webUrl,
+      description: s.description || null
+    }))
+  };
+}
+
+async function searchSharePoint({ query, site_id = null, top = 10 } = {}) {
+  const base = site_id
+    ? `/sites/${site_id}/drive/search(q='${escapeODataQuery(query)}')`
+    : `/sites/root/drive/search(q='${escapeODataQuery(query)}')`;
+  const params = new URLSearchParams({
+    $top: String(top),
+    $select: 'id,name,size,lastModifiedDateTime,webUrl,file,folder,parentReference'
+  });
+  const data = await graphFetch(`${base}?${params}`);
+  if (data.error) return data;
+  return {
+    query,
+    items: (data.value || []).map(item => ({
+      id: item.id,
+      name: item.name,
+      type: item.file ? 'file' : 'folder',
+      size: item.size ? `${Math.round(item.size / 1024)}KB` : null,
+      modified: item.lastModifiedDateTime,
+      url: item.webUrl,
+      path: (item.parentReference?.path || '').replace('/drive/root:', '') || '/'
+    }))
+  };
+}
+
+async function listSharePointFiles({ site_id, folder_path = '/' } = {}) {
+  if (!site_id) return { error: 'site_id is required. Use sharepoint_list_sites first to find site IDs.' };
+  const base = (folder_path === '/' || !folder_path)
+    ? `/sites/${site_id}/drive/root/children`
+    : `/sites/${site_id}/drive/root:${encodeURIComponent(folder_path)}:/children`;
+  const params = new URLSearchParams({
+    $top: '50',
+    $select: 'id,name,size,lastModifiedDateTime,webUrl,file,folder',
+    $orderby: 'name'
+  });
+  const data = await graphFetch(`${base}?${params}`);
+  if (data.error) return data;
+  return {
+    site_id,
+    folder: folder_path,
+    items: (data.value || []).map(item => ({
+      id: item.id,
+      name: item.name,
+      type: item.file ? 'file' : 'folder',
+      size: item.size ? `${Math.round(item.size / 1024)}KB` : null,
+      modified: item.lastModifiedDateTime,
+      url: item.webUrl
+    }))
+  };
+}
+
 function isConfigured() {
   const config = getConfig();
   const m365 = config.integrations?.m365;
   return !!(m365?.enabled && m365?.clientId && m365?.tenantId && (m365?.accessToken || m365?.refreshToken));
 }
 
-module.exports = { listCalendarEvents, createCalendarEvent, listEmails, listTodos, createTodo, searchOneNote, saveLink, listOneNoteStructure, getPageIdsForLinkPages, isConfigured };
+module.exports = {
+  listCalendarEvents, createCalendarEvent,
+  listEmails,
+  listTodos, createTodo,
+  searchOneNote, saveLink, listOneNoteStructure, getPageIdsForLinkPages,
+  searchOneDrive, listOneDriveFolder, getOneDriveShareLink,
+  listSharePointSites, searchSharePoint, listSharePointFiles,
+  isConfigured
+};
 

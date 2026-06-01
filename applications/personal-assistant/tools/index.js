@@ -175,6 +175,95 @@ const DEFINITIONS = {
       description: 'List all OneNote notebooks, sections, and page titles. Use this to diagnose why a page cannot be found.',
       parameters: { type: 'object', properties: {}, required: [] }
     }
+  },
+  onedrive_search: {
+    type: 'function',
+    function: {
+      name: 'onedrive_search',
+      description: 'Search for files and folders in OneDrive by keyword.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Search keyword or filename' },
+          top: { type: 'integer', description: 'Max results to return (default: 10)' }
+        },
+        required: ['query']
+      }
+    }
+  },
+  onedrive_list_folder: {
+    type: 'function',
+    function: {
+      name: 'onedrive_list_folder',
+      description: 'List files and folders in a OneDrive folder.',
+      parameters: {
+        type: 'object',
+        properties: {
+          folder_path: { type: 'string', description: 'Folder path e.g. "/Documents" or "/" for root (default: root)' }
+        },
+        required: []
+      }
+    }
+  },
+  onedrive_get_link: {
+    type: 'function',
+    function: {
+      name: 'onedrive_get_link',
+      description: 'Get a shareable link for a OneDrive file or folder.',
+      parameters: {
+        type: 'object',
+        properties: {
+          item_id: { type: 'string', description: 'The OneDrive item ID (from search or list results)' },
+          link_type: { type: 'string', description: 'Link type: "view" (default), "edit", or "embed"' }
+        },
+        required: ['item_id']
+      }
+    }
+  },
+  sharepoint_list_sites: {
+    type: 'function',
+    function: {
+      name: 'sharepoint_list_sites',
+      description: 'List available SharePoint sites. Use this first to find a site ID before searching or listing files.',
+      parameters: {
+        type: 'object',
+        properties: {
+          search: { type: 'string', description: 'Filter sites by name (optional, returns all if empty)' }
+        },
+        required: []
+      }
+    }
+  },
+  sharepoint_search: {
+    type: 'function',
+    function: {
+      name: 'sharepoint_search',
+      description: 'Search for files in SharePoint.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Search keyword or filename' },
+          site_id: { type: 'string', description: 'SharePoint site ID to search within (optional, defaults to root site)' },
+          top: { type: 'integer', description: 'Max results (default: 10)' }
+        },
+        required: ['query']
+      }
+    }
+  },
+  sharepoint_list_files: {
+    type: 'function',
+    function: {
+      name: 'sharepoint_list_files',
+      description: 'List files in a SharePoint site document library.',
+      parameters: {
+        type: 'object',
+        properties: {
+          site_id: { type: 'string', description: 'SharePoint site ID (use sharepoint_list_sites to find it)' },
+          folder_path: { type: 'string', description: 'Folder path within the site (default: root)' }
+        },
+        required: ['site_id']
+      }
+    }
   }
 };
 
@@ -184,7 +273,9 @@ const AGENT_TOOLS = {
     'google_list_events', 'google_create_event', 'google_list_calendars',
     'm365_list_calendar_events', 'm365_create_calendar_event',
     'm365_list_emails', 'm365_list_todos', 'm365_create_todo',
-    'm365_search_onenote', 'm365_save_link', 'm365_list_onenote_structure'
+    'm365_search_onenote', 'm365_save_link', 'm365_list_onenote_structure',
+    'onedrive_search', 'onedrive_list_folder', 'onedrive_get_link',
+    'sharepoint_list_sites', 'sharepoint_search', 'sharepoint_list_files'
   ],
   family: [
     'get_current_time', 'get_current_date',
@@ -224,6 +315,12 @@ async function executeTool(toolName, args) {
       case 'm365_search_onenote':         return await m365.searchOneNote(args);
       case 'm365_save_link':                  return await m365.saveLink(args);
       case 'm365_list_onenote_structure':    return await m365.listOneNoteStructure();
+      case 'onedrive_search':                return await m365.searchOneDrive(args);
+      case 'onedrive_list_folder':           return await m365.listOneDriveFolder(args);
+      case 'onedrive_get_link':              return await m365.getOneDriveShareLink(args);
+      case 'sharepoint_list_sites':          return await m365.listSharePointSites(args);
+      case 'sharepoint_search':              return await m365.searchSharePoint(args);
+      case 'sharepoint_list_files':          return await m365.listSharePointFiles(args);
       default:                               return { error: `Unknown tool: ${toolName}` };
     }
   } catch (err) {

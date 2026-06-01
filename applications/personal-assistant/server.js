@@ -251,7 +251,7 @@ ADMIN_KEY = "${ADMIN_KEY}"
 TENANT_ID     = "${TENANT_ID}"
 CLIENT_ID     = "${CLIENT_ID}"
 CLIENT_SECRET = "${CLIENT_SECRET}"
-SCOPES = "Calendars.ReadWrite Mail.Read Mail.ReadWrite Tasks.ReadWrite Notes.ReadWrite offline_access User.Read openid profile email"
+SCOPES = "Calendars.ReadWrite Mail.Read Mail.ReadWrite Tasks.ReadWrite Notes.ReadWrite.All Notes.Create Files.ReadWrite Sites.Read.All offline_access User.Read openid profile email"
 
 def ms_post(url, body_dict):
     data = urllib.parse.urlencode(body_dict).encode()
