@@ -10,57 +10,42 @@ const AUTH_DIR = path.join(__dirname, 'auth_info');
 async function transcribeAudio(buffer, llmConfig, mimetype) {
   if (!llmConfig?.apiKey) throw new Error('No API key configured');
   const baseUrl = (llmConfig.baseUrl || 'https://api.openai.com/v1').replace(/\/$/, '');
-  // Strip codec params — "audio/ogg; codecs=opus" → "audio/ogg"
+
+  // Derive audio format for input_audio block — WhatsApp voice notes are opus
   const baseMime = (mimetype || 'audio/ogg').split(';')[0].trim();
-  const ext = baseMime.includes('mp4') ? 'mp4'
+  const fmt = baseMime.includes('mp4') || baseMime.includes('m4a') ? 'mp3'
     : baseMime.includes('webm') ? 'webm'
     : baseMime.includes('mpeg') || baseMime.includes('mp3') ? 'mp3'
     : baseMime.includes('wav') ? 'wav'
-    : 'ogg';
+    : baseMime.includes('flac') ? 'flac'
+    : 'opus'; // default: WhatsApp voice notes are ogg/opus
 
-  // Build multipart body manually and use https module directly.
-  // Node.js fetch (undici) sets a boundary that OpenAI rejects; https gives full control.
-  const boundary = `boundary${Date.now()}${Math.random().toString(36).slice(2)}`;
-  const body = Buffer.concat([
-    Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="voice.${ext}"\r\nContent-Type: ${baseMime}\r\n\r\n`),
-    buffer,
-    Buffer.from(`\r\n--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-1\r\n--${boundary}--\r\n`)
-  ]);
-
-  const { URL: NodeURL } = require('url');
-  const endpoint = new NodeURL(`${baseUrl}/audio/transcriptions`);
-  const httpMod = require(endpoint.protocol === 'https:' ? 'https' : 'http');
-
-  return new Promise((resolve, reject) => {
-    const req = httpMod.request({
-      hostname: endpoint.hostname,
-      port: endpoint.port || (endpoint.protocol === 'https:' ? 443 : 80),
-      path: endpoint.pathname,
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${llmConfig.apiKey}`,
-        'Content-Type': `multipart/form-data; boundary=${boundary}`,
-        'Content-Length': body.length
-      }
-    }, res => {
-      let data = '';
-      res.on('data', chunk => { data += chunk; });
-      res.on('end', () => {
-        if (res.statusCode !== 200) {
-          reject(new Error(`Whisper API ${res.statusCode}: ${data.slice(0, 300)}`));
-          return;
-        }
-        try {
-          resolve(JSON.parse(data).text?.trim() || null);
-        } catch {
-          reject(new Error(`Whisper parse error: ${data.slice(0, 100)}`));
-        }
-      });
-    });
-    req.on('error', reject);
-    req.write(body);
-    req.end();
+  // Use chat/completions with input_audio — same endpoint as text (no multipart needed)
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${llmConfig.apiKey}`
+    },
+    body: JSON.stringify({
+      model: llmConfig.model || 'gpt-4o',
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'input_audio', input_audio: { data: buffer.toString('base64'), format: fmt } },
+          { type: 'text', text: 'Transcribe this audio exactly as spoken. Return only the transcribed text, nothing else.' }
+        ]
+      }],
+      max_tokens: 500
+    })
   });
+
+  if (!response.ok) {
+    const err = await response.text().catch(() => '');
+    throw new Error(`Audio transcription ${response.status}: ${err.slice(0, 300)}`);
+  }
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content?.trim() || null;
 }
 
 let currentQR = null;
