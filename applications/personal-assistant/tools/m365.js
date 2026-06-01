@@ -96,83 +96,33 @@ async function fetchYouTubeTitle(url) {
   }
 }
 
-async function findOneNotePageByTitle(titleToFind) {
-  const lower = titleToFind.toLowerCase();
-
-  // Walk through every notebook → section → pages (most reliable path)
-  const notebooksData = await graphFetch('/me/onenote/notebooks?$select=id,displayName&$top=50');
-  if (notebooksData.error) {
-    console.error('[OneNote] Failed to list notebooks:', notebooksData.error);
-    return null;
-  }
-
-  const notebooks = notebooksData.value || [];
-  console.log('[OneNote] Notebooks found:', notebooks.map(n => n.displayName));
-
-  for (const notebook of notebooks) {
-    const sectionsData = await graphFetch(`/me/onenote/notebooks/${notebook.id}/sections?$select=id,displayName&$top=50`);
-    if (sectionsData.error) continue;
-
-    const sections = sectionsData.value || [];
-    console.log(`[OneNote] Sections in "${notebook.displayName}":`, sections.map(s => s.displayName));
-
-    for (const section of sections) {
-      const pagesData = await graphFetch(`/me/onenote/sections/${section.id}/pages?$select=id,title&$top=100`);
-      if (pagesData.error) continue;
-
-      const pages = pagesData.value || [];
-      console.log(`[OneNote] Pages in "${notebook.displayName} > ${section.displayName}":`, pages.map(p => p.title));
-
-      const found = pages.find(p => p.title?.toLowerCase() === lower) ||
-                    pages.find(p => p.title?.toLowerCase().includes(lower));
-      if (found) {
-        console.log(`[OneNote] Found "${found.title}" in "${notebook.displayName} > ${section.displayName}"`);
-        return found;
-      }
-    }
-  }
-
-  console.error('[OneNote] Page not found in any notebook/section');
-  return null;
-}
+// Hardcoded page ID for the "YouTube Links" OneNote page (from onenote-youtube.py)
+const YOUTUBE_LINKS_PAGE_ID = '1-a9da38968f2a4e05826e53d9b8c8f5e4!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e';
 
 async function saveYouTubeLink({ url }) {
   const title = await fetchYouTubeTitle(url);
   console.log('[OneNote] Saving YouTube link:', { url, title });
 
-  const page = await findOneNotePageByTitle('YouTube Links');
+  const token = await getAccessToken();
+  if (!token) return { error: 'M365 token unavailable' };
 
-  if (!page) {
-    return { error: 'Could not find "YouTube Links" page in OneNote. Please make sure the page exists with that exact name.' };
-  }
-
-  console.log('[OneNote] Using page:', page.id, page.title);
-
-  // Read current content to get next number
-  const html = await graphFetchText(`/me/onenote/pages/${page.id}/content`);
+  // Read current content to determine next number
+  const html = await graphFetchText(`/me/onenote/pages/${YOUTUBE_LINKS_PAGE_ID}/content`);
   const numbers = html
     ? [...html.matchAll(/>\s*(\d+)\.\s/g)].map(m => parseInt(m[1]))
     : [];
   const nextNumber = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
   console.log('[OneNote] Next entry number:', nextNumber);
 
-  // HTML-escape title (video titles can contain &, <, >)
-  const safeTitle = title
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-
-  // Append the numbered entry
-  const token = await getAccessToken();
-  if (!token) return { error: 'M365 token unavailable for OneNote write' };
-
+  // Append with anchor tag (matching original onenote-youtube.py format)
+  const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const patchBody = JSON.stringify([{
     target: 'body',
     action: 'append',
-    content: `<p>${nextNumber}. ${safeTitle} - ${url}</p>`
+    content: `<p>${nextNumber}. <a href="${url}">${safeTitle}</a></p>`
   }]);
 
-  const patchResp = await fetch(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content`, {
+  const patchResp = await fetch(`https://graph.microsoft.com/v1.0/me/onenote/pages/${YOUTUBE_LINKS_PAGE_ID}/content`, {
     method: 'PATCH',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -373,3 +323,4 @@ function isConfigured() {
 }
 
 module.exports = { listCalendarEvents, createCalendarEvent, listEmails, listTodos, createTodo, searchOneNote, saveYouTubeLink, listOneNoteStructure, isConfigured };
+
