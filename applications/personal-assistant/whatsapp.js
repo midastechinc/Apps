@@ -179,8 +179,8 @@ async function connect() {
       }
 
       if (!text && !imageInfo) continue;
-      // Image with no caption → ask Claudia to describe it
-      if (!text && imageInfo) text = 'What is in this image? Describe it.';
+      // Image with no caption → describe only, no tool calls
+      if (!text && imageInfo) text = '[Image received with no caption — describe what you see. Do NOT add tasks, save links, or call any tools.]';
 
       const rawJid = msg.key.remoteJid;
       if (!rawJid) continue;
