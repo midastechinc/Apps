@@ -126,6 +126,7 @@ async function start(messageHandler) {
 }
 
 async function connect() {
+  console.log('[WA] connect() v4 — voice note + catch-all event logging active');
   const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
   const { version } = await fetchLatestBaileysVersion();
 
@@ -138,6 +139,17 @@ async function connect() {
   });
 
   sock.ev.on('creds.update', saveCreds);
+
+  // Catch-all: log every Baileys event (filtered to message-related) so we can
+  // see what fires when a voice note arrives — helps diagnose missing upsert events
+  sock.ev.process(async (events) => {
+    const keys = Object.keys(events).filter(k =>
+      k.includes('message') || k.includes('call') || k.includes('receipt')
+    );
+    if (keys.length > 0) {
+      console.log(`[WA] ev.process: ${keys.join(', ')}`);
+    }
+  });
 
   sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
     if (qr) {
