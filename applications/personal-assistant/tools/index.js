@@ -98,14 +98,45 @@ const DEFINITIONS = {
     type: 'function',
     function: {
       name: 'm365_list_emails',
-      description: 'List recent emails from Outlook inbox.',
+      description: 'List recent emails from Outlook inbox with preview.',
       parameters: {
         type: 'object',
         properties: {
-          top: { type: 'integer', description: 'Max emails to return (default: 5)' },
-          unread_only: { type: 'boolean', description: 'Only show unread emails (default: false)' }
+          top: { type: 'integer', description: 'Max emails to return (default: 10)' },
+          unread_only: { type: 'boolean', description: 'Only show unread emails (default: false)' },
+          folder: { type: 'string', description: 'Folder name (default: inbox)' }
         },
         required: []
+      }
+    }
+  },
+  m365_search_emails: {
+    type: 'function',
+    function: {
+      name: 'm365_search_emails',
+      description: 'Search emails by keyword across subject, body, and sender. Use this to find specific information that might be in an email.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Search keyword or phrase, e.g. "school", "invoice", "Hassan"' },
+          top: { type: 'integer', description: 'Max results (default: 15)' },
+          folder: { type: 'string', description: 'Folder to search (default: inbox)' }
+        },
+        required: ['query']
+      }
+    }
+  },
+  m365_read_email: {
+    type: 'function',
+    function: {
+      name: 'm365_read_email',
+      description: 'Read the full body of a specific email by its ID. Use after listing or searching emails to get complete content.',
+      parameters: {
+        type: 'object',
+        properties: {
+          email_id: { type: 'string', description: 'The email ID from m365_list_emails or m365_search_emails' }
+        },
+        required: ['email_id']
       }
     }
   },
@@ -272,7 +303,7 @@ const AGENT_TOOLS = {
     'get_current_time', 'get_current_date',
     'google_list_events', 'google_create_event', 'google_list_calendars',
     'm365_list_calendar_events', 'm365_create_calendar_event',
-    'm365_list_emails', 'm365_list_todos', 'm365_create_todo',
+    'm365_list_emails', 'm365_search_emails', 'm365_read_email', 'm365_list_todos', 'm365_create_todo',
     'm365_search_onenote', 'm365_save_link', 'm365_list_onenote_structure',
     'onedrive_search', 'onedrive_list_folder', 'onedrive_get_link',
     'sharepoint_list_sites', 'sharepoint_search', 'sharepoint_list_files'
@@ -310,6 +341,8 @@ async function executeTool(toolName, args) {
       case 'm365_list_calendar_events':   return await m365.listCalendarEvents(args);
       case 'm365_create_calendar_event':  return await m365.createCalendarEvent(args);
       case 'm365_list_emails':            return await m365.listEmails(args);
+      case 'm365_search_emails':          return await m365.searchEmails(args);
+      case 'm365_read_email':             return await m365.readEmail(args);
       case 'm365_list_todos':             return await m365.listTodos(args);
       case 'm365_create_todo':            return await m365.createTodo(args);
       case 'm365_search_onenote':         return await m365.searchOneNote(args);

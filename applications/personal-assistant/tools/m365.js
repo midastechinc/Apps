@@ -309,11 +309,11 @@ async function createCalendarEvent({ subject, start, end, body = '', location = 
   };
 }
 
-async function listEmails({ top = 5, unread_only = false, folder = 'inbox' } = {}) {
+async function listEmails({ top = 10, unread_only = false, folder = 'inbox' } = {}) {
   const params = new URLSearchParams({
     $top: String(top),
     $orderby: 'receivedDateTime desc',
-    $select: 'subject,from,receivedDateTime,bodyPreview,isRead,importance'
+    $select: 'id,subject,from,receivedDateTime,bodyPreview,isRead,importance'
   });
   if (unread_only) params.append('$filter', 'isRead eq false');
 
@@ -326,10 +326,60 @@ async function listEmails({ top = 5, unread_only = false, folder = 'inbox' } = {
       subject: e.subject,
       from: e.from?.emailAddress?.name || e.from?.emailAddress?.address,
       received: e.receivedDateTime,
-      preview: e.bodyPreview?.slice(0, 300) || '',
+      preview: e.bodyPreview?.slice(0, 500) || '',
       is_read: e.isRead,
       importance: e.importance
     }))
+  };
+}
+
+async function searchEmails({ query, top = 15, folder = 'inbox' } = {}) {
+  const params = new URLSearchParams({
+    $search: `"${query}"`,
+    $top: String(top),
+    $select: 'id,subject,from,receivedDateTime,bodyPreview,isRead'
+  });
+
+  const data = await graphFetch(`/me/mailFolders/${folder}/messages?${params}`);
+  if (data.error) return data;
+
+  return {
+    query,
+    emails: (data.value || []).map(e => ({
+      id: e.id,
+      subject: e.subject,
+      from: e.from?.emailAddress?.name || e.from?.emailAddress?.address,
+      received: e.receivedDateTime,
+      preview: e.bodyPreview?.slice(0, 800) || '',
+      is_read: e.isRead
+    }))
+  };
+}
+
+async function readEmail({ email_id } = {}) {
+  if (!email_id) return { error: 'email_id required' };
+  const params = new URLSearchParams({
+    $select: 'id,subject,from,toRecipients,receivedDateTime,body,isRead'
+  });
+  const data = await graphFetch(`/me/messages/${email_id}?${params}`);
+  if (data.error) return data;
+
+  // Strip HTML tags for a clean readable body
+  const rawBody = data.body?.content || '';
+  const cleanBody = rawBody
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s{3,}/g, '\n\n')
+    .trim()
+    .slice(0, 3000);
+
+  return {
+    id: data.id,
+    subject: data.subject,
+    from: data.from?.emailAddress?.name || data.from?.emailAddress?.address,
+    to: (data.toRecipients || []).map(r => r.emailAddress?.address).join(', '),
+    received: data.receivedDateTime,
+    body: cleanBody
   };
 }
 
@@ -582,7 +632,7 @@ function isConfigured() {
 
 module.exports = {
   listCalendarEvents, createCalendarEvent,
-  listEmails,
+  listEmails, searchEmails, readEmail,
   listTodos, createTodo,
   searchOneNote, saveLink, listOneNoteStructure, getPageIdsForLinkPages,
   searchOneDrive, listOneDriveFolder, getOneDriveShareLink,
