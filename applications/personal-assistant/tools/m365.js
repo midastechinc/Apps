@@ -357,7 +357,7 @@ async function listTodos({ list_name = '' } = {}) {
   };
 }
 
-async function createTodo({ title, list_name = '', due_date = null }) {
+async function createTodo({ title, list_name = '', due_date = null, notes = null }) {
   const listsData = await graphFetch('/me/todo/lists');
   if (listsData.error) return listsData;
 
@@ -370,6 +370,7 @@ async function createTodo({ title, list_name = '', due_date = null }) {
 
   const task = { title };
   if (due_date) task.dueDateTime = { dateTime: new Date(due_date).toISOString(), timeZone: 'UTC' };
+  if (notes) task.body = { content: notes, contentType: 'text' };
 
   const data = await graphFetch(`/me/todo/lists/${targetList.id}/tasks`, {
     method: 'POST',

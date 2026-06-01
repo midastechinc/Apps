@@ -133,7 +133,8 @@ const DEFINITIONS = {
         properties: {
           title: { type: 'string', description: 'Task title' },
           list_name: { type: 'string', description: 'List name (default: Tasks)' },
-          due_date: { type: 'string', description: 'Due date ISO (optional)' }
+          due_date: { type: 'string', description: 'Due date ISO (optional)' },
+          notes: { type: 'string', description: 'Optional task notes/body, e.g. details from a forwarded image or screenshot' }
         },
         required: ['title']
       }
