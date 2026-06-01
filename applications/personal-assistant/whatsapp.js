@@ -7,11 +7,17 @@ const pino = require('pino');
 
 const AUTH_DIR = path.join(__dirname, 'auth_info');
 
-async function transcribeAudio(buffer, llmConfig) {
+async function transcribeAudio(buffer, llmConfig, mimetype) {
   if (!llmConfig?.apiKey) throw new Error('No API key configured');
   const baseUrl = (llmConfig.baseUrl || 'https://api.openai.com/v1').replace(/\/$/, '');
+  // Derive filename extension from mimetype for Whisper file-type detection
+  const ext = (mimetype || 'audio/ogg').includes('mp4') ? 'mp4'
+    : (mimetype || '').includes('webm') ? 'webm'
+    : (mimetype || '').includes('mpeg') ? 'mp3'
+    : 'ogg';
+  const type = mimetype || 'audio/ogg';
   const form = new FormData();
-  form.append('file', new Blob([buffer], { type: 'audio/ogg' }), 'voice.ogg');
+  form.append('file', new Blob([buffer], { type }), `voice.${ext}`);
   form.append('model', 'whisper-1');
   const response = await fetch(`${baseUrl}/audio/transcriptions`, {
     method: 'POST',
@@ -174,6 +180,10 @@ async function connect() {
     for (const msg of messages) {
       if (msg.key.fromMe) continue;
 
+      // Debug: log message types to help diagnose unrecognised message formats
+      const msgKeys = Object.keys(msg.message || {});
+      console.log(`[WA] incoming msg keys: ${msgKeys.join(', ')} from ${msg.key.remoteJid}`);
+
       let text =
         msg.message?.conversation ||
         msg.message?.extendedTextMessage?.text ||
@@ -197,15 +207,19 @@ async function connect() {
         }
       }
 
-      // Handle voice notes and audio messages
-      const audioMsg = msg.message?.audioMessage;
+      // Handle voice notes and audio messages — check multiple possible paths
+      const audioMsg =
+        msg.message?.audioMessage ||
+        msg.message?.viewOnceMessage?.message?.audioMessage ||
+        msg.message?.viewOnceMessageV2?.message?.audioMessage;
       if (audioMsg && !text && !imageInfo) {
+        console.log(`[WA] Audio message detected — ptt=${audioMsg.ptt}, mime=${audioMsg.mimetype}`);
         try {
           const { getConfig } = require('./config-manager');
           const llmConfig = getConfig().llm;
           const buffer = await downloadMediaMessage(msg, 'buffer', {}, { logger, reuploadRequest: sock.updateMediaMessage });
-          console.log(`[WA] Audio downloaded ${Math.round(buffer.length / 1024)}KB (ptt=${audioMsg.ptt})`);
-          const transcript = await transcribeAudio(buffer, llmConfig);
+          console.log(`[WA] Audio downloaded ${Math.round(buffer.length / 1024)}KB`);
+          const transcript = await transcribeAudio(buffer, llmConfig, audioMsg.mimetype);
           if (transcript) {
             text = transcript;
             console.log(`[WA] Transcribed: "${transcript.slice(0, 100)}"`);
