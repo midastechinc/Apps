@@ -1,6 +1,6 @@
 const path = require('path');
 const fs = require('fs');
-const { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeInMemoryStore } = require('@whiskeysockets/baileys');
+const { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const { Boom } = require('@hapi/boom');
 const QRCode = require('qrcode');
 const pino = require('pino');
@@ -16,8 +16,7 @@ let onMessage = null;
 let isResolvingNumbers = false;
 
 const lidToPhone = {};
-const logger = pino({ level: 'silent' });
-const store = makeInMemoryStore({ logger });
+const logger = pino({ level: 'warn' });
 
 async function resolveNumbers(phoneNumbers) {
   if (!sock || !isConnected) return;
@@ -76,7 +75,6 @@ async function connect() {
   });
 
   sock.ev.on('creds.update', saveCreds);
-  store.bind(sock.ev);
 
   sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
     if (qr) {
