@@ -71,7 +71,9 @@ async function connect() {
     logger,
     printQRInTerminal: true,
     browser: ['Midas Personal Assistant', 'Chrome', '1.0.0'],
-    syncFullHistory: false
+    syncFullHistory: false,
+    defaultQueryTimeoutMs: undefined,
+    connectTimeoutMs: 60_000
   });
 
   sock.ev.on('creds.update', saveCreds);
@@ -148,9 +150,10 @@ async function connect() {
         }
       }
 
-      // Mark as read and give session a moment to stabilise
+      // Subscribe to presence to pre-establish encryption session, then mark read
+      await sock.presenceSubscribe(rawJid).catch(() => {});
       await sock.readMessages([msg.key]).catch(() => {});
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 800));
 
       try {
         if (onMessage) {
