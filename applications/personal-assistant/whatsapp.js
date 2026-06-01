@@ -10,41 +10,24 @@ const AUTH_DIR = path.join(__dirname, 'auth_info');
 async function transcribeAudio(buffer, llmConfig, mimetype) {
   if (!llmConfig?.apiKey) throw new Error('No API key configured');
   const baseUrl = (llmConfig.baseUrl || 'https://api.openai.com/v1').replace(/\/$/, '');
-  // Strip codec params (e.g. "audio/ogg; codecs=opus" → "audio/ogg")
+  // Strip codec params — "audio/ogg; codecs=opus" → "audio/ogg"
   const baseMime = (mimetype || 'audio/ogg').split(';')[0].trim();
   const ext = baseMime.includes('mp4') ? 'mp4'
     : baseMime.includes('webm') ? 'webm'
     : baseMime.includes('mpeg') || baseMime.includes('mp3') ? 'mp3'
     : baseMime.includes('wav') ? 'wav'
     : 'ogg';
-  const filename = `voice.${ext}`;
 
-  // Build multipart body manually — more reliable than FormData+Blob in Node.js
-  const boundary = `----WA${Date.now()}`;
-  const CRLF = '\r\n';
-  const bodyParts = [
-    Buffer.from(
-      `--${boundary}${CRLF}` +
-      `Content-Disposition: form-data; name="file"; filename="${filename}"${CRLF}` +
-      `Content-Type: ${baseMime}${CRLF}${CRLF}`
-    ),
-    buffer,
-    Buffer.from(
-      `${CRLF}--${boundary}${CRLF}` +
-      `Content-Disposition: form-data; name="model"${CRLF}${CRLF}` +
-      `whisper-1${CRLF}` +
-      `--${boundary}--${CRLF}`
-    )
-  ];
-  const body = Buffer.concat(bodyParts);
+  // Use FormData + Blob (Node.js 20 native) — do NOT set Content-Type manually,
+  // fetch sets it automatically with the correct boundary
+  const form = new FormData();
+  form.append('file', new Blob([buffer], { type: baseMime }), `voice.${ext}`);
+  form.append('model', 'whisper-1');
 
   const response = await fetch(`${baseUrl}/audio/transcriptions`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${llmConfig.apiKey}`,
-      'Content-Type': `multipart/form-data; boundary=${boundary}`
-    },
-    body
+    headers: { Authorization: `Bearer ${llmConfig.apiKey}` },
+    body: form
   });
   if (!response.ok) {
     const err = await response.text().catch(() => '');
