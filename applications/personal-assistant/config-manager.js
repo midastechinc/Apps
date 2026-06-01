@@ -6,6 +6,7 @@ const CONFIG_PATH = path.join(__dirname, 'auth_info', 'config.json');
 const DEFAULT_CONFIG = {
   mainNumber: '',
   familyNumbers: [],
+  familyMembers: [],
   businessAgent: {
     name: 'Business Assistant',
     systemPrompt:
@@ -20,6 +21,25 @@ const DEFAULT_CONFIG = {
     baseUrl: 'https://api.openai.com/v1',
     apiKey: '',
     model: 'gpt-4o'
+  },
+  integrations: {
+    google: {
+      enabled: false
+    },
+    m365: {
+      enabled: false,
+      clientId: '',
+      clientSecret: '',
+      tenantId: '',
+      accessToken: '',
+      refreshToken: '',
+      tokenExpiry: 0
+    }
+  },
+  schedule: {
+    morningBriefingEnabled: false,
+    morningBriefingTime: '08:00',
+    timezone: 'America/Toronto'
   }
 };
 

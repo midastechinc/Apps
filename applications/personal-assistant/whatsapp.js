@@ -228,4 +228,18 @@ async function resetSession() {
   await connect();
 }
 
-module.exports = { start, getStatus, refreshNumberResolution, resetSession };
+async function sendProactiveMessage(toNumber, text) {
+  if (!sock || !isConnected) {
+    console.log('[WA] sendProactiveMessage: not connected, skipping');
+    return;
+  }
+  const jid = `${String(toNumber).replace(/[^0-9]/g, '')}@s.whatsapp.net`;
+  try {
+    await sock.sendMessage(jid, { text });
+    console.log(`[WA] Proactive message sent to ${jid}`);
+  } catch (err) {
+    console.error(`[WA] Proactive send failed:`, err.message);
+  }
+}
+
+module.exports = { start, getStatus, refreshNumberResolution, resetSession, sendProactiveMessage };

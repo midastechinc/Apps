@@ -53,6 +53,7 @@
                 <button id="tab-agents-btn" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tab-agents" data-tab="agents">Agents</button>
                 <button id="tab-contacts-btn" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tab-contacts" data-tab="contacts">Contacts</button>
                 <button id="tab-llm-btn" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tab-llm" data-tab="llm">LLM</button>
+                <button id="tab-integrations-btn" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tab-integrations" data-tab="integrations">Integrations</button>
                 <button id="tab-convos-btn" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tab-convos" data-tab="convos">Conversations</button>
             </div>
 
@@ -93,7 +94,30 @@
                     </ul>
                 </div>
 
-                <div class="action-row">
+                <!-- Morning Briefing Schedule -->
+                <div class="section-intro" style="margin-top:1.5rem">
+                    <h3>Morning Briefing</h3>
+                    <p>Automatically sends a daily summary to your main number (calendar, email, todos). Requires M365 and/or Google Calendar configured in the Integrations tab.</p>
+                </div>
+                <form id="scheduleForm" class="settings-form" novalidate>
+                    <div class="form-row-inline">
+                        <label class="toggle-label">
+                            <input type="checkbox" id="briefingEnabled" name="briefingEnabled">
+                            <span class="toggle-track"></span>
+                            Enable morning briefing
+                        </label>
+                        <div class="form-group" style="min-width:130px">
+                            <label class="form-label" for="briefingTime">Send at (Toronto time)</label>
+                            <input class="form-input" type="time" id="briefingTime" name="briefingTime" value="08:00">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="app-link" type="submit" id="saveScheduleBtn">Save Schedule</button>
+                        <span class="save-feedback" id="scheduleFeedback" aria-live="polite"></span>
+                    </div>
+                </form>
+
+                <div class="action-row" style="margin-top:1.5rem">
                     <button class="app-link" type="button" id="refreshStatusBtn">Refresh Status</button>
                     <button class="app-link app-link--danger" type="button" id="resetSessionBtn">Reset WhatsApp Session</button>
                 </div>
@@ -162,7 +186,7 @@
                     <div class="form-group">
                         <label class="form-label" for="familyNumbers">Family Numbers</label>
                         <p class="form-hint">One number per line. These numbers always reach the Family Agent.</p>
-                        <textarea class="form-textarea" id="familyNumbers" name="familyNumbers" rows="6" placeholder="14165557890&#10;14165552345"></textarea>
+                        <textarea class="form-textarea" id="familyNumbers" name="familyNumbers" rows="5" placeholder="14165557890&#10;14165552345"></textarea>
                     </div>
 
                     <div class="form-actions">
@@ -170,6 +194,20 @@
                         <span class="save-feedback" id="contactsFeedback" aria-live="polite"></span>
                     </div>
                 </form>
+
+                <!-- Family Members Identity -->
+                <div class="section-intro" style="margin-top:2rem">
+                    <h3>Family Member Identities</h3>
+                    <p>Map phone numbers to names and relationships. The AI will address people by name and understand context (e.g. "Mom asked about…").</p>
+                </div>
+
+                <div id="familyMembersList" class="family-members-list"></div>
+
+                <div class="action-row">
+                    <button class="app-link" type="button" id="addFamilyMemberBtn">+ Add Member</button>
+                    <button class="app-link" type="button" id="saveFamilyMembersBtn">Save Members</button>
+                    <span class="save-feedback" id="familyMembersFeedback" aria-live="polite"></span>
+                </div>
             </section>
 
             <!-- LLM TAB -->
@@ -186,6 +224,7 @@
                             <button class="preset-pill" type="button" data-base="https://api.openai.com/v1" data-model="gpt-4o">OpenAI GPT-4o</button>
                             <button class="preset-pill" type="button" data-base="https://api.anthropic.com/v1" data-model="claude-sonnet-4-6">Claude Sonnet 4.6</button>
                             <button class="preset-pill" type="button" data-base="https://api.groq.com/openai/v1" data-model="llama-3.3-70b-versatile">Groq Llama 3.3</button>
+                            <button class="preset-pill" type="button" data-base="https://openrouter.ai/api/v1" data-model="google/gemini-2.5-flash-lite">OpenRouter Gemini</button>
                             <button class="preset-pill" type="button" data-base="http://localhost:11434/v1" data-model="llama3.2">Ollama (local)</button>
                         </div>
                     </div>
@@ -211,6 +250,105 @@
                         <span class="save-feedback" id="llmFeedback" aria-live="polite"></span>
                     </div>
                 </form>
+            </section>
+
+            <!-- INTEGRATIONS TAB -->
+            <section id="tab-integrations" class="tab-content" role="tabpanel" aria-labelledby="tab-integrations-btn">
+                <div class="section-intro">
+                    <h2>Integrations</h2>
+                    <p>Connect Google Calendar and Microsoft 365 so the AI can read your calendar, email, and tasks. Only configured integrations will show as available tools.</p>
+                </div>
+
+                <!-- Google Calendar -->
+                <div class="integration-panel" id="googlePanel">
+                    <div class="integration-header">
+                        <div class="integration-title">
+                            <span class="integration-icon">📅</span>
+                            <div>
+                                <h3>Google Calendar</h3>
+                                <p class="form-hint">Available to both agents. Uses your Google OAuth token.</p>
+                            </div>
+                        </div>
+                        <span class="int-badge int-badge--unconfigured" id="googleStatus">Not configured</span>
+                    </div>
+
+                    <div class="integration-body">
+                        <details class="int-setup">
+                            <summary>Setup instructions</summary>
+                            <div class="int-setup-body">
+                                <ol>
+                                    <li>Run the Google Calendar Python quickstart on your local machine to get <code>token.json</code>.</li>
+                                    <li>Open <code>token.json</code> and paste its full content below.</li>
+                                    <li>Optionally paste your <code>credentials.json</code> (from Google Cloud Console) — needed if token.json doesn't include client_id/client_secret.</li>
+                                </ol>
+                            </div>
+                        </details>
+
+                        <div class="form-group">
+                            <label class="form-label" for="googleTokenJson">token.json content</label>
+                            <textarea class="form-textarea" id="googleTokenJson" rows="6" placeholder='{"token":"ya29...","refresh_token":"1//0g...","client_id":"...","client_secret":"..."}'></textarea>
+                        </div>
+
+                        <div class="form-actions">
+                            <button class="app-link" type="button" id="saveGoogleBtn">Save Google Credentials</button>
+                            <button class="app-link app-link--danger" type="button" id="clearGoogleBtn" style="display:none">Disconnect</button>
+                            <span class="save-feedback" id="googleFeedback" aria-live="polite"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Microsoft 365 -->
+                <div class="integration-panel" id="m365Panel">
+                    <div class="integration-header">
+                        <div class="integration-title">
+                            <span class="integration-icon">📧</span>
+                            <div>
+                                <h3>Microsoft 365</h3>
+                                <p class="form-hint">Business Agent only. Calendar, Outlook email, To Do, and OneNote.</p>
+                            </div>
+                        </div>
+                        <span class="int-badge int-badge--unconfigured" id="m365Status">Not configured</span>
+                    </div>
+
+                    <div class="integration-body">
+                        <details class="int-setup">
+                            <summary>Setup instructions</summary>
+                            <div class="int-setup-body">
+                                <ol>
+                                    <li>In Azure Portal, go to <strong>App registrations</strong> → your app → copy the Application (client) ID and Directory (tenant) ID.</li>
+                                    <li>Under <strong>Certificates &amp; secrets</strong>, create a client secret and copy it.</li>
+                                    <li>Use the OAuth Device Code Flow or your existing OpenClaw refresh token to get a refresh_token.</li>
+                                    <li>Required scopes: <code>Calendars.ReadWrite Mail.Read Tasks.ReadWrite Notes.Read</code></li>
+                                </ol>
+                            </div>
+                        </details>
+
+                        <div class="int-fields">
+                            <div class="form-group">
+                                <label class="form-label" for="m365TenantId">Tenant (Directory) ID</label>
+                                <input class="form-input" type="text" id="m365TenantId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="m365ClientId">Application (Client) ID</label>
+                                <input class="form-input" type="text" id="m365ClientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="m365ClientSecret">Client Secret</label>
+                                <input class="form-input" type="password" id="m365ClientSecret" placeholder="••••••••" autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="m365RefreshToken">Refresh Token</label>
+                                <p class="form-hint">From your existing OAuth flow or OpenClaw setup.</p>
+                                <input class="form-input" type="password" id="m365RefreshToken" placeholder="••••••••" autocomplete="off">
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button class="app-link" type="button" id="saveM365Btn">Save M365 Credentials</button>
+                            <span class="save-feedback" id="m365Feedback" aria-live="polite"></span>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <!-- CONVERSATIONS TAB -->
