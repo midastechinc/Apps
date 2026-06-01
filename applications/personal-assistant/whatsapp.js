@@ -1,6 +1,6 @@
 const path = require('path');
 const fs = require('fs');
-const { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+const { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, downloadMediaMessage } = require('@whiskeysockets/baileys');
 const { Boom } = require('@hapi/boom');
 const QRCode = require('qrcode');
 const pino = require('pino');
@@ -155,13 +155,31 @@ async function connect() {
     for (const msg of messages) {
       if (msg.key.fromMe) continue;
 
-      const text =
+      let text =
         msg.message?.conversation ||
         msg.message?.extendedTextMessage?.text ||
         msg.message?.buttonsResponseMessage?.selectedDisplayText ||
         msg.message?.listResponseMessage?.title;
 
-      if (!text) continue;
+      // Handle image messages (direct or forwarded)
+      let imageInfo = null;
+      const imgMsg = msg.message?.imageMessage;
+      if (imgMsg) {
+        if (!text && imgMsg.caption) text = imgMsg.caption;
+        try {
+          const buffer = await downloadMediaMessage(msg, 'buffer', {}, { logger, reuploadRequest: sock.updateMediaMessage });
+          imageInfo = {
+            data: buffer.toString('base64'),
+            mimeType: imgMsg.mimetype || 'image/jpeg'
+          };
+          console.log(`[WA] Image downloaded ${Math.round(buffer.length / 1024)}KB, caption: "${text || ''}"`);
+        } catch (err) {
+          console.error('[WA] Image download failed:', err.message);
+        }
+      }
+
+      if (!text && !imageInfo) continue;
+      if (!text) text = '';
 
       const rawJid = msg.key.remoteJid;
       if (!rawJid) continue;
@@ -177,7 +195,7 @@ async function connect() {
 
       try {
         if (onMessage) {
-          const reply = await onMessage(sender, text);
+          const reply = await onMessage(sender, text, imageInfo);
           if (reply && sock) {
             // Reply to the ORIGINAL jid — v7 attaches tctoken automatically (fixes 463)
             await sock.sendMessage(rawJid, { text: reply });

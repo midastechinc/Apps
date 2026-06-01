@@ -195,14 +195,15 @@ function routeMessage(senderJid, text) {
   return { agent, cleanText, config, agentType };
 }
 
-async function processMessage(senderJid, text) {
-  console.log(`[MSG] received: "${text.slice(0, 60)}" from ${senderJid}`);
-  const routed = routeMessage(senderJid, text);
+async function processMessage(senderJid, text, imageInfo = null) {
+  const preview = text ? `"${text.slice(0, 60)}"` : '[image only]';
+  console.log(`[MSG] received: ${preview} from ${senderJid}${imageInfo ? ' +image' : ''}`);
+  const routed = routeMessage(senderJid, text || '');
   if (!routed) return null;
 
   console.log(`[MSG] routed to agent: ${routed.agent.name} (${routed.agentType})`);
   const { agent, cleanText, config, agentType } = routed;
-  return callLLM(senderJid, cleanText, agent, config.llm, agentType);
+  return callLLM(senderJid, cleanText, agent, config.llm, agentType, imageInfo);
 }
 
 async function processBriefing() {
@@ -274,24 +275,45 @@ function buildSystemPrompt(agent, config, agentType, senderNumber) {
   return prompt;
 }
 
-function buildMessagesPayload(senderJid, userText, agent, config, agentType) {
+function buildMessagesPayload(senderJid, userText, agent, config, agentType, imageInfo = null) {
   ensureHistory(senderJid);
-  conversationHistory[senderJid].push({ role: 'user', content: userText });
+
+  // Build content: array if image present, plain string otherwise
+  let userContent;
+  if (imageInfo?.data) {
+    userContent = [];
+    if (userText) userContent.push({ type: 'text', text: userText });
+    userContent.push({
+      type: 'image_url',
+      image_url: { url: `data:${imageInfo.mimeType};base64,${imageInfo.data}` }
+    });
+    // Store lightweight placeholder in history (not the full base64)
+    const label = userText || '(no caption)';
+    conversationHistory[senderJid].push({ role: 'user', content: `[Image: ${label}]` });
+  } else {
+    userContent = userText;
+    conversationHistory[senderJid].push({ role: 'user', content: userText });
+  }
+
   const senderNumber = jidToNumber(senderJid);
+  // The messages sent to the LLM use the rich content for the current turn,
+  // but history entries above are already stored as plain text placeholders.
+  const historyWithoutLast = conversationHistory[senderJid].slice(0, -1);
   return [
     { role: 'system', content: buildSystemPrompt(agent, config, agentType, senderNumber) },
-    ...conversationHistory[senderJid]
+    ...historyWithoutLast,
+    { role: 'user', content: userContent }
   ];
 }
 
-async function callLLM(senderJid, userText, agent, llmConfig, agentType = 'business') {
+async function callLLM(senderJid, userText, agent, llmConfig, agentType = 'business', imageInfo = null) {
   if (!llmConfig?.apiKey) {
     return 'LLM API key not configured. Please set it in the Personal Assistant management UI.';
   }
 
   const config = getConfig();
   const tools = getToolDefinitions(agentType);
-  const messages = buildMessagesPayload(senderJid, userText, agent, config, agentType);
+  const messages = buildMessagesPayload(senderJid, userText, agent, config, agentType, imageInfo);
 
   let finalReply = null;
 
