@@ -96,35 +96,35 @@ async function fetchYouTubeTitle(url) {
   }
 }
 
+async function findOneNotePageByTitle(titleToFind) {
+  const lower = titleToFind.toLowerCase();
+  let found = null;
+  let nextLink = '/me/onenote/pages?$select=id,title&$top=100';
+
+  // Walk pages (up to 3 pages of results = 300 pages) until we find a match
+  for (let i = 0; i < 3 && nextLink && !found; i++) {
+    const data = await graphFetch(nextLink);
+    if (data.error) {
+      console.error('[OneNote] List pages error:', data.error);
+      break;
+    }
+    const pages = data.value || [];
+    console.log(`[OneNote] Fetched ${pages.length} pages (batch ${i + 1}):`, pages.map(p => p.title));
+    found = pages.find(p => p.title?.toLowerCase() === lower) ||
+            pages.find(p => p.title?.toLowerCase().includes(lower));
+    nextLink = data['@odata.nextLink']
+      ? data['@odata.nextLink'].replace('https://graph.microsoft.com/v1.0', '')
+      : null;
+  }
+
+  return found || null;
+}
+
 async function saveYouTubeLink({ url }) {
   const title = await fetchYouTubeTitle(url);
   console.log('[OneNote] Saving YouTube link:', { url, title });
 
-  // Find "YouTube Links" page — try $search first, then $filter
-  let page = null;
-
-  const searchData = await graphFetch(
-    `/me/onenote/pages?$search=${encodeURIComponent('YouTube Links')}&$select=id,title&$top=20`
-  );
-  if (!searchData.error && searchData.value?.length) {
-    page = searchData.value.find(p => p.title === 'YouTube Links') ||
-           searchData.value.find(p => p.title?.toLowerCase().includes('youtube'));
-    console.log('[OneNote] Search found pages:', searchData.value.map(p => p.title));
-  } else {
-    console.error('[OneNote] Search error or empty:', searchData.error);
-  }
-
-  if (!page) {
-    const filterData = await graphFetch(
-      `/me/onenote/pages?$filter=title%20eq%20'YouTube%20Links'&$select=id,title&$top=1`
-    );
-    if (!filterData.error && filterData.value?.length) {
-      page = filterData.value[0];
-      console.log('[OneNote] Filter found page:', page.title);
-    } else {
-      console.error('[OneNote] Filter error or empty:', filterData.error);
-    }
-  }
+  const page = await findOneNotePageByTitle('YouTube Links');
 
   if (!page) {
     return { error: 'Could not find "YouTube Links" page in OneNote. Please make sure the page exists with that exact name.' };
