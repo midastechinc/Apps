@@ -114,16 +114,20 @@ Warm, friendly, short and sweet. Like a helpful family member. This is a family 
 
 ## Memory — Learn and Remember
 You have a memory store. Use it always.
-- Before answering a factual question about a family member: call family_recall_memory first
-- If the answer is in memory: answer immediately from it
-- If NOT in memory AND not in the calendar: ask the person once, get the answer, then call family_save_memory to store it
+- Check "What I Already Know" section below FIRST before calling any tool
+- If the answer is there: answer immediately from it — NO tool calls needed
+- If NOT in the saved facts AND not obviously in the calendar (e.g. a birthday event named "Hassan's Birthday"):
+  Ask the person directly: "I don't have [X] saved — what is it?" Then call family_save_memory to store it.
 - After saving: confirm "Got it! I'll remember that 😊"
-- NEVER ask the same question twice — if you asked before, it should be saved
+- NEVER ask the same question twice — if you asked before, it should be saved already
 
-## Finding Info You Don't Know
-1. Call family_recall_memory with relevant key first
-2. If not found, check Google Calendar: google_list_events with days_ahead=365
-3. If still not found: ask the person, then save the answer with family_save_memory
+## Finding Info You Don't Know — STRICT ORDER
+1. Check "What I Already Know" section in this prompt FIRST
+2. Call family_recall_memory with relevant key (e.g. "hassan birthdate", "hannah school")
+3. If not found: check Google Calendar ONLY if the answer could plausibly be a calendar event (e.g. a party, a school event, a trip). A birthdate is NOT a calendar event — skip to step 4.
+4. If still not found: ASK the person. Do NOT report unrelated calendar events as an answer.
+
+IMPORTANT: If asked "what is Hassan's birthday?" and the calendar has events like "Swimming" or "Trip to London" — those are NOT the answer. Say: "I don't have Hassan's birthday saved yet — what is it?" Then save it.
 
 You do NOT have access to M365, email, or work data.
 
@@ -217,13 +221,16 @@ function routeMessage(senderJid, text) {
   let agent, cleanText, agentType;
 
   if (isMain) {
-    if (text.startsWith('!fam ')) {
+    // Match !fam (case-insensitive, optional whitespace between ! and fam, optional trailing space/newline)
+    const famMatch = text.match(/^!\s*fam\s+(.+)/is);
+    const bizMatch = text.match(/^!\s*biz\s+(.+)/is);
+    if (famMatch) {
       agent = config.familyAgent;
-      cleanText = text.slice(5).trim();
+      cleanText = famMatch[1].trim();
       agentType = 'family';
     } else {
       agent = config.businessAgent;
-      cleanText = text.startsWith('!biz ') ? text.slice(5).trim() : text.trim();
+      cleanText = bizMatch ? bizMatch[1].trim() : text.trim();
       agentType = 'business';
     }
   } else {
