@@ -22,7 +22,7 @@ async function getAccessToken() {
           client_secret: m365.clientSecret,
           refresh_token: m365.refreshToken,
           grant_type: 'refresh_token',
-          scope: 'Calendars.ReadWrite Mail.Read Mail.ReadWrite Tasks.ReadWrite Notes.ReadWrite offline_access User.Read'
+          scope: 'Calendars.ReadWrite Mail.Read Mail.ReadWrite Tasks.ReadWrite Notes.ReadWrite.All Notes.Create offline_access User.Read'
         })
       }
     );
