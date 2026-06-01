@@ -346,10 +346,30 @@ async function searchOneNote({ query }) {
   };
 }
 
+async function listOneNoteStructure() {
+  const notebooksData = await graphFetch('/me/onenote/notebooks?$select=id,displayName&$top=50');
+  if (notebooksData.error) return { error: notebooksData.error };
+
+  const result = [];
+  for (const nb of (notebooksData.value || [])) {
+    const sectionsData = await graphFetch(`/me/onenote/notebooks/${nb.id}/sections?$select=id,displayName&$top=50`);
+    const sections = [];
+    for (const sec of (sectionsData.value || [])) {
+      const pagesData = await graphFetch(`/me/onenote/sections/${sec.id}/pages?$select=id,title&$top=50`);
+      sections.push({
+        section: sec.displayName,
+        pages: (pagesData.value || []).map(p => p.title)
+      });
+    }
+    result.push({ notebook: nb.displayName, sections });
+  }
+  return { structure: result };
+}
+
 function isConfigured() {
   const config = getConfig();
   const m365 = config.integrations?.m365;
   return !!(m365?.enabled && m365?.clientId && m365?.tenantId && (m365?.accessToken || m365?.refreshToken));
 }
 
-module.exports = { listCalendarEvents, createCalendarEvent, listEmails, listTodos, createTodo, searchOneNote, saveYouTubeLink, isConfigured };
+module.exports = { listCalendarEvents, createCalendarEvent, listEmails, listTodos, createTodo, searchOneNote, saveYouTubeLink, listOneNoteStructure, isConfigured };

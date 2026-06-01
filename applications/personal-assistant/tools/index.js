@@ -166,6 +166,14 @@ const DEFINITIONS = {
         required: ['url']
       }
     }
+  },
+  m365_list_onenote_structure: {
+    type: 'function',
+    function: {
+      name: 'm365_list_onenote_structure',
+      description: 'List all OneNote notebooks, sections, and page titles. Use this to diagnose why a page cannot be found.',
+      parameters: { type: 'object', properties: {}, required: [] }
+    }
   }
 };
 
@@ -175,7 +183,7 @@ const AGENT_TOOLS = {
     'google_list_events', 'google_create_event', 'google_list_calendars',
     'm365_list_calendar_events', 'm365_create_calendar_event',
     'm365_list_emails', 'm365_list_todos', 'm365_create_todo',
-    'm365_search_onenote', 'm365_save_youtube_link'
+    'm365_search_onenote', 'm365_save_youtube_link', 'm365_list_onenote_structure'
   ],
   family: [
     'get_current_time', 'get_current_date',
@@ -213,8 +221,9 @@ async function executeTool(toolName, args) {
       case 'm365_list_todos':             return await m365.listTodos(args);
       case 'm365_create_todo':            return await m365.createTodo(args);
       case 'm365_search_onenote':         return await m365.searchOneNote(args);
-      case 'm365_save_youtube_link':      return await m365.saveYouTubeLink(args);
-      default:                            return { error: `Unknown tool: ${toolName}` };
+      case 'm365_save_youtube_link':         return await m365.saveYouTubeLink(args);
+      case 'm365_list_onenote_structure':    return await m365.listOneNoteStructure();
+      default:                               return { error: `Unknown tool: ${toolName}` };
     }
   } catch (err) {
     console.error(`[TOOL] ${toolName} error:`, err.message);
