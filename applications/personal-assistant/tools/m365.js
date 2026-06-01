@@ -132,6 +132,22 @@ const PLATFORM_CONFIG = {
 
 async function findOneNotePageByTitle(titleToFind) {
   const lower = titleToFind.toLowerCase();
+
+  // Search via flat sections endpoint first — this covers Quick Notes and all sections
+  const allSections = await graphFetch('/me/onenote/sections?$select=id,displayName&$top=100');
+  if (!allSections.error) {
+    for (const sec of (allSections.value || [])) {
+      const pagesData = await graphFetch(`/me/onenote/sections/${sec.id}/pages?$select=id,title&$top=100`);
+      if (pagesData.error) continue;
+      const found = (pagesData.value || []).find(p => p.title?.toLowerCase() === lower);
+      if (found) {
+        console.log(`[OneNote] Found "${titleToFind}" in section "${sec.displayName}" via flat search`);
+        return found;
+      }
+    }
+  }
+
+  // Fallback: traverse notebooks → sections (handles section groups)
   const notebooksData = await graphFetch('/me/onenote/notebooks?$select=id,displayName&$top=50');
   if (notebooksData.error) return null;
   for (const nb of (notebooksData.value || [])) {
