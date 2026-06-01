@@ -1,5 +1,6 @@
 const { getConfig } = require('./config-manager');
 const { getToolDefinitions, executeTool } = require('./tools');
+const { getMemory } = require('./tools/family-memory');
 
 const conversationHistory = {};
 const MAX_HISTORY_PAIRS = 10;
@@ -111,12 +112,20 @@ const FAMILY_CORE_PROMPT = `You are Claudia, the Jaffar Family Assistant. 🏠
 ## Who You Are
 Warm, friendly, short and sweet. Like a helpful family member. This is a family — talk like a helpful friend, not a business tool. No corporate tone. No walls of text. NEVER say "I apologize" or "I cannot access" — just search and answer.
 
-## NEVER Give Up Without Searching
-When asked about a family member's birthdate, school, schedule, or any detail you don't immediately know — search the family Google Calendar first.
-- Call google_list_events with days_ahead=365 and search for the person's name
-- Try different keyword variations if the first search finds nothing
-NEVER say "I cannot find that" without first searching the calendar.
-You do NOT have access to M365, email, or OneNote — Google Calendar is your only data source.
+## Memory — Learn and Remember
+You have a memory store. Use it always.
+- Before answering a factual question about a family member: call family_recall_memory first
+- If the answer is in memory: answer immediately from it
+- If NOT in memory AND not in the calendar: ask the person once, get the answer, then call family_save_memory to store it
+- After saving: confirm "Got it! I'll remember that 😊"
+- NEVER ask the same question twice — if you asked before, it should be saved
+
+## Finding Info You Don't Know
+1. Call family_recall_memory with relevant key first
+2. If not found, check Google Calendar: google_list_events with days_ahead=365
+3. If still not found: ask the person, then save the answer with family_save_memory
+
+You do NOT have access to M365, email, or work data.
 
 ## CRITICAL — Caller Identification (NEVER SKIP THIS)
 Your system instructions include the sender's WhatsApp number. You ALREADY KNOW who is messaging.
@@ -293,6 +302,15 @@ function buildSystemPrompt(agent, config, agentType, senderNumber) {
   if (familyCalId) {
     prompt += `\n\nFamily Google Calendar ID: ${familyCalId}`;
     prompt += `\nAlways pass calendar_id="${familyCalId}" when calling google_list_events or google_create_event for family events.`;
+  }
+
+  if (agentType === 'family') {
+    const memory = getMemory();
+    const entries = Object.entries(memory);
+    if (entries.length > 0) {
+      const lines = entries.map(([k, v]) => `- ${k}: ${v}`).join('\n');
+      prompt += `\n\n## What I Already Know (Saved Family Facts)\n${lines}\nUse these facts to answer questions directly without calling any tools.`;
+    }
   }
 
   const now = new Date();

@@ -1,8 +1,46 @@
 const datetime = require('./datetime');
 const googleCalendar = require('./google-calendar');
 const m365 = require('./m365');
+const familyMemory = require('./family-memory');
 
 const DEFINITIONS = {
+  family_save_memory: {
+    type: 'function',
+    function: {
+      name: 'family_save_memory',
+      description: 'Save a fact about the family for future reference. Use this immediately after learning new information (birthdate, school, preference, etc.) so it is remembered next time.',
+      parameters: {
+        type: 'object',
+        properties: {
+          key: { type: 'string', description: 'What this fact is about, e.g. "hassan birthdate", "hannah school", "insiya favourite colour"' },
+          value: { type: 'string', description: 'The fact/answer to remember' }
+        },
+        required: ['key', 'value']
+      }
+    }
+  },
+  family_recall_memory: {
+    type: 'function',
+    function: {
+      name: 'family_recall_memory',
+      description: 'Look up a previously saved fact about the family.',
+      parameters: {
+        type: 'object',
+        properties: {
+          key: { type: 'string', description: 'What to look up, e.g. "hassan birthdate"' }
+        },
+        required: ['key']
+      }
+    }
+  },
+  family_list_memory: {
+    type: 'function',
+    function: {
+      name: 'family_list_memory',
+      description: 'List all saved family facts.',
+      parameters: { type: 'object', properties: {}, required: [] }
+    }
+  },
   get_current_time: {
     type: 'function',
     function: {
@@ -310,7 +348,8 @@ const AGENT_TOOLS = {
   ],
   family: [
     'get_current_time', 'get_current_date',
-    'google_list_events', 'google_create_event', 'google_list_calendars'
+    'google_list_events', 'google_create_event', 'google_list_calendars',
+    'family_save_memory', 'family_recall_memory', 'family_list_memory'
   ]
 };
 
@@ -333,6 +372,9 @@ async function executeTool(toolName, args) {
   console.log(`[TOOL] ${toolName}(${JSON.stringify(args)})`);
   try {
     switch (toolName) {
+      case 'family_save_memory':          return familyMemory.saveMemory(args);
+      case 'family_recall_memory':        return familyMemory.recallMemory(args);
+      case 'family_list_memory':          return familyMemory.listMemory();
       case 'get_current_time':            return datetime.get_current_time();
       case 'get_current_date':            return datetime.get_current_date();
       case 'google_list_events':          return await googleCalendar.listEvents(args);

@@ -39,7 +39,8 @@ const DEFAULT_CONFIG = {
     morningBriefingEnabled: false,
     morningBriefingTime: '08:00',
     timezone: 'America/Toronto'
-  }
+  },
+  familyMemory: {}
 };
 
 function getConfig() {
