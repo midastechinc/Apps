@@ -1,6 +1,6 @@
 const path = require('path');
 const fs = require('fs');
-const { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, generateWAMessageFromContent, proto } = require('@whiskeysockets/baileys');
+const { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const { Boom } = require('@hapi/boom');
 const QRCode = require('qrcode');
 const pino = require('pino');
@@ -159,22 +159,14 @@ async function connect() {
         if (onMessage) {
           const reply = await onMessage(sender, text);
           if (reply && sock) {
-            const replyJid = sender !== rawJid ? sender : rawJid;
-            // Try relayMessage (lower-level) to bypass sendMessage wrapper
-            const built = generateWAMessageFromContent(replyJid,
-              proto.Message.fromObject({ conversation: reply }),
-              { userJid: sock.user?.id }
-            );
-            await sock.relayMessage(replyJid, built.message, { messageId: built.key.id });
-            console.log(`[WA] Reply relayed to ${replyJid} (id=${built.key.id})`);
+            await sock.sendMessage(rawJid, { text: reply }, { quoted: msg });
+            console.log(`[WA] Reply sent to ${rawJid}`);
           }
         }
       } catch (err) {
-        console.error(`[WA] Failed to relay reply:`, err.message);
-        // Fall back to sendMessage
+        console.error(`[WA] Failed to send reply:`, err.message);
         if (sock) {
-          const replyJid = sender !== rawJid ? sender : rawJid;
-          await sock.sendMessage(replyJid, {
+          await sock.sendMessage(rawJid, {
             text: 'Something went wrong. Please try again.'
           }).catch(e => console.error('[WA] Error reply failed:', e.message));
         }
