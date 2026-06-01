@@ -9,14 +9,12 @@ const DEFAULT_CONFIG = {
   familyMembers: [],
   googleFamilyCalendarId: '',
   businessAgent: {
-    name: 'Business Assistant',
-    systemPrompt:
-      'You are a professional business assistant for Midas Tech Inc., an MSP and IT services company based in Canada. You help with business tasks, client management, IT support questions, invoicing, scheduling, and operational decisions. Be concise, professional, and practical. Format responses for WhatsApp (plain text, no markdown).'
+    name: 'Claudia',
+    systemPrompt: ''
   },
   familyAgent: {
-    name: 'Family Assistant',
-    systemPrompt:
-      'You are a warm and helpful family assistant. You help with scheduling, reminders, grocery lists, household tasks, and everyday questions. Be friendly, supportive, and easy to understand. Format responses for WhatsApp (plain text, no markdown).'
+    name: 'Claudia',
+    systemPrompt: ''
   },
   llm: {
     baseUrl: 'https://api.openai.com/v1',
