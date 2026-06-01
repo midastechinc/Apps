@@ -98,26 +98,42 @@ async function fetchYouTubeTitle(url) {
 
 async function findOneNotePageByTitle(titleToFind) {
   const lower = titleToFind.toLowerCase();
-  let found = null;
-  let nextLink = '/me/onenote/pages?$select=id,title&$top=100';
 
-  // Walk pages (up to 3 pages of results = 300 pages) until we find a match
-  for (let i = 0; i < 3 && nextLink && !found; i++) {
-    const data = await graphFetch(nextLink);
-    if (data.error) {
-      console.error('[OneNote] List pages error:', data.error);
-      break;
-    }
-    const pages = data.value || [];
-    console.log(`[OneNote] Fetched ${pages.length} pages (batch ${i + 1}):`, pages.map(p => p.title));
-    found = pages.find(p => p.title?.toLowerCase() === lower) ||
-            pages.find(p => p.title?.toLowerCase().includes(lower));
-    nextLink = data['@odata.nextLink']
-      ? data['@odata.nextLink'].replace('https://graph.microsoft.com/v1.0', '')
-      : null;
+  // Walk through every notebook → section → pages (most reliable path)
+  const notebooksData = await graphFetch('/me/onenote/notebooks?$select=id,displayName&$top=50');
+  if (notebooksData.error) {
+    console.error('[OneNote] Failed to list notebooks:', notebooksData.error);
+    return null;
   }
 
-  return found || null;
+  const notebooks = notebooksData.value || [];
+  console.log('[OneNote] Notebooks found:', notebooks.map(n => n.displayName));
+
+  for (const notebook of notebooks) {
+    const sectionsData = await graphFetch(`/me/onenote/notebooks/${notebook.id}/sections?$select=id,displayName&$top=50`);
+    if (sectionsData.error) continue;
+
+    const sections = sectionsData.value || [];
+    console.log(`[OneNote] Sections in "${notebook.displayName}":`, sections.map(s => s.displayName));
+
+    for (const section of sections) {
+      const pagesData = await graphFetch(`/me/onenote/sections/${section.id}/pages?$select=id,title&$top=100`);
+      if (pagesData.error) continue;
+
+      const pages = pagesData.value || [];
+      console.log(`[OneNote] Pages in "${notebook.displayName} > ${section.displayName}":`, pages.map(p => p.title));
+
+      const found = pages.find(p => p.title?.toLowerCase() === lower) ||
+                    pages.find(p => p.title?.toLowerCase().includes(lower));
+      if (found) {
+        console.log(`[OneNote] Found "${found.title}" in "${notebook.displayName} > ${section.displayName}"`);
+        return found;
+      }
+    }
+  }
+
+  console.error('[OneNote] Page not found in any notebook/section');
+  return null;
 }
 
 async function saveYouTubeLink({ url }) {
