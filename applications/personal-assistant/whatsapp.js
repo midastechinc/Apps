@@ -10,14 +10,15 @@ const AUTH_DIR = path.join(__dirname, 'auth_info');
 async function transcribeAudio(buffer, llmConfig, mimetype) {
   if (!llmConfig?.apiKey) throw new Error('No API key configured');
   const baseUrl = (llmConfig.baseUrl || 'https://api.openai.com/v1').replace(/\/$/, '');
-  // Derive filename extension from mimetype for Whisper file-type detection
-  const ext = (mimetype || 'audio/ogg').includes('mp4') ? 'mp4'
-    : (mimetype || '').includes('webm') ? 'webm'
-    : (mimetype || '').includes('mpeg') ? 'mp3'
+  // Strip codec params (e.g. "audio/ogg; codecs=opus" → "audio/ogg") — Whisper rejects params
+  const baseMime = (mimetype || 'audio/ogg').split(';')[0].trim();
+  const ext = baseMime.includes('mp4') ? 'mp4'
+    : baseMime.includes('webm') ? 'webm'
+    : baseMime.includes('mpeg') || baseMime.includes('mp3') ? 'mp3'
+    : baseMime.includes('wav') ? 'wav'
     : 'ogg';
-  const type = mimetype || 'audio/ogg';
   const form = new FormData();
-  form.append('file', new Blob([buffer], { type }), `voice.${ext}`);
+  form.append('file', new Blob([buffer], { type: baseMime }), `voice.${ext}`);
   form.append('model', 'whisper-1');
   const response = await fetch(`${baseUrl}/audio/transcriptions`, {
     method: 'POST',
