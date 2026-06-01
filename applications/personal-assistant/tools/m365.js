@@ -98,57 +98,80 @@ async function fetchYouTubeTitle(url) {
 
 async function saveYouTubeLink({ url }) {
   const title = await fetchYouTubeTitle(url);
+  console.log('[OneNote] Saving YouTube link:', { url, title });
 
-  // Find "YouTube Links" page
-  const params = new URLSearchParams({
-    '$filter': "title eq 'YouTube Links'",
-    '$select': 'id,title',
-    '$top': '1'
-  });
-  let data = await graphFetch(`/me/onenote/pages?${params}`);
+  // Find "YouTube Links" page — try $search first, then $filter
+  let page = null;
 
-  // Fallback: search if filter returned nothing
-  if (!data.error && !(data.value || []).length) {
-    const searchParams = new URLSearchParams({ search: 'YouTube Links', '$top': '5', '$select': 'id,title' });
-    data = await graphFetch(`/me/onenote/pages?${searchParams}`);
+  const searchData = await graphFetch(
+    `/me/onenote/pages?$search=${encodeURIComponent('YouTube Links')}&$select=id,title&$top=20`
+  );
+  if (!searchData.error && searchData.value?.length) {
+    page = searchData.value.find(p => p.title === 'YouTube Links') ||
+           searchData.value.find(p => p.title?.toLowerCase().includes('youtube'));
+    console.log('[OneNote] Search found pages:', searchData.value.map(p => p.title));
+  } else {
+    console.error('[OneNote] Search error or empty:', searchData.error);
   }
 
-  if (data.error) return data;
-
-  const page = (data.value || []).find(p => p.title === 'YouTube Links') || (data.value || [])[0];
   if (!page) {
-    return { error: 'Could not find "YouTube Links" page in OneNote. Please create it first.' };
+    const filterData = await graphFetch(
+      `/me/onenote/pages?$filter=title%20eq%20'YouTube%20Links'&$select=id,title&$top=1`
+    );
+    if (!filterData.error && filterData.value?.length) {
+      page = filterData.value[0];
+      console.log('[OneNote] Filter found page:', page.title);
+    } else {
+      console.error('[OneNote] Filter error or empty:', filterData.error);
+    }
   }
 
-  // Read current content to determine next number
+  if (!page) {
+    return { error: 'Could not find "YouTube Links" page in OneNote. Please make sure the page exists with that exact name.' };
+  }
+
+  console.log('[OneNote] Using page:', page.id, page.title);
+
+  // Read current content to get next number
   const html = await graphFetchText(`/me/onenote/pages/${page.id}/content`);
   const numbers = html
     ? [...html.matchAll(/>\s*(\d+)\.\s/g)].map(m => parseInt(m[1]))
     : [];
   const nextNumber = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+  console.log('[OneNote] Next entry number:', nextNumber);
 
-  // Append entry
-  const appendBody = JSON.stringify([{
+  // HTML-escape title (video titles can contain &, <, >)
+  const safeTitle = title
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // Append the numbered entry
+  const token = await getAccessToken();
+  if (!token) return { error: 'M365 token unavailable for OneNote write' };
+
+  const patchBody = JSON.stringify([{
     target: 'body',
     action: 'append',
-    content: `<p>${nextNumber}. ${title} — ${url}</p>`
+    content: `<p>${nextNumber}. ${safeTitle} - ${url}</p>`
   }]);
 
-  const token = await getAccessToken();
   const patchResp = await fetch(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content`, {
     method: 'PATCH',
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json'
     },
-    body: appendBody
+    body: patchBody
   });
 
   if (!patchResp.ok) {
     const errText = await patchResp.text();
-    return { error: `Failed to append to OneNote: ${patchResp.status}: ${errText}` };
+    console.error('[OneNote] PATCH failed:', patchResp.status, errText);
+    return { error: `OneNote write failed (${patchResp.status}): ${errText}` };
   }
 
+  console.log('[OneNote] Successfully appended entry', nextNumber);
   return { success: true, number: nextNumber, title, url };
 }
 
