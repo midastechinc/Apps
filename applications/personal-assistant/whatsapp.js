@@ -15,45 +15,84 @@ let sock = null;
 let onMessage = null;
 let isResolvingNumbers = false;
 
+// LID (privacy id) → phone number cache, e.g. "117196906852449" -> "16477863361"
 const lidToPhone = {};
+
 const logger = pino({ level: 'warn' });
 
-async function resolveNumbers(phoneNumbers) {
-  if (!sock || !isConnected) return;
-  for (const phone of phoneNumbers) {
-    if (!phone) continue;
-    try {
-      const normalized = phone.replace(/\D/g, '');
-      const results = await sock.onWhatsApp(`+${normalized}`);
-      console.log(`[WA] onWhatsApp(+${normalized}):`, JSON.stringify(results));
-      if (results?.length > 0 && results[0].exists) {
-        const info = results[0];
-        const lidRaw = info.lid || info.jid;
-        if (lidRaw) {
-          const lidNum = String(lidRaw).replace(/@.*$/, '');
-          lidToPhone[lidNum] = normalized;
-          console.log(`[WA] Resolved +${normalized} → LID ${lidNum}`);
-        }
-      }
-    } catch (err) {
-      console.log(`[WA] Could not resolve +${phone}: ${err.message}`);
-    }
-  }
+function digits(v) {
+  return String(v ?? '').replace(/@.*$/, '').replace(/[^0-9]/g, '');
 }
 
+// Pre-warm the LID↔phone cache for every configured number using v7 native mapping.
 async function refreshNumberResolution() {
-  if (isResolvingNumbers || !isConnected) return;
+  if (isResolvingNumbers || !isConnected || !sock) return;
   isResolvingNumbers = true;
   try {
     const { getConfig } = require('./config-manager');
     const config = getConfig();
     const allNumbers = [config.mainNumber, ...(config.familyNumbers || [])].filter(Boolean);
-    if (allNumbers.length > 0) {
-      await resolveNumbers(allNumbers);
+    const mapping = sock.signalRepository?.lidMapping;
+
+    for (const raw of allNumbers) {
+      const phone = digits(raw);
+      if (!phone) continue;
+      try {
+        const pnJid = `${phone}@s.whatsapp.net`;
+        let lid = null;
+        if (mapping?.getLIDForPN) {
+          lid = await mapping.getLIDForPN(pnJid);
+        }
+        if (lid) {
+          lidToPhone[digits(lid)] = phone;
+          console.log(`[WA] Mapped phone ${phone} ↔ LID ${digits(lid)}`);
+        } else {
+          console.log(`[WA] No LID yet for ${phone} (will resolve on first message)`);
+        }
+      } catch (err) {
+        console.log(`[WA] Could not map ${phone}: ${err.message}`);
+      }
     }
   } finally {
     isResolvingNumbers = false;
   }
+}
+
+// Resolve an incoming sender JID to a phone-based JID for routing.
+async function resolveSenderJid(rawJid) {
+  if (!rawJid.endsWith('@lid')) return rawJid;
+
+  const lidNum = digits(rawJid);
+
+  // 1) in-memory cache
+  if (lidToPhone[lidNum]) {
+    return `${lidToPhone[lidNum]}@s.whatsapp.net`;
+  }
+
+  // 2) v7 native LID→PN mapping (populated as Baileys decodes the message)
+  try {
+    const mapping = sock?.signalRepository?.lidMapping;
+    if (mapping?.getPNForLID) {
+      const pn = await mapping.getPNForLID(rawJid);
+      if (pn) {
+        const phone = digits(pn);
+        lidToPhone[lidNum] = phone;
+        console.log(`[WA] LID ${lidNum} → phone ${phone} (native mapping)`);
+        return `${phone}@s.whatsapp.net`;
+      }
+    }
+  } catch (err) {
+    console.log(`[WA] getPNForLID failed for ${rawJid}: ${err.message}`);
+  }
+
+  // 3) last resort: pre-warm from config then re-check cache
+  await refreshNumberResolution().catch(() => {});
+  if (lidToPhone[lidNum]) {
+    return `${lidToPhone[lidNum]}@s.whatsapp.net`;
+  }
+
+  console.log(`[WA] Could not resolve LID ${rawJid} to a phone number`);
+  return rawJid;
 }
 
 async function start(messageHandler) {
@@ -69,11 +108,8 @@ async function connect() {
     version,
     auth: state,
     logger,
-    printQRInTerminal: true,
     browser: ['Midas Personal Assistant', 'Chrome', '1.0.0'],
-    syncFullHistory: false,
-    defaultQueryTimeoutMs: undefined,
-    connectTimeoutMs: 60_000
+    syncFullHistory: false
   });
 
   sock.ev.on('creds.update', saveCreds);
@@ -130,36 +166,21 @@ async function connect() {
       const rawJid = msg.key.remoteJid;
       if (!rawJid) continue;
 
-      let sender = rawJid;
-
-      // Resolve @lid JID to phone-based JID for routing
-      if (rawJid.endsWith('@lid')) {
-        const lidNum = rawJid.replace(/@.*$/, '');
-        const phone = lidToPhone[lidNum];
-        if (phone) {
-          sender = `${phone}@s.whatsapp.net`;
-          console.log(`[WA] LID resolved: ${rawJid} → ${sender}`);
-        } else {
-          console.log(`[WA] Unknown LID ${rawJid}, triggering resolution...`);
-          await refreshNumberResolution().catch(() => {});
-          const resolvedPhone = lidToPhone[lidNum];
-          if (resolvedPhone) {
-            sender = `${resolvedPhone}@s.whatsapp.net`;
-            console.log(`[WA] LID resolved (on-the-fly): ${rawJid} → ${sender}`);
-          }
-        }
+      // Resolve LID → phone JID for routing (v7 native mapping)
+      const sender = await resolveSenderJid(rawJid);
+      if (sender !== rawJid) {
+        console.log(`[WA] Resolved sender: ${rawJid} → ${sender}`);
       }
 
-      // Subscribe to presence to pre-establish encryption session, then mark read
-      await sock.presenceSubscribe(rawJid).catch(() => {});
+      // Mark as read (helps establish the session before replying)
       await sock.readMessages([msg.key]).catch(() => {});
-      await new Promise(r => setTimeout(r, 800));
 
       try {
         if (onMessage) {
           const reply = await onMessage(sender, text);
           if (reply && sock) {
-            await sock.sendMessage(rawJid, { text: reply }, { quoted: msg });
+            // Reply to the ORIGINAL jid — v7 attaches tctoken automatically (fixes 463)
+            await sock.sendMessage(rawJid, { text: reply });
             console.log(`[WA] Reply sent to ${rawJid}`);
           }
         }
@@ -184,7 +205,6 @@ function getStatus() {
 }
 
 async function resetSession() {
-  // Close existing connection
   if (sock) {
     sock.ev.removeAllListeners();
     sock.end?.();
@@ -194,8 +214,9 @@ async function resetSession() {
   connectedAt = null;
   currentQR = null;
   qrDataUrl = null;
+  for (const k of Object.keys(lidToPhone)) delete lidToPhone[k];
 
-  // Delete all auth_info files EXCEPT config.json
+  // Delete all auth_info files EXCEPT config.json (so contacts/LLM survive)
   if (fs.existsSync(AUTH_DIR)) {
     for (const file of fs.readdirSync(AUTH_DIR)) {
       if (file !== 'config.json') {
