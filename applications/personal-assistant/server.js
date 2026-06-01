@@ -193,7 +193,7 @@ app.delete('/api/integrations/google', requireAdminKey, (req, res) => {
 // M365: save credentials
 app.put('/api/integrations/m365', requireAdminKey, (req, res) => {
   try {
-    const { clientId, clientSecret, tenantId, refreshToken } = req.body;
+    const { clientId, clientSecret, tenantId, refreshToken, accessToken, tokenExpiry } = req.body;
     const current = getConfig().integrations?.m365 || {};
 
     const patch = {
@@ -202,8 +202,8 @@ app.put('/api/integrations/m365', requireAdminKey, (req, res) => {
       tenantId: tenantId || current.tenantId || '',
       clientSecret: clientSecret === '••••••••' ? (current.clientSecret || '') : (clientSecret || current.clientSecret || ''),
       refreshToken: refreshToken === '••••••••' ? (current.refreshToken || '') : (refreshToken || current.refreshToken || ''),
-      accessToken: '',
-      tokenExpiry: 0
+      accessToken: accessToken || '',
+      tokenExpiry: tokenExpiry || 0
     };
 
     updateConfig({ integrations: { m365: patch } });
