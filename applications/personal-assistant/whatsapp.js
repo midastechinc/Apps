@@ -126,7 +126,6 @@ async function start(messageHandler) {
 }
 
 async function connect() {
-  console.log('[WA] connect() v4 — voice note + catch-all event logging active');
   const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
   const { version } = await fetchLatestBaileysVersion();
 
@@ -139,17 +138,6 @@ async function connect() {
   });
 
   sock.ev.on('creds.update', saveCreds);
-
-  // Catch-all: log every Baileys event (filtered to message-related) so we can
-  // see what fires when a voice note arrives — helps diagnose missing upsert events
-  sock.ev.process(async (events) => {
-    const keys = Object.keys(events).filter(k =>
-      k.includes('message') || k.includes('call') || k.includes('receipt')
-    );
-    if (keys.length > 0) {
-      console.log(`[WA] ev.process: ${keys.join(', ')}`);
-    }
-  });
 
   sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
     if (qr) {
@@ -187,15 +175,11 @@ async function connect() {
   });
 
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
-    // Log ALL upsert events (before any filter) to diagnose missing voice notes
-    console.log(`[WA] messages.upsert type=${type} count=${messages.length} keys=${messages.map(m => Object.keys(m.message||{}).join('|')).join(', ')}`);
     if (type !== 'notify') return;
 
     for (const msg of messages) {
-      // Log fromMe before skipping so we can see if voice notes are marked fromMe
-      console.log(`[WA] msg fromMe=${msg.key.fromMe} jid=${msg.key.remoteJid} keys=${Object.keys(msg.message||{}).join(',')}`);
+      if (!msg.key) continue;
       if (msg.key.fromMe) continue;
-      console.log(`[WA] incoming msg keys: ${msgKeys.join(', ')} from ${msg.key.remoteJid}`);
 
       let text =
         msg.message?.conversation ||
