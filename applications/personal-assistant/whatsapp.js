@@ -18,23 +18,49 @@ async function transcribeAudio(buffer, llmConfig, mimetype) {
     : baseMime.includes('wav') ? 'wav'
     : 'ogg';
 
-  // Use FormData + Blob (Node.js 20 native) — do NOT set Content-Type manually,
-  // fetch sets it automatically with the correct boundary
-  const form = new FormData();
-  form.append('file', new Blob([buffer], { type: baseMime }), `voice.${ext}`);
-  form.append('model', 'whisper-1');
+  // Build multipart body manually and use https module directly.
+  // Node.js fetch (undici) sets a boundary that OpenAI rejects; https gives full control.
+  const boundary = `boundary${Date.now()}${Math.random().toString(36).slice(2)}`;
+  const body = Buffer.concat([
+    Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="voice.${ext}"\r\nContent-Type: ${baseMime}\r\n\r\n`),
+    buffer,
+    Buffer.from(`\r\n--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-1\r\n--${boundary}--\r\n`)
+  ]);
 
-  const response = await fetch(`${baseUrl}/audio/transcriptions`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${llmConfig.apiKey}` },
-    body: form
+  const { URL: NodeURL } = require('url');
+  const endpoint = new NodeURL(`${baseUrl}/audio/transcriptions`);
+  const httpMod = require(endpoint.protocol === 'https:' ? 'https' : 'http');
+
+  return new Promise((resolve, reject) => {
+    const req = httpMod.request({
+      hostname: endpoint.hostname,
+      port: endpoint.port || (endpoint.protocol === 'https:' ? 443 : 80),
+      path: endpoint.pathname,
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${llmConfig.apiKey}`,
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+        'Content-Length': body.length
+      }
+    }, res => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        if (res.statusCode !== 200) {
+          reject(new Error(`Whisper API ${res.statusCode}: ${data.slice(0, 300)}`));
+          return;
+        }
+        try {
+          resolve(JSON.parse(data).text?.trim() || null);
+        } catch {
+          reject(new Error(`Whisper parse error: ${data.slice(0, 100)}`));
+        }
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
   });
-  if (!response.ok) {
-    const err = await response.text().catch(() => '');
-    throw new Error(`Whisper API ${response.status}: ${err.slice(0, 300)}`);
-  }
-  const data = await response.json();
-  return data.text?.trim() || null;
 }
 
 let currentQR = null;
