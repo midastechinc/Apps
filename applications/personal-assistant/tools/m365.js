@@ -137,6 +137,14 @@ async function saveYouTubeLink({ url }) {
     return { error: `OneNote write failed (${patchResp.status}): ${errText}` };
   }
 
+  // Verify the write actually committed (204 can be a silent false-success)
+  await new Promise(r => setTimeout(r, 1500));
+  const verifyHtml = await graphFetchText(`/me/onenote/pages/${YOUTUBE_LINKS_PAGE_ID}/content`);
+  if (verifyHtml && !verifyHtml.includes(url)) {
+    console.error('[OneNote] PATCH returned 204 but content not found in page after write');
+    return { error: 'OneNote accepted the request but the entry did not appear. This usually means the token scope is insufficient (needs Notes.ReadWrite.All) or the notebook is read-only.' };
+  }
+
   console.log('[OneNote] Successfully appended entry', nextNumber);
   return { success: true, number: nextNumber, title, url };
 }
