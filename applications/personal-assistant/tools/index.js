@@ -310,7 +310,10 @@ const AGENT_TOOLS = {
   ],
   family: [
     'get_current_time', 'get_current_date',
-    'google_list_events', 'google_create_event', 'google_list_calendars'
+    'google_list_events', 'google_create_event', 'google_list_calendars',
+    'm365_search_emails', 'm365_read_email',
+    'm365_search_onenote',
+    'm365_list_todos', 'm365_create_todo'
   ]
 };
 
