@@ -8,6 +8,7 @@ const { getConfig, updateConfig } = require('./config-manager');
 const { processMessage, clearHistory, listConversations } = require('./agents');
 const { start: startWhatsApp, getStatus, refreshNumberResolution, resetSession, sendProactiveMessage } = require('./whatsapp');
 const { startScheduler } = require('./scheduler');
+const m365Tools = require('./tools/m365');
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_KEY = process.env.ADMIN_KEY || '';
@@ -208,6 +209,16 @@ app.put('/api/integrations/m365', requireAdminKey, (req, res) => {
 
     updateConfig({ integrations: { m365: patch } });
     res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── OneNote page ID diagnostic ───────────────────────────────────────────────
+app.get('/api/onenote/link-page-ids', requireAdminKey, async (_req, res) => {
+  try {
+    const ids = await m365Tools.getPageIdsForLinkPages();
+    res.json(ids);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

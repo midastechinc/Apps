@@ -133,7 +133,17 @@ const PLATFORM_CONFIG = {
 async function findOneNotePageByTitle(titleToFind) {
   const lower = titleToFind.toLowerCase();
 
-  // Search via flat sections endpoint first — this covers Quick Notes and all sections
+  // Fastest: direct search API across all pages in all notebooks
+  const searchData = await graphFetch(`/me/onenote/pages?$search="${encodeURIComponent(titleToFind)}"&$select=id,title&$top=20`);
+  if (!searchData.error) {
+    const found = (searchData.value || []).find(p => p.title?.toLowerCase() === lower);
+    if (found) {
+      console.log(`[OneNote] Found "${titleToFind}" via pages search API`);
+      return found;
+    }
+  }
+
+  // Flat sections endpoint — covers Quick Notes and all sections across all notebooks
   const allSections = await graphFetch('/me/onenote/sections?$select=id,displayName&$top=100');
   if (!allSections.error) {
     for (const sec of (allSections.value || [])) {
@@ -141,13 +151,13 @@ async function findOneNotePageByTitle(titleToFind) {
       if (pagesData.error) continue;
       const found = (pagesData.value || []).find(p => p.title?.toLowerCase() === lower);
       if (found) {
-        console.log(`[OneNote] Found "${titleToFind}" in section "${sec.displayName}" via flat search`);
+        console.log(`[OneNote] Found "${titleToFind}" in section "${sec.displayName}" via flat sections`);
         return found;
       }
     }
   }
 
-  // Fallback: traverse notebooks → sections (handles section groups)
+  // Final fallback: traverse notebooks → sections (handles section groups)
   const notebooksData = await graphFetch('/me/onenote/notebooks?$select=id,displayName&$top=50');
   if (notebooksData.error) return null;
   for (const nb of (notebooksData.value || [])) {
@@ -415,12 +425,23 @@ async function listOneNoteStructure() {
       const pagesData = await graphFetch(`/me/onenote/sections/${sec.id}/pages?$select=id,title&$top=50`);
       sections.push({
         section: sec.displayName,
-        pages: (pagesData.value || []).map(p => p.title)
+        pages: (pagesData.value || []).map(p => ({ title: p.title, id: p.id }))
       });
     }
     result.push({ notebook: nb.displayName, sections });
   }
   return { structure: result };
+}
+
+async function getPageIdsForLinkPages() {
+  // Diagnostic: find the IDs of YouTube Links, Facebook Links, Instagram Links pages
+  const targets = ['YouTube Links', 'Facebook Links', 'Instagram Links'];
+  const result = {};
+  for (const title of targets) {
+    const page = await findOneNotePageByTitle(title);
+    result[title] = page ? page.id : 'NOT FOUND';
+  }
+  return result;
 }
 
 function isConfigured() {
@@ -429,5 +450,5 @@ function isConfigured() {
   return !!(m365?.enabled && m365?.clientId && m365?.tenantId && (m365?.accessToken || m365?.refreshToken));
 }
 
-module.exports = { listCalendarEvents, createCalendarEvent, listEmails, listTodos, createTodo, searchOneNote, saveLink, listOneNoteStructure, isConfigured };
+module.exports = { listCalendarEvents, createCalendarEvent, listEmails, listTodos, createTodo, searchOneNote, saveLink, listOneNoteStructure, getPageIdsForLinkPages, isConfigured };
 
