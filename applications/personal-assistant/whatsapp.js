@@ -175,13 +175,14 @@ async function connect() {
   });
 
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
+    // Log ALL upsert events (before any filter) to diagnose missing voice notes
+    console.log(`[WA] messages.upsert type=${type} count=${messages.length} keys=${messages.map(m => Object.keys(m.message||{}).join('|')).join(', ')}`);
     if (type !== 'notify') return;
 
     for (const msg of messages) {
+      // Log fromMe before skipping so we can see if voice notes are marked fromMe
+      console.log(`[WA] msg fromMe=${msg.key.fromMe} jid=${msg.key.remoteJid} keys=${Object.keys(msg.message||{}).join(',')}`);
       if (msg.key.fromMe) continue;
-
-      // Debug: log message types to help diagnose unrecognised message formats
-      const msgKeys = Object.keys(msg.message || {});
       console.log(`[WA] incoming msg keys: ${msgKeys.join(', ')} from ${msg.key.remoteJid}`);
 
       let text =
