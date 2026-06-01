@@ -1,9 +1,11 @@
 const { getConfig } = require('./config-manager');
 const { processBriefing } = require('./agents');
+const m365 = require('./tools/m365');
 
 const TZ = 'America/Toronto';
 
 let lastBriefingDate = null;
+let lastTokenCheckDate = null;
 let sendFn = null;
 
 function startScheduler(sendMessageFn) {
@@ -15,14 +17,19 @@ function startScheduler(sendMessageFn) {
 async function tick() {
   try {
     const config = getConfig();
-    if (!config.schedule?.morningBriefingEnabled) return;
-
-    const tz = config.schedule.timezone || TZ;
+    const tz = config.schedule?.timezone || TZ;
     const now = new Date();
     const hhmm = now.toLocaleTimeString('en-CA', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
     const today = now.toLocaleDateString('en-CA', { timeZone: tz });
-    const target = config.schedule.morningBriefingTime || '08:00';
 
+    // Daily M365 token health check at 07:55 (5 min before briefing)
+    if (hhmm === '07:55' && lastTokenCheckDate !== today) {
+      lastTokenCheckDate = today;
+      await checkM365Token(config);
+    }
+
+    if (!config.schedule?.morningBriefingEnabled) return;
+    const target = config.schedule.morningBriefingTime || '08:00';
     if (hhmm !== target || lastBriefingDate === today) return;
 
     lastBriefingDate = today;
@@ -30,6 +37,26 @@ async function tick() {
     await runBriefing(config);
   } catch (err) {
     console.error('[SCHEDULER] tick error:', err.message);
+  }
+}
+
+async function checkM365Token(config) {
+  if (!m365.isConfigured()) return;
+  try {
+    // Light API call — just fetch user profile to verify token is valid
+    const result = await m365.listTodos({ list_name: 'Tasks', top: 1 });
+    if (result?.error) {
+      console.error('[SCHEDULER] M365 token check FAILED:', result.error);
+      if (config.mainNumber && sendFn) {
+        await sendFn(config.mainNumber,
+          '⚠️ M365 token issue detected. Tasks and calendar may not work. Run fix_m365.py to reconnect.'
+        );
+      }
+    } else {
+      console.log('[SCHEDULER] M365 token check OK');
+    }
+  } catch (err) {
+    console.error('[SCHEDULER] M365 token check error:', err.message);
   }
 }
 
