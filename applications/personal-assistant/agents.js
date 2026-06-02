@@ -315,7 +315,7 @@ async function processLeadHunt() {
   return reply;
 }
 
-
+async function processBriefing() {
   const config = getConfig();
   if (!config.mainNumber) {
     console.log('[BRIEFING] No main number configured');
