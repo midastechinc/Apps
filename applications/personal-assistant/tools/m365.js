@@ -649,13 +649,23 @@ async function createStickyNote({ content }) {
   const token = await getAccessToken();
   if (!token) return { error: 'M365 not configured or token unavailable.' };
 
-  const data = await graphFetch(`/users/${USER_PRINCIPAL}/shortNotes`, {
+  // shortNotes is beta-only — cannot use graphFetch (which uses v1.0)
+  const resp = await fetch(`https://graph.microsoft.com/beta/users/${USER_PRINCIPAL}/shortNotes`, {
     method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
     body: JSON.stringify({ body: { content, contentType: 'text' } })
   });
 
-  if (data.error) return data;
+  if (!resp.ok) {
+    const err = await resp.text();
+    console.error('[M365] Sticky note error:', resp.status, err.slice(0, 200));
+    return { error: `Failed to create sticky note (${resp.status}): ${err.slice(0, 200)}` };
+  }
 
+  const data = await resp.json();
   console.log(`[M365] Sticky note created: "${content.slice(0, 50)}"`);
   return { success: true, id: data.id, content };
 }
