@@ -493,6 +493,148 @@ async function getPageIdsForLinkPages() {
   return result;
 }
 
+// ─── Email — send & reply ─────────────────────────────────────────────────────
+
+async function sendEmail({ to, subject, body, cc = null }) {
+  if (!to || !subject || !body) return { error: 'to, subject, and body are required' };
+  const message = {
+    subject,
+    body: { contentType: 'text', content: body },
+    toRecipients: (Array.isArray(to) ? to : [to]).map(addr => ({
+      emailAddress: { address: addr }
+    }))
+  };
+  if (cc) {
+    message.ccRecipients = (Array.isArray(cc) ? cc : [cc]).map(addr => ({
+      emailAddress: { address: addr }
+    }));
+  }
+  const data = await graphFetch(`/users/${USER_PRINCIPAL}/sendMail`, {
+    method: 'POST',
+    body: JSON.stringify({ message, saveToSentItems: true })
+  });
+  if (data.error) return data;
+  console.log(`[M365] Email sent to ${to} — "${subject}"`);
+  return { success: true, to, subject };
+}
+
+async function replyToEmail({ email_id, reply_text }) {
+  if (!email_id || !reply_text) return { error: 'email_id and reply_text are required' };
+  const data = await graphFetch(`/users/${USER_PRINCIPAL}/messages/${email_id}/reply`, {
+    method: 'POST',
+    body: JSON.stringify({ comment: reply_text })
+  });
+  if (data.error) return data;
+  console.log(`[M365] Reply sent to email ${email_id}`);
+  return { success: true, email_id };
+}
+
+// ─── Calendar — update & delete ───────────────────────────────────────────────
+
+async function updateCalendarEvent({ event_id, subject, start, end, body, location }) {
+  if (!event_id) return { error: 'event_id is required' };
+  const patch = {};
+  if (subject) patch.subject = subject;
+  if (body !== undefined) patch.body = { contentType: 'text', content: body };
+  if (start) patch.start = { dateTime: new Date(start).toISOString(), timeZone: 'America/Toronto' };
+  if (end) patch.end = { dateTime: new Date(end).toISOString(), timeZone: 'America/Toronto' };
+  if (location) patch.location = { displayName: location };
+  const data = await graphFetch(`/users/${USER_PRINCIPAL}/events/${event_id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch)
+  });
+  if (data.error) return data;
+  return { success: true, event_id, subject: data.subject };
+}
+
+async function deleteCalendarEvent({ event_id }) {
+  if (!event_id) return { error: 'event_id is required' };
+  const data = await graphFetch(`/users/${USER_PRINCIPAL}/events/${event_id}`, { method: 'DELETE' });
+  if (data.error) return data;
+  return { success: true, event_id };
+}
+
+// ─── To Do — complete & update ────────────────────────────────────────────────
+
+async function completeTodo({ task_id, list_name = '' }) {
+  if (!task_id) return { error: 'task_id is required' };
+  const listsData = await graphFetch(`/users/${USER_PRINCIPAL}/todo/lists`);
+  if (listsData.error) return listsData;
+  const lists = listsData.value || [];
+  let list = list_name
+    ? lists.find(l => l.displayName.toLowerCase().includes(list_name.toLowerCase()))
+    : null;
+  if (!list) list = lists.find(l => l.wellknownListName === 'defaultList') || lists[0];
+  if (!list) return { error: 'No To Do list found' };
+  const data = await graphFetch(`/users/${USER_PRINCIPAL}/todo/lists/${list.id}/tasks/${task_id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: 'completed' })
+  });
+  if (data.error) return data;
+  return { success: true, task_id, title: data.title, status: 'completed' };
+}
+
+async function updateTodo({ task_id, list_name = '', title, due_date, notes }) {
+  if (!task_id) return { error: 'task_id is required' };
+  const listsData = await graphFetch(`/users/${USER_PRINCIPAL}/todo/lists`);
+  if (listsData.error) return listsData;
+  const lists = listsData.value || [];
+  let list = list_name
+    ? lists.find(l => l.displayName.toLowerCase().includes(list_name.toLowerCase()))
+    : null;
+  if (!list) list = lists.find(l => l.wellknownListName === 'defaultList') || lists[0];
+  if (!list) return { error: 'No To Do list found' };
+  const patch = {};
+  if (title) patch.title = title;
+  if (due_date) patch.dueDateTime = { dateTime: new Date(due_date).toISOString(), timeZone: 'UTC' };
+  if (notes !== undefined) patch.body = { content: notes, contentType: 'text' };
+  const data = await graphFetch(`/users/${USER_PRINCIPAL}/todo/lists/${list.id}/tasks/${task_id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch)
+  });
+  if (data.error) return data;
+  return { success: true, task_id, title: data.title };
+}
+
+// ─── Contacts ─────────────────────────────────────────────────────────────────
+
+async function listContacts({ top = 20, search = '' } = {}) {
+  const params = new URLSearchParams({
+    $top: String(top),
+    $orderby: 'displayName',
+    $select: 'id,displayName,emailAddresses,mobilePhone,businessPhones,companyName,jobTitle'
+  });
+  if (search) params.set('$search', `"${search}"`);
+  const data = await graphFetch(`/users/${USER_PRINCIPAL}/contacts?${params}`);
+  if (data.error) return data;
+  return {
+    contacts: (data.value || []).map(c => ({
+      id: c.id,
+      name: c.displayName,
+      email: c.emailAddresses?.[0]?.address || null,
+      phone: c.mobilePhone || c.businessPhones?.[0] || null,
+      company: c.companyName || null,
+      title: c.jobTitle || null
+    }))
+  };
+}
+
+async function createContact({ name, email, phone = null, company = null, title = null }) {
+  if (!name) return { error: 'name is required' };
+  const contact = { displayName: name };
+  if (email) contact.emailAddresses = [{ address: email, name }];
+  if (phone) contact.mobilePhone = phone;
+  if (company) contact.companyName = company;
+  if (title) contact.jobTitle = title;
+  const data = await graphFetch(`/users/${USER_PRINCIPAL}/contacts`, {
+    method: 'POST',
+    body: JSON.stringify(contact)
+  });
+  if (data.error) return data;
+  console.log(`[M365] Contact created: "${name}"`);
+  return { success: true, id: data.id, name: data.displayName };
+}
+
 // ─── Sticky Notes ─────────────────────────────────────────────────────────────
 
 async function createStickyNote({ content }) {
@@ -649,9 +791,10 @@ function isConfigured() {
 }
 
 module.exports = {
-  listCalendarEvents, createCalendarEvent,
-  listEmails, searchEmails, readEmail,
-  listTodos, createTodo,
+  listCalendarEvents, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent,
+  listEmails, searchEmails, readEmail, sendEmail, replyToEmail,
+  listTodos, createTodo, completeTodo, updateTodo,
+  listContacts, createContact,
   searchOneNote, saveLink, listOneNoteStructure, getPageIdsForLinkPages,
   searchOneDrive, listOneDriveFolder, getOneDriveShareLink,
   listSharePointSites, searchSharePoint, listSharePointFiles,

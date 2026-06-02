@@ -260,6 +260,137 @@ const DEFINITIONS = {
       }
     }
   },
+  m365_send_email: {
+    type: 'function',
+    function: {
+      name: 'm365_send_email',
+      description: 'Send an email from ali@midastech.ca via Outlook.',
+      parameters: {
+        type: 'object',
+        properties: {
+          to: { type: 'string', description: 'Recipient email address (or comma-separated list)' },
+          subject: { type: 'string', description: 'Email subject' },
+          body: { type: 'string', description: 'Email body (plain text)' },
+          cc: { type: 'string', description: 'CC email address (optional)' }
+        },
+        required: ['to', 'subject', 'body']
+      }
+    }
+  },
+  m365_reply_to_email: {
+    type: 'function',
+    function: {
+      name: 'm365_reply_to_email',
+      description: 'Reply to an existing email by its ID.',
+      parameters: {
+        type: 'object',
+        properties: {
+          email_id: { type: 'string', description: 'Email ID from m365_list_emails or m365_search_emails' },
+          reply_text: { type: 'string', description: 'The reply message text' }
+        },
+        required: ['email_id', 'reply_text']
+      }
+    }
+  },
+  m365_update_calendar_event: {
+    type: 'function',
+    function: {
+      name: 'm365_update_calendar_event',
+      description: 'Update/reschedule an existing Outlook calendar event.',
+      parameters: {
+        type: 'object',
+        properties: {
+          event_id: { type: 'string', description: 'Event ID from m365_list_calendar_events' },
+          subject: { type: 'string', description: 'New subject (optional)' },
+          start: { type: 'string', description: 'New start datetime ISO (optional)' },
+          end: { type: 'string', description: 'New end datetime ISO (optional)' },
+          body: { type: 'string', description: 'New description (optional)' },
+          location: { type: 'string', description: 'New location (optional)' }
+        },
+        required: ['event_id']
+      }
+    }
+  },
+  m365_delete_calendar_event: {
+    type: 'function',
+    function: {
+      name: 'm365_delete_calendar_event',
+      description: 'Delete/cancel an Outlook calendar event.',
+      parameters: {
+        type: 'object',
+        properties: {
+          event_id: { type: 'string', description: 'Event ID from m365_list_calendar_events' }
+        },
+        required: ['event_id']
+      }
+    }
+  },
+  m365_complete_todo: {
+    type: 'function',
+    function: {
+      name: 'm365_complete_todo',
+      description: 'Mark a Microsoft To Do task as completed.',
+      parameters: {
+        type: 'object',
+        properties: {
+          task_id: { type: 'string', description: 'Task ID from m365_list_todos' },
+          list_name: { type: 'string', description: 'List name (default: Tasks)' }
+        },
+        required: ['task_id']
+      }
+    }
+  },
+  m365_update_todo: {
+    type: 'function',
+    function: {
+      name: 'm365_update_todo',
+      description: 'Update a Microsoft To Do task — change title, due date, or notes.',
+      parameters: {
+        type: 'object',
+        properties: {
+          task_id: { type: 'string', description: 'Task ID from m365_list_todos' },
+          list_name: { type: 'string', description: 'List name (default: Tasks)' },
+          title: { type: 'string', description: 'New title (optional)' },
+          due_date: { type: 'string', description: 'New due date ISO (optional)' },
+          notes: { type: 'string', description: 'New notes (optional)' }
+        },
+        required: ['task_id']
+      }
+    }
+  },
+  m365_list_contacts: {
+    type: 'function',
+    function: {
+      name: 'm365_list_contacts',
+      description: 'List or search Outlook contacts.',
+      parameters: {
+        type: 'object',
+        properties: {
+          search: { type: 'string', description: 'Filter by name, email, or company (optional)' },
+          top: { type: 'integer', description: 'Max contacts to return (default: 20)' }
+        },
+        required: []
+      }
+    }
+  },
+  m365_create_contact: {
+    type: 'function',
+    function: {
+      name: 'm365_create_contact',
+      description: 'Create a new contact in Outlook.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Full name' },
+          email: { type: 'string', description: 'Email address (optional)' },
+          phone: { type: 'string', description: 'Phone number (optional)' },
+          company: { type: 'string', description: 'Company name (optional)' },
+          title: { type: 'string', description: 'Job title (optional)' }
+        },
+        required: ['name']
+      }
+    }
+  },
   onedrive_search: {
     type: 'function',
     function: {
@@ -384,8 +515,10 @@ const AGENT_TOOLS = {
   business: [
     'get_current_time', 'get_current_date',
     'google_list_events', 'google_create_event', 'google_list_calendars',
-    'm365_list_calendar_events', 'm365_create_calendar_event',
-    'm365_list_emails', 'm365_search_emails', 'm365_read_email', 'm365_list_todos', 'm365_create_todo',
+    'm365_list_calendar_events', 'm365_create_calendar_event', 'm365_update_calendar_event', 'm365_delete_calendar_event',
+    'm365_list_emails', 'm365_search_emails', 'm365_read_email', 'm365_send_email', 'm365_reply_to_email',
+    'm365_list_todos', 'm365_create_todo', 'm365_complete_todo', 'm365_update_todo',
+    'm365_list_contacts', 'm365_create_contact',
     'm365_search_onenote', 'm365_save_link', 'm365_list_onenote_structure', 'm365_create_sticky_note',
     'onedrive_search', 'onedrive_list_folder', 'onedrive_get_link',
     'sharepoint_list_sites', 'sharepoint_search', 'sharepoint_list_files',
@@ -428,11 +561,19 @@ async function executeTool(toolName, args) {
       case 'google_list_calendars':       return await googleCalendar.listCalendars();
       case 'm365_list_calendar_events':   return await m365.listCalendarEvents(args);
       case 'm365_create_calendar_event':  return await m365.createCalendarEvent(args);
+      case 'm365_update_calendar_event':  return await m365.updateCalendarEvent(args);
+      case 'm365_delete_calendar_event':  return await m365.deleteCalendarEvent(args);
       case 'm365_list_emails':            return await m365.listEmails(args);
       case 'm365_search_emails':          return await m365.searchEmails(args);
       case 'm365_read_email':             return await m365.readEmail(args);
+      case 'm365_send_email':             return await m365.sendEmail(args);
+      case 'm365_reply_to_email':         return await m365.replyToEmail(args);
       case 'm365_list_todos':             return await m365.listTodos(args);
       case 'm365_create_todo':            return await m365.createTodo(args);
+      case 'm365_complete_todo':          return await m365.completeTodo(args);
+      case 'm365_update_todo':            return await m365.updateTodo(args);
+      case 'm365_list_contacts':          return await m365.listContacts(args);
+      case 'm365_create_contact':         return await m365.createContact(args);
       case 'm365_search_onenote':         return await m365.searchOneNote(args);
       case 'm365_save_link':                  return await m365.saveLink(args);
       case 'm365_list_onenote_structure':    return await m365.listOneNoteStructure();
