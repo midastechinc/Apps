@@ -3,8 +3,9 @@ const { getConfig } = require('../config-manager');
 async function webSearch({ query, count = 5 }) {
   const config = getConfig();
   const apiKey = config.integrations?.brave?.apiKey || process.env.BRAVE_API_KEY;
-  console.log(`[WEB] webSearch called: "${query}" — apiKey=${apiKey ? 'set' : 'MISSING'}`);
-  if (!apiKey) return { error: 'Brave Search API key not configured. Add it in settings under integrations.brave.apiKey' };
+  const envKeys = Object.keys(process.env).filter(k => k.toLowerCase().includes('brave'));
+  console.log(`[WEB] webSearch called: "${query}" — apiKey=${apiKey ? 'set' : 'MISSING'} envKeys=${envKeys.join(',') || 'none'}`);
+  if (!apiKey) return { error: 'Brave Search API key not configured — please add BRAVE_API_KEY as a Railway environment variable' };
 
   const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=${Math.min(count, 10)}`;
   const response = await fetch(url, {

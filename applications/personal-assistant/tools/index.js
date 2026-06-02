@@ -389,13 +389,11 @@ function getToolDefinitions(agentType) {
   const allowed = AGENT_TOOLS[agentType] || AGENT_TOOLS.business;
   const googleOk = googleCalendar.isConfigured();
   const m365Ok = m365.isConfigured();
-  const webOk = web.isConfigured();
 
   return allowed
     .filter(name => {
       if (name.startsWith('google_') && !googleOk) return false;
       if (name.startsWith('m365_') && !m365Ok) return false;
-      if ((name === 'web_search' || name === 'fetch_webpage') && !webOk) return false;
       return true;
     })
     .map(name => DEFINITIONS[name])
