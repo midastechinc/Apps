@@ -349,6 +349,32 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="integration-panel" id="bravePanel">
+                    <div class="integration-header">
+                        <div class="integration-title">
+                            <span class="integration-icon">🔍</span>
+                            <div>
+                                <strong>Web Search (Brave)</strong>
+                                <p class="integration-desc">Lets Claudia search the internet — flights, weather, news, prices.</p>
+                            </div>
+                        </div>
+                        <span class="int-badge int-badge--unconfigured" id="braveStatus">Not configured</span>
+                    </div>
+                    <div class="integration-body">
+                        <p class="form-hint">Get a free API key at <strong>brave.com/search/api</strong> (2,000 searches/month free). Paste it below.</p>
+                        <div class="form-grid form-grid--single">
+                            <div class="form-field">
+                                <label class="form-label" for="braveApiKey">Brave Search API Key</label>
+                                <input class="form-input" type="password" id="braveApiKey" placeholder="BSA••••••••••••••••••••••••••••••••••" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button class="app-link" type="button" id="saveBraveBtn">Save API Key</button>
+                            <span class="save-feedback" id="braveFeedback" aria-live="polite"></span>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <!-- CONVERSATIONS TAB -->

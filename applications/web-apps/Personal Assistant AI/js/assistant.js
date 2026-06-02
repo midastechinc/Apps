@@ -59,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('saveGoogleBtn').addEventListener('click', saveGoogleCreds);
     document.getElementById('clearGoogleBtn').addEventListener('click', clearGoogleCreds);
     document.getElementById('saveM365Btn').addEventListener('click', saveM365Creds);
+    document.getElementById('saveBraveBtn').addEventListener('click', saveBraveCreds);
 
     init();
 
@@ -383,6 +384,15 @@ document.addEventListener('DOMContentLoaded', () => {
             m365Status.textContent = 'Not configured';
             m365Status.className = 'int-badge int-badge--unconfigured';
         }
+
+        const braveStatus = document.getElementById('braveStatus');
+        if (data.brave?.configured) {
+            braveStatus.textContent = 'Connected';
+            braveStatus.className = 'int-badge int-badge--connected';
+        } else {
+            braveStatus.textContent = 'Not configured';
+            braveStatus.className = 'int-badge int-badge--unconfigured';
+        }
     }
 
     async function saveGoogleCreds() {
@@ -414,6 +424,23 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             await apiFetch('/api/integrations/google', { method: 'DELETE' });
             showFeedback(feedback, 'Disconnected.', 'ok');
+            await loadIntegrations();
+        } catch (err) {
+            showFeedback(feedback, `Error: ${err.message}`, 'err');
+        }
+    }
+
+    async function saveBraveCreds() {
+        const feedback = document.getElementById('braveFeedback');
+        const apiKey = document.getElementById('braveApiKey').value.trim();
+        if (!apiKey) { showFeedback(feedback, 'Paste your Brave API key first.', 'err'); return; }
+        try {
+            await apiFetch('/api/integrations/brave', {
+                method: 'PUT',
+                body: JSON.stringify({ apiKey })
+            });
+            document.getElementById('braveApiKey').value = '';
+            showFeedback(feedback, 'Brave Search connected.', 'ok');
             await loadIntegrations();
         } catch (err) {
             showFeedback(feedback, `Error: ${err.message}`, 'err');
