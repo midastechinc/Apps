@@ -280,12 +280,14 @@ async function processBriefing() {
   }
 
   const briefingPrompt = [
-    'Morning briefing time. Check and summarize:',
-    '1. M365 Outlook calendar — today and tomorrow\'s events',
-    '2. Unread emails — flag anything urgent or from clients only',
-    '3. To Do list — top pending tasks',
-    '4. Family Google Calendar — upcoming family events',
+    'Morning briefing time. Try each of these in order — if a tool returns an error, skip that section silently and move on:',
+    '1. M365 Outlook calendar — today and tomorrow\'s events (skip if M365 unavailable)',
+    '2. Unread emails — flag anything urgent or from clients only (skip if M365 unavailable)',
+    '3. To Do list — top pending tasks (skip if M365 unavailable)',
+    '4. Family Google Calendar — upcoming family events (skip if Google unavailable)',
     '',
+    'IMPORTANT: If ALL tools fail, still send a short message: "⚡ Morning Ali — integrations are offline, run fix_m365.py to reconnect."',
+    'Never reply with "Sorry, I could not process your request" — always send something useful.',
     'Format for WhatsApp: plain text, bullets, no markdown tables, no headers. Lead with "⚡ Morning Ali" and keep it under 5 bullet lines total. Only mention things that matter.'
   ].join('\n');
 
