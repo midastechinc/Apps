@@ -3,6 +3,7 @@ const { getConfig } = require('../config-manager');
 async function webSearch({ query, count = 5 }) {
   const config = getConfig();
   const apiKey = config.integrations?.brave?.apiKey || process.env.BRAVE_API_KEY;
+  console.log(`[WEB] webSearch called: "${query}" — apiKey=${apiKey ? 'set' : 'MISSING'}`);
   if (!apiKey) return { error: 'Brave Search API key not configured. Add it in settings under integrations.brave.apiKey' };
 
   const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=${Math.min(count, 10)}`;
@@ -16,6 +17,7 @@ async function webSearch({ query, count = 5 }) {
 
   if (!response.ok) {
     const err = await response.text().catch(() => '');
+    console.log(`[WEB] Brave Search error ${response.status}: ${err.slice(0, 200)}`);
     return { error: `Brave Search ${response.status}: ${err.slice(0, 200)}` };
   }
 
@@ -26,6 +28,7 @@ async function webSearch({ query, count = 5 }) {
     snippet: r.description || ''
   }));
 
+  console.log(`[WEB] Brave Search returned ${results.length} results for: "${query}"`);
   if (results.length === 0) return { query, results: [], message: 'No results found' };
   return { query, results };
 }

@@ -129,6 +129,9 @@ app.get('/api/integrations', requireAdminKey, (_req, res) => {
     googleCredsOnDisk = !!(c.access_token || c.refresh_token);
   } catch {}
 
+  const braveKeyInConfig = !!(cfg.integrations?.brave?.apiKey);
+  const braveKeyInEnv = !!(process.env.BRAVE_API_KEY);
+
   res.json({
     google: {
       enabled: g.enabled || googleCredsOnDisk,
@@ -141,8 +144,25 @@ app.get('/api/integrations', requireAdminKey, (_req, res) => {
       hasTenantId: !!m.tenantId,
       hasRefreshToken: !!m.refreshToken,
       configured: !!(m.clientId && m.tenantId && (m.accessToken || m.refreshToken))
+    },
+    brave: {
+      configured: braveKeyInConfig || braveKeyInEnv,
+      keyInConfig: braveKeyInConfig,
+      keyInEnv: braveKeyInEnv
     }
   });
+});
+
+// Brave: save API key to config
+app.put('/api/integrations/brave', requireAdminKey, (req, res) => {
+  try {
+    const { apiKey } = req.body;
+    if (!apiKey) return res.status(400).json({ error: 'apiKey required' });
+    updateConfig({ integrations: { brave: { apiKey } } });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Google: paste token.json (from Python OAuth flow)
