@@ -104,10 +104,12 @@ app.get('/api/schedule', requireAdminKey, (_req, res) => {
 
 app.put('/api/schedule', requireAdminKey, (req, res) => {
   try {
-    const { morningBriefingEnabled, morningBriefingTime, timezone } = req.body;
+    const { morningBriefingEnabled, morningBriefingTime, leadHuntEnabled, leadHuntTime, timezone } = req.body;
     const patch = {};
     if (morningBriefingEnabled !== undefined) patch.morningBriefingEnabled = !!morningBriefingEnabled;
     if (morningBriefingTime) patch.morningBriefingTime = String(morningBriefingTime);
+    if (leadHuntEnabled !== undefined) patch.leadHuntEnabled = !!leadHuntEnabled;
+    if (leadHuntTime) patch.leadHuntTime = String(leadHuntTime);
     if (timezone) patch.timezone = String(timezone);
     updateConfig({ schedule: patch });
     res.json({ ok: true });

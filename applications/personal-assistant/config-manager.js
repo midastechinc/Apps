@@ -41,6 +41,8 @@ const DEFAULT_CONFIG = {
   schedule: {
     morningBriefingEnabled: false,
     morningBriefingTime: '08:00',
+    leadHuntEnabled: false,
+    leadHuntTime: '09:00',
     timezone: 'America/Toronto'
   },
   familyMemory: {}

@@ -272,7 +272,50 @@ async function processMessage(senderJid, text, imageInfo = null) {
   return callLLM(senderJid, cleanText, agent, config.llm, agentType, imageInfo);
 }
 
-async function processBriefing() {
+async function processLeadHunt() {
+  const config = getConfig();
+  if (!config.mainNumber) return null;
+
+  // Rotate verticals by day so every day feels fresh
+  const verticals = [
+    { label: 'medical & dental clinics', queries: ['new medical clinic opened GTA Toronto 2026', 'dental office Richmond Hill Markham Vaughan IT support'] },
+    { label: 'accounting firms', queries: ['new accounting firm CPA Toronto GTA 2026', 'accounting firm Mississauga Richmond Hill looking IT managed services'] },
+    { label: 'healthcare (PHIPA)', queries: ['physiotherapy chiropractic clinic GTA Toronto IT compliance PHIPA', 'pharmacy optometry clinic GTA IT support'] },
+    { label: 'warehouses & logistics', queries: ['new warehouse distribution centre GTA Toronto 2026', 'logistics company Brampton Mississauga IT managed services'] },
+    { label: 'law firms & professional services', queries: ['new law firm Toronto GTA 2026', 'professional services firm Richmond Hill Vaughan IT support'] },
+    { label: 'construction & real estate', queries: ['construction company GTA Toronto IT managed services', 'real estate brokerage GTA IT support managed services'] },
+    { label: 'financial advisors & insurance', queries: ['financial advisor firm GTA Toronto new 2026', 'insurance broker Toronto GTA IT managed services'] }
+  ];
+
+  const dayIndex = new Date().getDay(); // 0=Sun, 6=Sat
+  const vertical = verticals[dayIndex % verticals.length];
+
+  const prompt = [
+    `Lead generation task for Midas Tech Inc. — IT MSP based in Richmond Hill, Ontario.`,
+    `Today's vertical: ${vertical.label}`,
+    ``,
+    `Do these TWO web searches and compile results:`,
+    `1. web_search("${vertical.queries[0]}")`,
+    `2. web_search("${vertical.queries[1]}")`,
+    ``,
+    `From the results, extract up to 5 potential leads. For each lead include:`,
+    `- Business name`,
+    `- Location (city/area in GTA)`,
+    `- Website or phone if visible`,
+    `- Why they could need IT support`,
+    ``,
+    `Format as a short WhatsApp list. Start with "🎯 Daily Leads — ${vertical.label}:"`,
+    `Keep it under 10 lines. If no useful leads found, say so briefly.`,
+    `NEVER say you cannot search — always call web_search.`
+  ].join('\n');
+
+  const syntheticJid = `leadhunt_${Date.now()}`;
+  const reply = await callLLM(syntheticJid, prompt, config.businessAgent, config.llm, 'business');
+  delete conversationHistory[syntheticJid];
+  return reply;
+}
+
+
   const config = getConfig();
   if (!config.mainNumber) {
     console.log('[BRIEFING] No main number configured');
@@ -486,4 +529,4 @@ function listConversations() {
   }));
 }
 
-module.exports = { processMessage, processBriefing, clearHistory, listConversations };
+module.exports = { processMessage, processBriefing, processLeadHunt, clearHistory, listConversations };

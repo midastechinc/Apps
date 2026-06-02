@@ -111,6 +111,23 @@
                             <input class="form-input" type="time" id="briefingTime" name="briefingTime" value="08:00">
                         </div>
                     </div>
+
+                    <div style="margin-top:1.25rem; padding-top:1.25rem; border-top:1px solid var(--border);">
+                        <h3 style="margin:0 0 0.25rem">Daily Lead Hunt</h3>
+                        <p class="form-hint" style="margin-bottom:0.75rem">Claudia searches the web every day for new potential customers in the GTA — medical clinics, accounting firms, warehouses, and more. Results sent to your WhatsApp. Requires Brave Search configured.</p>
+                        <div class="form-row-inline">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="leadHuntEnabled" name="leadHuntEnabled">
+                                <span class="toggle-track"></span>
+                                Enable daily lead hunt
+                            </label>
+                            <div class="form-group" style="min-width:130px">
+                                <label class="form-label" for="leadHuntTime">Send at (Toronto time)</label>
+                                <input class="form-input" type="time" id="leadHuntTime" name="leadHuntTime" value="09:00">
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-actions">
                         <button class="app-link" type="submit" id="saveScheduleBtn">Save Schedule</button>
                         <span class="save-feedback" id="scheduleFeedback" aria-live="polite"></span>

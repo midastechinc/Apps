@@ -281,6 +281,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const s = await apiFetch('/api/schedule');
             document.getElementById('briefingEnabled').checked = !!s.morningBriefingEnabled;
             document.getElementById('briefingTime').value = s.morningBriefingTime || '08:00';
+            document.getElementById('leadHuntEnabled').checked = !!s.leadHuntEnabled;
+            document.getElementById('leadHuntTime').value = s.leadHuntTime || '09:00';
         } catch {}
     }
 
@@ -295,6 +297,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({
                     morningBriefingEnabled: document.getElementById('briefingEnabled').checked,
                     morningBriefingTime: document.getElementById('briefingTime').value,
+                    leadHuntEnabled: document.getElementById('leadHuntEnabled').checked,
+                    leadHuntTime: document.getElementById('leadHuntTime').value,
                     timezone: 'America/Toronto'
                 })
             });
