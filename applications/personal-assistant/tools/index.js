@@ -246,20 +246,6 @@ const DEFINITIONS = {
       parameters: { type: 'object', properties: {}, required: [] }
     }
   },
-  m365_create_sticky_note: {
-    type: 'function',
-    function: {
-      name: 'm365_create_sticky_note',
-      description: 'Create a note in the "Sticky Notes" list in Microsoft To Do. Use this for quick reminders and sticky-style notes.',
-      parameters: {
-        type: 'object',
-        properties: {
-          content: { type: 'string', description: 'The text content of the sticky note' }
-        },
-        required: ['content']
-      }
-    }
-  },
   m365_send_email: {
     type: 'function',
     function: {
@@ -626,7 +612,7 @@ const AGENT_TOOLS = {
     'm365_list_emails', 'm365_search_emails', 'm365_read_email', 'm365_send_email', 'm365_reply_to_email', 'm365_create_email_draft', 'm365_send_draft',
     'm365_list_todos', 'm365_create_todo', 'm365_complete_todo', 'm365_update_todo',
     'm365_list_contacts', 'm365_create_contact',
-    'm365_search_onenote', 'm365_save_link', 'm365_list_onenote_structure', 'm365_create_onenote_page', 'm365_read_onenote_page', 'm365_create_sticky_note',
+    'm365_search_onenote', 'm365_save_link', 'm365_list_onenote_structure', 'm365_create_onenote_page', 'm365_read_onenote_page',
     'onedrive_search', 'onedrive_list_folder', 'onedrive_get_link',
     'sharepoint_list_sites', 'sharepoint_search', 'sharepoint_list_files',
     'web_search', 'fetch_webpage'
@@ -691,7 +677,7 @@ async function executeTool(toolName, args) {
       case 'm365_search_onenote':         return await m365.searchOneNote(args);
       case 'm365_save_link':                  return await m365.saveLink(args);
       case 'm365_list_onenote_structure':    return await m365.listOneNoteStructure();
-      case 'm365_create_sticky_note':        return await m365.createStickyNote(args);
+
       case 'onedrive_search':                return await m365.searchOneDrive(args);
       case 'onedrive_list_folder':           return await m365.listOneDriveFolder(args);
       case 'onedrive_get_link':              return await m365.getOneDriveShareLink(args);

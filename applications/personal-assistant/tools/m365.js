@@ -642,40 +642,6 @@ async function createContact({ name, email, phone = null, company = null, title 
   return { success: true, id: data.id, name: data.displayName };
 }
 
-// ─── Sticky Notes (via To Do "Sticky Notes" list) ────────────────────────────
-// Microsoft blocks shortNotes POST via Application permissions (app-only auth).
-// We use a dedicated "Sticky Notes" list in Microsoft To Do instead —
-// a separate app from OneNote, accessible on phone/desktop/web.
-
-async function createStickyNote({ content }) {
-  if (!content) return { error: 'content required' };
-
-  const listsData = await graphFetch(`/users/${USER_PRINCIPAL}/todo/lists`);
-  if (listsData.error) return listsData;
-
-  const lists = listsData.value || [];
-  let stickyList = lists.find(l => l.displayName.toLowerCase() === 'sticky notes');
-
-  if (!stickyList) {
-    const newList = await graphFetch(`/users/${USER_PRINCIPAL}/todo/lists`, {
-      method: 'POST',
-      body: JSON.stringify({ displayName: 'Sticky Notes' })
-    });
-    if (newList.error) return newList;
-    stickyList = newList;
-    console.log('[M365] Created "Sticky Notes" To Do list');
-  }
-
-  const task = await graphFetch(`/users/${USER_PRINCIPAL}/todo/lists/${stickyList.id}/tasks`, {
-    method: 'POST',
-    body: JSON.stringify({ title: content })
-  });
-  if (task.error) return task;
-
-  console.log(`[M365] Sticky note created in To Do: "${content.slice(0, 50)}"`);
-  return { success: true, id: task.id, content };
-}
-
 // ─── Out of Office ────────────────────────────────────────────────────────────
 
 async function getOutOfOfficeStatus() {
@@ -1021,7 +987,6 @@ module.exports = {
   createOneNotePage, readOneNotePage,
   searchOneDrive, listOneDriveFolder, getOneDriveShareLink,
   listSharePointSites, searchSharePoint, listSharePointFiles,
-  createStickyNote,
   isConfigured
 };
 
