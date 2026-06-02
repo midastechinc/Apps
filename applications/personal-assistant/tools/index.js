@@ -292,6 +292,23 @@ const DEFINITIONS = {
       }
     }
   },
+  m365_find_meeting_times: {
+    type: 'function',
+    function: {
+      name: 'm365_find_meeting_times',
+      description: 'Find available meeting time slots within a given window. Use to answer "when am I free?" or to suggest meeting times.',
+      parameters: {
+        type: 'object',
+        properties: {
+          start: { type: 'string', description: 'Start of search window, ISO datetime e.g. "2025-06-10T08:00:00"' },
+          end:   { type: 'string', description: 'End of search window, ISO datetime e.g. "2025-06-10T18:00:00"' },
+          duration_minutes: { type: 'integer', description: 'Meeting length in minutes (default: 60)' },
+          attendees: { type: 'array', items: { type: 'string' }, description: 'Optional list of attendee email addresses to check availability' }
+        },
+        required: ['start', 'end']
+      }
+    }
+  },
   m365_update_calendar_event: {
     type: 'function',
     function: {
@@ -368,6 +385,95 @@ const DEFINITIONS = {
         properties: {
           search: { type: 'string', description: 'Filter by name, email, or company (optional)' },
           top: { type: 'integer', description: 'Max contacts to return (default: 20)' }
+        },
+        required: []
+      }
+    }
+  },
+  m365_get_out_of_office: {
+    type: 'function',
+    function: {
+      name: 'm365_get_out_of_office',
+      description: 'Check whether out-of-office / automatic reply is currently enabled.',
+      parameters: { type: 'object', properties: {}, required: [] }
+    }
+  },
+  m365_set_out_of_office: {
+    type: 'function',
+    function: {
+      name: 'm365_set_out_of_office',
+      description: 'Enable or disable automatic out-of-office reply in Outlook.',
+      parameters: {
+        type: 'object',
+        properties: {
+          enabled: { type: 'boolean', description: 'true to enable, false to disable' },
+          message: { type: 'string', description: 'Reply message text (required when enabling)' },
+          internal_message: { type: 'string', description: 'Different message for internal (same org) senders (optional)' },
+          start: { type: 'string', description: 'Schedule start datetime ISO (optional — omit for always-on)' },
+          end:   { type: 'string', description: 'Schedule end datetime ISO (optional)' }
+        },
+        required: ['enabled']
+      }
+    }
+  },
+  m365_create_email_draft: {
+    type: 'function',
+    function: {
+      name: 'm365_create_email_draft',
+      description: 'Save an email as a draft in Outlook without sending it. Use when asked to draft or prepare an email for review.',
+      parameters: {
+        type: 'object',
+        properties: {
+          subject: { type: 'string', description: 'Email subject' },
+          body: { type: 'string', description: 'Email body (plain text)' },
+          to: { type: 'string', description: 'Recipient email address (optional — can be added later)' },
+          cc: { type: 'string', description: 'CC email address (optional)' }
+        },
+        required: ['subject', 'body']
+      }
+    }
+  },
+  m365_send_draft: {
+    type: 'function',
+    function: {
+      name: 'm365_send_draft',
+      description: 'Send a previously created email draft by its ID.',
+      parameters: {
+        type: 'object',
+        properties: {
+          draft_id: { type: 'string', description: 'Draft ID from m365_create_email_draft' }
+        },
+        required: ['draft_id']
+      }
+    }
+  },
+  m365_create_onenote_page: {
+    type: 'function',
+    function: {
+      name: 'm365_create_onenote_page',
+      description: 'Create a new page in a OneNote notebook. Use for saving meeting notes, ideas, or any content to OneNote.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Page title' },
+          content: { type: 'string', description: 'Page content (plain text, newlines supported)' },
+          notebook_name: { type: 'string', description: 'Notebook name to save into (optional, uses first notebook if not specified)' },
+          section_name:  { type: 'string', description: 'Section name within the notebook (optional, uses first section if not specified)' }
+        },
+        required: ['title', 'content']
+      }
+    }
+  },
+  m365_read_onenote_page: {
+    type: 'function',
+    function: {
+      name: 'm365_read_onenote_page',
+      description: 'Read the full text content of a specific OneNote page.',
+      parameters: {
+        type: 'object',
+        properties: {
+          page_id:    { type: 'string', description: 'Page ID (from m365_search_onenote results)' },
+          page_title: { type: 'string', description: 'Page title to find by name (alternative to page_id)' }
         },
         required: []
       }
@@ -515,11 +621,12 @@ const AGENT_TOOLS = {
   business: [
     'get_current_time', 'get_current_date',
     'google_list_events', 'google_create_event', 'google_list_calendars',
-    'm365_list_calendar_events', 'm365_create_calendar_event', 'm365_update_calendar_event', 'm365_delete_calendar_event',
-    'm365_list_emails', 'm365_search_emails', 'm365_read_email', 'm365_send_email', 'm365_reply_to_email',
+    'm365_list_calendar_events', 'm365_create_calendar_event', 'm365_update_calendar_event', 'm365_delete_calendar_event', 'm365_find_meeting_times',
+    'm365_get_out_of_office', 'm365_set_out_of_office',
+    'm365_list_emails', 'm365_search_emails', 'm365_read_email', 'm365_send_email', 'm365_reply_to_email', 'm365_create_email_draft', 'm365_send_draft',
     'm365_list_todos', 'm365_create_todo', 'm365_complete_todo', 'm365_update_todo',
     'm365_list_contacts', 'm365_create_contact',
-    'm365_search_onenote', 'm365_save_link', 'm365_list_onenote_structure', 'm365_create_sticky_note',
+    'm365_search_onenote', 'm365_save_link', 'm365_list_onenote_structure', 'm365_create_onenote_page', 'm365_read_onenote_page', 'm365_create_sticky_note',
     'onedrive_search', 'onedrive_list_folder', 'onedrive_get_link',
     'sharepoint_list_sites', 'sharepoint_search', 'sharepoint_list_files',
     'web_search', 'fetch_webpage'
@@ -563,17 +670,24 @@ async function executeTool(toolName, args) {
       case 'm365_create_calendar_event':  return await m365.createCalendarEvent(args);
       case 'm365_update_calendar_event':  return await m365.updateCalendarEvent(args);
       case 'm365_delete_calendar_event':  return await m365.deleteCalendarEvent(args);
+      case 'm365_find_meeting_times':     return await m365.findMeetingTimes(args);
+      case 'm365_get_out_of_office':      return await m365.getOutOfOfficeStatus();
+      case 'm365_set_out_of_office':      return await m365.setOutOfOffice(args);
       case 'm365_list_emails':            return await m365.listEmails(args);
       case 'm365_search_emails':          return await m365.searchEmails(args);
       case 'm365_read_email':             return await m365.readEmail(args);
       case 'm365_send_email':             return await m365.sendEmail(args);
       case 'm365_reply_to_email':         return await m365.replyToEmail(args);
+      case 'm365_create_email_draft':     return await m365.createEmailDraft(args);
+      case 'm365_send_draft':             return await m365.sendDraft(args);
       case 'm365_list_todos':             return await m365.listTodos(args);
       case 'm365_create_todo':            return await m365.createTodo(args);
       case 'm365_complete_todo':          return await m365.completeTodo(args);
       case 'm365_update_todo':            return await m365.updateTodo(args);
       case 'm365_list_contacts':          return await m365.listContacts(args);
       case 'm365_create_contact':         return await m365.createContact(args);
+      case 'm365_create_onenote_page':    return await m365.createOneNotePage(args);
+      case 'm365_read_onenote_page':      return await m365.readOneNotePage(args);
       case 'm365_search_onenote':         return await m365.searchOneNote(args);
       case 'm365_save_link':                  return await m365.saveLink(args);
       case 'm365_list_onenote_structure':    return await m365.listOneNoteStructure();

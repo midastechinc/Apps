@@ -66,6 +66,10 @@ async function graphFetch(endpoint, options = {}) {
     return { error: `Microsoft Graph ${resp.status}: ${body}` };
   }
 
+  // 204 No Content (DELETE) and 202 Accepted (sendMail, reply) have no body
+  if (resp.status === 204 || resp.status === 202) return {};
+  const ct = resp.headers.get('content-type') || '';
+  if (!ct.includes('json')) return {};
   return resp.json();
 }
 
@@ -656,6 +660,205 @@ async function createStickyNote({ content }) {
   return { success: true, id: data.id, content };
 }
 
+// ─── Out of Office ────────────────────────────────────────────────────────────
+
+async function getOutOfOfficeStatus() {
+  const data = await graphFetch(`/users/${USER_PRINCIPAL}/mailboxSettings`);
+  if (data.error) return data;
+  const s = data.automaticRepliesSetting;
+  return {
+    status: s?.status,
+    enabled: s?.status !== 'disabled',
+    internalMessage: s?.internalReplyMessage || null,
+    externalMessage: s?.externalReplyMessage || null,
+    start: s?.scheduledStartDateTime?.dateTime || null,
+    end: s?.scheduledEndDateTime?.dateTime || null
+  };
+}
+
+async function setOutOfOffice({ enabled, message, internal_message = null, start = null, end = null }) {
+  const setting = { automaticRepliesSetting: {} };
+
+  if (!enabled) {
+    setting.automaticRepliesSetting.status = 'disabled';
+  } else if (start && end) {
+    setting.automaticRepliesSetting.status = 'scheduled';
+    setting.automaticRepliesSetting.scheduledStartDateTime = {
+      dateTime: new Date(start).toISOString().slice(0, 19),
+      timeZone: 'America/Toronto'
+    };
+    setting.automaticRepliesSetting.scheduledEndDateTime = {
+      dateTime: new Date(end).toISOString().slice(0, 19),
+      timeZone: 'America/Toronto'
+    };
+  } else {
+    setting.automaticRepliesSetting.status = 'alwaysEnabled';
+  }
+
+  if (message) {
+    setting.automaticRepliesSetting.externalReplyMessage = message;
+    setting.automaticRepliesSetting.internalReplyMessage = internal_message || message;
+  }
+
+  const data = await graphFetch(`/users/${USER_PRINCIPAL}/mailboxSettings`, {
+    method: 'PATCH',
+    body: JSON.stringify(setting)
+  });
+  if (data.error) return data;
+
+  const status = enabled ? (start && end ? 'scheduled' : 'alwaysEnabled') : 'disabled';
+  console.log(`[M365] Out of office set to: ${status}`);
+  return { success: true, status };
+}
+
+// ─── Email Drafts ─────────────────────────────────────────────────────────────
+
+async function createEmailDraft({ to = null, subject, body, cc = null }) {
+  if (!subject || !body) return { error: 'subject and body are required' };
+  const message = { subject, body: { contentType: 'text', content: body } };
+  if (to) {
+    message.toRecipients = (Array.isArray(to) ? to : [to]).map(addr => ({
+      emailAddress: { address: addr }
+    }));
+  }
+  if (cc) {
+    message.ccRecipients = (Array.isArray(cc) ? cc : [cc]).map(addr => ({
+      emailAddress: { address: addr }
+    }));
+  }
+  const data = await graphFetch(`/users/${USER_PRINCIPAL}/messages`, {
+    method: 'POST',
+    body: JSON.stringify(message)
+  });
+  if (data.error) return data;
+  console.log(`[M365] Draft created: "${subject}"`);
+  return { success: true, draft_id: data.id, subject: data.subject };
+}
+
+async function sendDraft({ draft_id }) {
+  if (!draft_id) return { error: 'draft_id is required' };
+  const data = await graphFetch(`/users/${USER_PRINCIPAL}/messages/${draft_id}/send`, {
+    method: 'POST',
+    body: '{}'
+  });
+  if (data.error) return data;
+  console.log(`[M365] Draft ${draft_id} sent`);
+  return { success: true, draft_id };
+}
+
+// ─── OneNote Pages ────────────────────────────────────────────────────────────
+
+async function createOneNotePage({ notebook_name = '', section_name = '', title, content }) {
+  if (!title || !content) return { error: 'title and content are required' };
+  const token = await getAccessToken();
+  if (!token) return { error: 'M365 not configured or token unavailable.' };
+
+  const notebooksData = await graphFetch(`/users/${USER_PRINCIPAL}/onenote/notebooks?$select=id,displayName&$top=50`);
+  if (notebooksData.error) return notebooksData;
+
+  let notebook = notebook_name
+    ? (notebooksData.value || []).find(nb => nb.displayName.toLowerCase().includes(notebook_name.toLowerCase()))
+    : null;
+  if (!notebook) notebook = (notebooksData.value || [])[0];
+  if (!notebook) return { error: 'No OneNote notebooks found.' };
+
+  const sectionsData = await graphFetch(`/users/${USER_PRINCIPAL}/onenote/notebooks/${notebook.id}/sections?$select=id,displayName&$top=50`);
+  if (sectionsData.error) return sectionsData;
+
+  let section = section_name
+    ? (sectionsData.value || []).find(s => s.displayName.toLowerCase().includes(section_name.toLowerCase()))
+    : null;
+  if (!section) section = (sectionsData.value || [])[0];
+  if (!section) return { error: `No sections found in notebook "${notebook.displayName}".` };
+
+  const now = new Date().toLocaleString('en-CA', { timeZone: 'America/Toronto', dateStyle: 'medium', timeStyle: 'short' });
+  const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const safeContent = content
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br/>');
+
+  const html = `<!DOCTYPE html><html><head><title>${safeTitle}</title></head><body><h1>${safeTitle}</h1><p>${safeContent}</p><p style="color:#999;font-size:0.8em;">Created by Claudia — ${now}</p></body></html>`;
+
+  const pageData = await graphFetch(`/users/${USER_PRINCIPAL}/onenote/sections/${section.id}/pages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/xhtml+xml' },
+    body: html
+  });
+  if (pageData.error) return pageData;
+
+  console.log(`[M365] OneNote page created: "${title}" in ${notebook.displayName}/${section.displayName}`);
+  return {
+    success: true,
+    title,
+    notebook: notebook.displayName,
+    section: section.displayName,
+    page_id: pageData.id,
+    url: pageData.links?.oneNoteWebUrl?.href || null
+  };
+}
+
+async function readOneNotePage({ page_id, page_title = null }) {
+  let id = page_id;
+  if (!id && page_title) {
+    const page = await findOneNotePageByTitle(page_title);
+    if (!page) return { error: `Page "${page_title}" not found. Try m365_search_onenote first.` };
+    id = page.id;
+  }
+  if (!id) return { error: 'page_id or page_title is required' };
+
+  const html = await graphFetchText(`/users/${USER_PRINCIPAL}/onenote/pages/${id}/content`);
+  if (!html) return { error: 'Could not read page content.' };
+
+  const text = html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>|<\/h[1-6]>|<\/li>|<\/div>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  return { page_id: id, content: text };
+}
+
+// ─── Find Meeting Times ───────────────────────────────────────────────────────
+
+async function findMeetingTimes({ duration_minutes = 60, start, end, attendees = [] }) {
+  if (!start || !end) return { error: 'start and end are required (ISO datetime strings defining the search window)' };
+
+  const body = {
+    attendees: (Array.isArray(attendees) ? attendees : [attendees])
+      .filter(Boolean)
+      .map(email => ({ emailAddress: { address: email }, type: 'required' })),
+    timeConstraint: {
+      activityDomain: 'work',
+      timeslots: [{
+        start: { dateTime: new Date(start).toISOString().slice(0, 19), timeZone: 'America/Toronto' },
+        end:   { dateTime: new Date(end).toISOString().slice(0, 19),   timeZone: 'America/Toronto' }
+      }]
+    },
+    meetingDuration: `PT${duration_minutes}M`,
+    maxCandidates: 6,
+    returnSuggestionReasons: true
+  };
+
+  const data = await graphFetch(`/users/${USER_PRINCIPAL}/findMeetingTimes`, {
+    method: 'POST',
+    body: JSON.stringify(body)
+  });
+  if (data.error) return data;
+
+  return {
+    duration_minutes,
+    suggestions: (data.meetingTimeSuggestions || []).map(s => ({
+      start: s.meetingTimeSlot?.start?.dateTime,
+      end: s.meetingTimeSlot?.end?.dateTime,
+      confidence: Math.round((s.confidence || 0) * 100) + '%'
+    }))
+  };
+}
+
 // ─── OneDrive ─────────────────────────────────────────────────────────────────
 
 function escapeODataQuery(q) {
@@ -793,11 +996,13 @@ function isConfigured() {
 }
 
 module.exports = {
-  listCalendarEvents, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent,
-  listEmails, searchEmails, readEmail, sendEmail, replyToEmail,
+  listCalendarEvents, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, findMeetingTimes,
+  getOutOfOfficeStatus, setOutOfOffice,
+  listEmails, searchEmails, readEmail, sendEmail, replyToEmail, createEmailDraft, sendDraft,
   listTodos, createTodo, completeTodo, updateTodo,
   listContacts, createContact,
   searchOneNote, saveLink, listOneNoteStructure, getPageIdsForLinkPages,
+  createOneNotePage, readOneNotePage,
   searchOneDrive, listOneDriveFolder, getOneDriveShareLink,
   listSharePointSites, searchSharePoint, listSharePointFiles,
   createStickyNote,
