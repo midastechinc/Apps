@@ -250,7 +250,7 @@ const DEFINITIONS = {
     type: 'function',
     function: {
       name: 'm365_create_sticky_note',
-      description: 'Create a Microsoft Sticky Note that appears in the Windows Sticky Notes app and synced across devices.',
+      description: 'Create a note in the "Sticky Notes" list in Microsoft To Do. Use this for quick reminders and sticky-style notes.',
       parameters: {
         type: 'object',
         properties: {
@@ -647,7 +647,7 @@ function getToolDefinitions(agentType) {
   return allowed
     .filter(name => {
       if (name.startsWith('google_') && !googleOk) return false;
-      if (name.startsWith('m365_') && !m365Ok) return false;
+      if ((name.startsWith('m365_') || name.startsWith('onedrive_') || name.startsWith('sharepoint_')) && !m365Ok) return false;
       return true;
     })
     .map(name => DEFINITIONS[name])

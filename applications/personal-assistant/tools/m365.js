@@ -137,7 +137,7 @@ async function findOneNotePageByTitle(titleToFind) {
   const lower = titleToFind.toLowerCase();
 
   // Fastest: direct search API across all pages in all notebooks
-  const searchData = await graphFetch(`/users/ali@midastech.ca/onenote/pages?$search="${encodeURIComponent(titleToFind)}"&$select=id,title&$top=20`);
+  const searchData = await graphFetch(`/users/ali@midastech.ca/onenote/pages?$search="${titleToFind}"&$select=id,title&$top=20`);
   if (!searchData.error) {
     const found = (searchData.value || []).find(p => p.title?.toLowerCase() === lower);
     if (found) {
@@ -268,10 +268,12 @@ async function listCalendarEvents({ days_ahead = 7, top = 10 } = {}) {
     endDateTime: end.toISOString(),
     $top: String(top),
     $orderby: 'start/dateTime',
-    $select: 'subject,start,end,location,bodyPreview,isAllDay,organizer'
+    $select: 'id,subject,start,end,location,bodyPreview,isAllDay,organizer'
   });
 
-  const data = await graphFetch(`/users/ali@midastech.ca/calendarView?${params}`);
+  const data = await graphFetch(`/users/ali@midastech.ca/calendarView?${params}`, {
+    headers: { Prefer: 'outlook.timezone="America/Toronto"' }
+  });
   if (data.error) return data;
 
   return {
@@ -386,7 +388,7 @@ async function readEmail({ email_id } = {}) {
   };
 }
 
-async function listTodos({ list_name = '' } = {}) {
+async function listTodos({ list_name = '', top = 20 } = {}) {
   const listsData = await graphFetch('/users/ali@midastech.ca/todo/lists');
   if (listsData.error) return listsData;
 
@@ -402,7 +404,7 @@ async function listTodos({ list_name = '' } = {}) {
   const params = new URLSearchParams({
     $filter: "status ne 'completed'",
     $orderby: 'createdDateTime desc',
-    $top: '20'
+    $top: String(top)
   });
 
   const tasksData = await graphFetch(`/users/ali@midastech.ca/todo/lists/${targetList.id}/tasks?${params}`);
@@ -448,7 +450,7 @@ async function searchOneNote({ query }) {
   const params = new URLSearchParams({
     search: query,
     $top: '5',
-    $select: 'title,createdDateTime,lastModifiedDateTime,links'
+    $select: 'id,title,createdDateTime,lastModifiedDateTime,links'
   });
 
   const data = await graphFetch(`/users/ali@midastech.ca/onenote/pages?${params}`);
@@ -608,9 +610,8 @@ async function listContacts({ top = 20, search = '' } = {}) {
     $orderby: 'displayName',
     $select: 'id,displayName,emailAddresses,mobilePhone,businessPhones,companyName,jobTitle'
   });
-  const fetchOptions = search
-    ? { headers: { ConsistencyLevel: 'eventual' } }
-    : {};
+  if (search) params.set('$search', `"${search}"`);
+  const fetchOptions = search ? { headers: { ConsistencyLevel: 'eventual' } } : {};
   const data = await graphFetch(`/users/${USER_PRINCIPAL}/contacts?${params}`, fetchOptions);
   if (data.error) return data;
   return {
@@ -721,7 +722,8 @@ async function setOutOfOffice({ enabled, message, internal_message = null, start
   });
   if (data.error) return data;
 
-  const status = enabled ? (start && end ? 'scheduled' : 'alwaysEnabled') : 'disabled';
+  const status = data.automaticRepliesSetting?.status
+    || (enabled ? (start && end ? 'scheduled' : 'alwaysEnabled') : 'disabled');
   console.log(`[M365] Out of office set to: ${status}`);
   return { success: true, status };
 }
@@ -753,8 +755,7 @@ async function createEmailDraft({ to = null, subject, body, cc = null }) {
 async function sendDraft({ draft_id }) {
   if (!draft_id) return { error: 'draft_id is required' };
   const data = await graphFetch(`/users/${USER_PRINCIPAL}/messages/${draft_id}/send`, {
-    method: 'POST',
-    body: '{}'
+    method: 'POST'
   });
   if (data.error) return data;
   console.log(`[M365] Draft ${draft_id} sent`);

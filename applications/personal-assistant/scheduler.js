@@ -97,8 +97,7 @@ async function runBriefing(config) {
   try {
     const summary = await processBriefing();
     if (summary) {
-      const dayName = new Date().toLocaleDateString('en-CA', { timeZone: TZ, weekday: 'long' });
-      await sendFn(mainNumber, `Good morning! Here's your ${dayName} briefing:\n\n${summary}`);
+      await sendFn(mainNumber, summary);
       console.log('[SCHEDULER] Morning briefing sent to', mainNumber);
     }
   } catch (err) {

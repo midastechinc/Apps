@@ -4,7 +4,7 @@ const { getMemory } = require('./tools/family-memory');
 
 const conversationHistory = {};
 const MAX_HISTORY_PAIRS = 10;
-const MAX_TOOL_ROUNDS = 5;
+const MAX_TOOL_ROUNDS = 8;
 
 // ─── Claudia Business Agent — Core Identity ───────────────────────────────────
 const BUSINESS_CORE_PROMPT = `You are Claudia, an AI Operations Assistant for Midas Tech Inc.
@@ -83,7 +83,8 @@ STEP 1: Call the tool. STEP 2: Report the result. Never skip step 1.
 - NEVER show raw JSON or technical output — always summarize cleanly
 
 ## Email Rules
-- Do NOT send emails without Ali's explicit OK
+- Do NOT send emails (m365_send_email) without Ali's explicit OK
+- Do NOT reply to emails (m365_reply_to_email) without Ali's explicit OK — use m365_create_email_draft first, then confirm before sending
 - Summarize emails cleanly — no raw JSON
 - When asked a question whose answer might be in email: ALWAYS call m365_search_emails first with relevant keywords before saying you don't know
 - If a search result email looks relevant, call m365_read_email to get the full body before answering
@@ -331,9 +332,9 @@ async function processBriefing() {
     '3. To Do list — top pending tasks (skip if M365 unavailable)',
     '4. Family Google Calendar — upcoming family events (skip if Google unavailable)',
     '',
-    'IMPORTANT: If ALL tools fail, still send a short message: "⚡ Morning Ali — integrations are offline, run fix_m365.py to reconnect."',
+    'IMPORTANT: If ALL tools fail, still send a short message: "⚡ Morning Ali — integrations are offline. Check the management UI to reconnect."',
     'Never reply with "Sorry, I could not process your request" — always send something useful.',
-    'Format for WhatsApp: plain text, bullets, no markdown tables, no headers. Lead with "⚡ Morning Ali" and keep it under 5 bullet lines total. Only mention things that matter.'
+    'Format for WhatsApp: plain text, bullets, no markdown tables, no headers. Keep it under 6 bullet lines total. Only mention things that matter.'
   ].join('\n');
 
   const syntheticJid = `briefing_${Date.now()}`;
