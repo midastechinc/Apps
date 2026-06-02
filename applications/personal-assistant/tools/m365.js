@@ -1,15 +1,18 @@
 const { getConfig, updateConfig } = require('../config-manager');
 
+const USER_PRINCIPAL = 'ali@midastech.ca';
+
+// Cache token in memory to avoid hammering the token endpoint
+let _cachedToken = null;
+let _tokenExpiry = 0;
+
 async function getAccessToken() {
   const config = getConfig();
   const m365 = config.integrations?.m365;
-  if (!m365?.enabled || !m365?.clientId || !m365?.tenantId) return null;
+  if (!m365?.enabled || !m365?.clientId || !m365?.tenantId || !m365?.clientSecret) return null;
 
-  if (m365.accessToken && m365.tokenExpiry && Date.now() < m365.tokenExpiry - 60000) {
-    return m365.accessToken;
-  }
-
-  if (!m365.refreshToken || !m365.clientSecret) return null;
+  // Return cached token if still valid (with 60s buffer)
+  if (_cachedToken && Date.now() < _tokenExpiry - 60000) return _cachedToken;
 
   try {
     const resp = await fetch(
@@ -20,31 +23,25 @@ async function getAccessToken() {
         body: new URLSearchParams({
           client_id: m365.clientId,
           client_secret: m365.clientSecret,
-          refresh_token: m365.refreshToken,
-          grant_type: 'refresh_token'
-          // No scope — reuses originally-consented scopes from initial auth.
-          // Adding scopes here causes Microsoft to reject the refresh for tokens
-          // that don't yet have consent for those scopes.
+          grant_type: 'client_credentials',
+          scope: 'https://graph.microsoft.com/.default'
         })
       }
     );
 
     if (!resp.ok) {
-      console.error('[M365] Token refresh HTTP error:', resp.status, await resp.text());
+      const err = await resp.text();
+      console.error('[M365] Token fetch error:', resp.status, err.slice(0, 300));
       return null;
     }
 
     const data = await resp.json();
-    const updated = {
-      ...m365,
-      accessToken: data.access_token,
-      tokenExpiry: Date.now() + (data.expires_in || 3600) * 1000
-    };
-    if (data.refresh_token) updated.refreshToken = data.refresh_token;
-    updateConfig({ integrations: { m365: updated } });
-    return data.access_token;
+    _cachedToken = data.access_token;
+    _tokenExpiry = Date.now() + (data.expires_in || 3600) * 1000;
+    console.log('[M365] Token obtained via client_credentials');
+    return _cachedToken;
   } catch (err) {
-    console.error('[M365] Token refresh error:', err.message);
+    console.error('[M365] Token fetch error:', err.message);
     return null;
   }
 }
@@ -136,7 +133,7 @@ async function findOneNotePageByTitle(titleToFind) {
   const lower = titleToFind.toLowerCase();
 
   // Fastest: direct search API across all pages in all notebooks
-  const searchData = await graphFetch(`/me/onenote/pages?$search="${encodeURIComponent(titleToFind)}"&$select=id,title&$top=20`);
+  const searchData = await graphFetch(`/users/ali@midastech.ca/onenote/pages?$search="${encodeURIComponent(titleToFind)}"&$select=id,title&$top=20`);
   if (!searchData.error) {
     const found = (searchData.value || []).find(p => p.title?.toLowerCase() === lower);
     if (found) {
@@ -146,10 +143,10 @@ async function findOneNotePageByTitle(titleToFind) {
   }
 
   // Flat sections endpoint — covers Quick Notes and all sections across all notebooks
-  const allSections = await graphFetch('/me/onenote/sections?$select=id,displayName&$top=100');
+  const allSections = await graphFetch('/users/ali@midastech.ca/onenote/sections?$select=id,displayName&$top=100');
   if (!allSections.error) {
     for (const sec of (allSections.value || [])) {
-      const pagesData = await graphFetch(`/me/onenote/sections/${sec.id}/pages?$select=id,title&$top=100`);
+      const pagesData = await graphFetch(`/users/ali@midastech.ca/onenote/sections/${sec.id}/pages?$select=id,title&$top=100`);
       if (pagesData.error) continue;
       const found = (pagesData.value || []).find(p => p.title?.toLowerCase() === lower);
       if (found) {
@@ -160,13 +157,13 @@ async function findOneNotePageByTitle(titleToFind) {
   }
 
   // Final fallback: traverse notebooks → sections (handles section groups)
-  const notebooksData = await graphFetch('/me/onenote/notebooks?$select=id,displayName&$top=50');
+  const notebooksData = await graphFetch('/users/ali@midastech.ca/onenote/notebooks?$select=id,displayName&$top=50');
   if (notebooksData.error) return null;
   for (const nb of (notebooksData.value || [])) {
-    const sectionsData = await graphFetch(`/me/onenote/notebooks/${nb.id}/sections?$select=id,displayName&$top=50`);
+    const sectionsData = await graphFetch(`/users/ali@midastech.ca/onenote/notebooks/${nb.id}/sections?$select=id,displayName&$top=50`);
     if (sectionsData.error) continue;
     for (const sec of (sectionsData.value || [])) {
-      const pagesData = await graphFetch(`/me/onenote/sections/${sec.id}/pages?$select=id,title&$top=100`);
+      const pagesData = await graphFetch(`/users/ali@midastech.ca/onenote/sections/${sec.id}/pages?$select=id,title&$top=100`);
       if (pagesData.error) continue;
       const found = (pagesData.value || []).find(p => p.title?.toLowerCase() === lower);
       if (found) return found;
@@ -207,7 +204,7 @@ async function appendToOneNotePage(pageId, nextNumber, title, url) {
     content: `<p>${nextNumber}. <a href="${url}">${safeTitle}</a></p>`
   }]);
 
-  const patchResp = await fetch(`https://graph.microsoft.com/v1.0/me/onenote/pages/${pageId}/content`, {
+  const patchResp = await fetch(`https://graph.microsoft.com/v1.0/users/ali@midastech.ca/onenote/pages/${pageId}/content`, {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: patchBody
@@ -221,7 +218,7 @@ async function appendToOneNotePage(pageId, nextNumber, title, url) {
 
   // Verify the write actually committed
   await new Promise(r => setTimeout(r, 1500));
-  const verifyHtml = await graphFetchText(`/me/onenote/pages/${pageId}/content`);
+  const verifyHtml = await graphFetchText(`/users/ali@midastech.ca/onenote/pages/${pageId}/content`);
   if (verifyHtml && !verifyHtml.includes(url)) {
     return { error: 'OneNote accepted the request but the entry did not appear. Token may need Notes.ReadWrite.All scope.' };
   }
@@ -248,7 +245,7 @@ async function saveLink({ url }) {
   }
 
   // Count existing entries
-  const html = await graphFetchText(`/me/onenote/pages/${pageId}/content`);
+  const html = await graphFetchText(`/users/ali@midastech.ca/onenote/pages/${pageId}/content`);
   const numbers = html ? [...html.matchAll(/>\s*(\d+)\.\s/g)].map(m => parseInt(m[1])) : [];
   const nextNumber = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
 
@@ -270,7 +267,7 @@ async function listCalendarEvents({ days_ahead = 7, top = 10 } = {}) {
     $select: 'subject,start,end,location,bodyPreview,isAllDay,organizer'
   });
 
-  const data = await graphFetch(`/me/calendarView?${params}`);
+  const data = await graphFetch(`/users/ali@midastech.ca/calendarView?${params}`);
   if (data.error) return data;
 
   return {
@@ -297,7 +294,7 @@ async function createCalendarEvent({ subject, start, end, body = '', location = 
   };
   if (location) event.location = { displayName: location };
 
-  const data = await graphFetch('/me/events', {
+  const data = await graphFetch('/users/ali@midastech.ca/events', {
     method: 'POST',
     body: JSON.stringify(event)
   });
@@ -319,7 +316,7 @@ async function listEmails({ top = 10, unread_only = false, folder = 'inbox' } = 
   });
   if (unread_only) params.append('$filter', 'isRead eq false');
 
-  const data = await graphFetch(`/me/mailFolders/${folder}/messages?${params}`);
+  const data = await graphFetch(`/users/ali@midastech.ca/mailFolders/${folder}/messages?${params}`);
   if (data.error) return data;
 
   return {
@@ -342,7 +339,7 @@ async function searchEmails({ query, top = 15, folder = 'inbox' } = {}) {
     $select: 'id,subject,from,receivedDateTime,bodyPreview,isRead'
   });
 
-  const data = await graphFetch(`/me/mailFolders/${folder}/messages?${params}`);
+  const data = await graphFetch(`/users/ali@midastech.ca/mailFolders/${folder}/messages?${params}`);
   if (data.error) return data;
 
   return {
@@ -363,7 +360,7 @@ async function readEmail({ email_id } = {}) {
   const params = new URLSearchParams({
     $select: 'id,subject,from,toRecipients,receivedDateTime,body,isRead'
   });
-  const data = await graphFetch(`/me/messages/${email_id}?${params}`);
+  const data = await graphFetch(`/users/ali@midastech.ca/messages/${email_id}?${params}`);
   if (data.error) return data;
 
   // Strip HTML tags for a clean readable body
@@ -386,7 +383,7 @@ async function readEmail({ email_id } = {}) {
 }
 
 async function listTodos({ list_name = '' } = {}) {
-  const listsData = await graphFetch('/me/todo/lists');
+  const listsData = await graphFetch('/users/ali@midastech.ca/todo/lists');
   if (listsData.error) return listsData;
 
   const lists = listsData.value || [];
@@ -404,7 +401,7 @@ async function listTodos({ list_name = '' } = {}) {
     $top: '20'
   });
 
-  const tasksData = await graphFetch(`/me/todo/lists/${targetList.id}/tasks?${params}`);
+  const tasksData = await graphFetch(`/users/ali@midastech.ca/todo/lists/${targetList.id}/tasks?${params}`);
   if (tasksData.error) return tasksData;
 
   return {
@@ -420,7 +417,7 @@ async function listTodos({ list_name = '' } = {}) {
 }
 
 async function createTodo({ title, list_name = '', due_date = null, notes = null }) {
-  const listsData = await graphFetch('/me/todo/lists');
+  const listsData = await graphFetch('/users/ali@midastech.ca/todo/lists');
   if (listsData.error) return listsData;
 
   const lists = listsData.value || [];
@@ -434,7 +431,7 @@ async function createTodo({ title, list_name = '', due_date = null, notes = null
   if (due_date) task.dueDateTime = { dateTime: new Date(due_date).toISOString(), timeZone: 'UTC' };
   if (notes) task.body = { content: notes, contentType: 'text' };
 
-  const data = await graphFetch(`/me/todo/lists/${targetList.id}/tasks`, {
+  const data = await graphFetch(`/users/ali@midastech.ca/todo/lists/${targetList.id}/tasks`, {
     method: 'POST',
     body: JSON.stringify(task)
   });
@@ -450,7 +447,7 @@ async function searchOneNote({ query }) {
     $select: 'title,createdDateTime,lastModifiedDateTime,links'
   });
 
-  const data = await graphFetch(`/me/onenote/pages?${params}`);
+  const data = await graphFetch(`/users/ali@midastech.ca/onenote/pages?${params}`);
   if (data.error) return data;
 
   return {
@@ -466,15 +463,15 @@ async function searchOneNote({ query }) {
 }
 
 async function listOneNoteStructure() {
-  const notebooksData = await graphFetch('/me/onenote/notebooks?$select=id,displayName&$top=50');
+  const notebooksData = await graphFetch('/users/ali@midastech.ca/onenote/notebooks?$select=id,displayName&$top=50');
   if (notebooksData.error) return { error: notebooksData.error };
 
   const result = [];
   for (const nb of (notebooksData.value || [])) {
-    const sectionsData = await graphFetch(`/me/onenote/notebooks/${nb.id}/sections?$select=id,displayName&$top=50`);
+    const sectionsData = await graphFetch(`/users/ali@midastech.ca/onenote/notebooks/${nb.id}/sections?$select=id,displayName&$top=50`);
     const sections = [];
     for (const sec of (sectionsData.value || [])) {
-      const pagesData = await graphFetch(`/me/onenote/sections/${sec.id}/pages?$select=id,title&$top=50`);
+      const pagesData = await graphFetch(`/users/ali@midastech.ca/onenote/sections/${sec.id}/pages?$select=id,title&$top=50`);
       sections.push({
         section: sec.displayName,
         pages: (pagesData.value || []).map(p => ({ title: p.title, id: p.id }))
@@ -507,7 +504,7 @@ async function searchOneDrive({ query, top = 10 } = {}) {
     $top: String(top),
     $select: 'id,name,size,lastModifiedDateTime,webUrl,file,folder,parentReference'
   });
-  const data = await graphFetch(`/me/drive/search(q='${escapeODataQuery(query)}')?${params}`);
+  const data = await graphFetch(`/users/ali@midastech.ca/drive/search(q='${escapeODataQuery(query)}')?${params}`);
   if (data.error) return data;
   return {
     query,
@@ -525,8 +522,8 @@ async function searchOneDrive({ query, top = 10 } = {}) {
 
 async function listOneDriveFolder({ folder_path = '/' } = {}) {
   const base = (folder_path === '/' || !folder_path)
-    ? '/me/drive/root/children'
-    : `/me/drive/root:${encodeURIComponent(folder_path)}:/children`;
+    ? '/users/ali@midastech.ca/drive/root/children'
+    : `/users/ali@midastech.ca/drive/root:${encodeURIComponent(folder_path)}:/children`;
   const params = new URLSearchParams({
     $top: '50',
     $select: 'id,name,size,lastModifiedDateTime,webUrl,file,folder',
@@ -548,7 +545,7 @@ async function listOneDriveFolder({ folder_path = '/' } = {}) {
 }
 
 async function getOneDriveShareLink({ item_id, link_type = 'view' }) {
-  const data = await graphFetch(`/me/drive/items/${item_id}/createLink`, {
+  const data = await graphFetch(`/users/ali@midastech.ca/drive/items/${item_id}/createLink`, {
     method: 'POST',
     body: JSON.stringify({ type: link_type, scope: 'organization' })
   });
@@ -629,7 +626,7 @@ async function listSharePointFiles({ site_id, folder_path = '/' } = {}) {
 function isConfigured() {
   const config = getConfig();
   const m365 = config.integrations?.m365;
-  return !!(m365?.enabled && m365?.clientId && m365?.tenantId && (m365?.accessToken || m365?.refreshToken));
+  return !!(m365?.enabled && m365?.clientId && m365?.tenantId && m365?.clientSecret);
 }
 
 module.exports = {

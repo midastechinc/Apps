@@ -80,7 +80,7 @@ async function checkM365Token(config) {
       console.error('[SCHEDULER] M365 token check FAILED:', result.error);
       if (config.mainNumber && sendFn) {
         await sendFn(config.mainNumber,
-          '⚠️ M365 token issue detected. Tasks and calendar may not work. Run fix_m365.py to reconnect.'
+          '⚠️ M365 connection issue detected. Tasks and calendar may not work. Check Railway logs for details.'
         );
       }
     } else {
