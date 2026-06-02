@@ -2,7 +2,7 @@ const { getConfig } = require('../config-manager');
 
 async function webSearch({ query, count = 5 }) {
   const config = getConfig();
-  const apiKey = config.integrations?.brave?.apiKey;
+  const apiKey = config.integrations?.brave?.apiKey || process.env.BRAVE_API_KEY;
   if (!apiKey) return { error: 'Brave Search API key not configured. Add it in settings under integrations.brave.apiKey' };
 
   const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=${Math.min(count, 10)}`;
@@ -63,7 +63,7 @@ async function fetchWebpage({ url }) {
 }
 
 function isConfigured() {
-  return !!getConfig().integrations?.brave?.apiKey;
+  return !!(getConfig().integrations?.brave?.apiKey || process.env.BRAVE_API_KEY);
 }
 
 module.exports = { webSearch, fetchWebpage, isConfigured };
