@@ -604,8 +604,10 @@ async function listContacts({ top = 20, search = '' } = {}) {
     $orderby: 'displayName',
     $select: 'id,displayName,emailAddresses,mobilePhone,businessPhones,companyName,jobTitle'
   });
-  if (search) params.set('$search', `"${search}"`);
-  const data = await graphFetch(`/users/${USER_PRINCIPAL}/contacts?${params}`);
+  const fetchOptions = search
+    ? { headers: { ConsistencyLevel: 'eventual' } }
+    : {};
+  const data = await graphFetch(`/users/${USER_PRINCIPAL}/contacts?${params}`, fetchOptions);
   if (data.error) return data;
   return {
     contacts: (data.value || []).map(c => ({
