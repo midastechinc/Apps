@@ -33,6 +33,9 @@ const DEFAULT_CONFIG = {
       accessToken: '',
       refreshToken: '',
       tokenExpiry: 0
+    },
+    brave: {
+      apiKey: ''
     }
   },
   schedule: {

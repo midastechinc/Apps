@@ -2,6 +2,7 @@ const datetime = require('./datetime');
 const googleCalendar = require('./google-calendar');
 const m365 = require('./m365');
 const familyMemory = require('./family-memory');
+const web = require('./web');
 
 const DEFINITIONS = {
   family_save_memory: {
@@ -333,6 +334,35 @@ const DEFINITIONS = {
         required: ['site_id']
       }
     }
+  },
+  web_search: {
+    type: 'function',
+    function: {
+      name: 'web_search',
+      description: 'Search the internet for current information — news, prices, weather, sports scores, recipes, anything. Use this when the answer is not in calendar/email/notes.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Search query, e.g. "weather Toronto tomorrow", "iPhone 16 price Canada"' },
+          count: { type: 'integer', description: 'Number of results to return (default: 5)' }
+        },
+        required: ['query']
+      }
+    }
+  },
+  fetch_webpage: {
+    type: 'function',
+    function: {
+      name: 'fetch_webpage',
+      description: 'Read and summarize the content of a specific web page or URL.',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'The full URL to fetch, e.g. "https://www.cbc.ca/news/..."' }
+        },
+        required: ['url']
+      }
+    }
   }
 };
 
@@ -344,12 +374,14 @@ const AGENT_TOOLS = {
     'm365_list_emails', 'm365_search_emails', 'm365_read_email', 'm365_list_todos', 'm365_create_todo',
     'm365_search_onenote', 'm365_save_link', 'm365_list_onenote_structure',
     'onedrive_search', 'onedrive_list_folder', 'onedrive_get_link',
-    'sharepoint_list_sites', 'sharepoint_search', 'sharepoint_list_files'
+    'sharepoint_list_sites', 'sharepoint_search', 'sharepoint_list_files',
+    'web_search', 'fetch_webpage'
   ],
   family: [
     'get_current_time', 'get_current_date',
     'google_list_events', 'google_create_event', 'google_list_calendars',
-    'family_save_memory', 'family_recall_memory', 'family_list_memory'
+    'family_save_memory', 'family_recall_memory', 'family_list_memory',
+    'web_search', 'fetch_webpage'
   ]
 };
 
@@ -357,11 +389,13 @@ function getToolDefinitions(agentType) {
   const allowed = AGENT_TOOLS[agentType] || AGENT_TOOLS.business;
   const googleOk = googleCalendar.isConfigured();
   const m365Ok = m365.isConfigured();
+  const webOk = web.isConfigured();
 
   return allowed
     .filter(name => {
       if (name.startsWith('google_') && !googleOk) return false;
       if (name.startsWith('m365_') && !m365Ok) return false;
+      if ((name === 'web_search' || name === 'fetch_webpage') && !webOk) return false;
       return true;
     })
     .map(name => DEFINITIONS[name])
@@ -396,6 +430,8 @@ async function executeTool(toolName, args) {
       case 'sharepoint_list_sites':          return await m365.listSharePointSites(args);
       case 'sharepoint_search':              return await m365.searchSharePoint(args);
       case 'sharepoint_list_files':          return await m365.listSharePointFiles(args);
+      case 'web_search':                     return await web.webSearch(args);
+      case 'fetch_webpage':                  return await web.fetchWebpage(args);
       default:                               return { error: `Unknown tool: ${toolName}` };
     }
   } catch (err) {
