@@ -248,7 +248,12 @@ app.get('/api/onenote/link-page-ids', requireAdminKey, async (_req, res) => {
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
 // ─── Download fix_m365.py ─────────────────────────────────────────────────────
-app.get('/download/fix_m365.py', requireAdminKey, (req, res) => {
+app.get('/download/fix_m365.py', (req, res, next) => {
+  // Allow key as ?key= query param for browser downloads
+  const qKey = (req.query.key || '').trim();
+  if (ADMIN_KEY && qKey === ADMIN_KEY) return next();
+  requireAdminKey(req, res, next);
+}, (req, res) => {
   const cfg = getConfig();
   const m365 = cfg.integrations?.m365 || {};
   const TENANT_ID     = m365.tenantId     || '';
