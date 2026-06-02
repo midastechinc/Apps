@@ -246,6 +246,20 @@ const DEFINITIONS = {
       parameters: { type: 'object', properties: {}, required: [] }
     }
   },
+  m365_create_sticky_note: {
+    type: 'function',
+    function: {
+      name: 'm365_create_sticky_note',
+      description: 'Create a Microsoft Sticky Note that appears in the Windows Sticky Notes app and synced across devices.',
+      parameters: {
+        type: 'object',
+        properties: {
+          content: { type: 'string', description: 'The text content of the sticky note' }
+        },
+        required: ['content']
+      }
+    }
+  },
   onedrive_search: {
     type: 'function',
     function: {
@@ -372,7 +386,7 @@ const AGENT_TOOLS = {
     'google_list_events', 'google_create_event', 'google_list_calendars',
     'm365_list_calendar_events', 'm365_create_calendar_event',
     'm365_list_emails', 'm365_search_emails', 'm365_read_email', 'm365_list_todos', 'm365_create_todo',
-    'm365_search_onenote', 'm365_save_link', 'm365_list_onenote_structure',
+    'm365_search_onenote', 'm365_save_link', 'm365_list_onenote_structure', 'm365_create_sticky_note',
     'onedrive_search', 'onedrive_list_folder', 'onedrive_get_link',
     'sharepoint_list_sites', 'sharepoint_search', 'sharepoint_list_files',
     'web_search', 'fetch_webpage'
@@ -422,6 +436,7 @@ async function executeTool(toolName, args) {
       case 'm365_search_onenote':         return await m365.searchOneNote(args);
       case 'm365_save_link':                  return await m365.saveLink(args);
       case 'm365_list_onenote_structure':    return await m365.listOneNoteStructure();
+      case 'm365_create_sticky_note':        return await m365.createStickyNote(args);
       case 'onedrive_search':                return await m365.searchOneDrive(args);
       case 'onedrive_list_folder':           return await m365.listOneDriveFolder(args);
       case 'onedrive_get_link':              return await m365.getOneDriveShareLink(args);

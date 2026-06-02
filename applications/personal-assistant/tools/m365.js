@@ -493,6 +493,25 @@ async function getPageIdsForLinkPages() {
   return result;
 }
 
+// ─── Sticky Notes ─────────────────────────────────────────────────────────────
+
+async function createStickyNote({ content }) {
+  if (!content) return { error: 'content required' };
+
+  const token = await getAccessToken();
+  if (!token) return { error: 'M365 not configured or token unavailable.' };
+
+  const data = await graphFetch(`/users/${USER_PRINCIPAL}/shortNotes`, {
+    method: 'POST',
+    body: JSON.stringify({ body: { content, contentType: 'text' } })
+  });
+
+  if (data.error) return data;
+
+  console.log(`[M365] Sticky note created: "${content.slice(0, 50)}"`);
+  return { success: true, id: data.id, content };
+}
+
 // ─── OneDrive ─────────────────────────────────────────────────────────────────
 
 function escapeODataQuery(q) {
@@ -636,6 +655,7 @@ module.exports = {
   searchOneNote, saveLink, listOneNoteStructure, getPageIdsForLinkPages,
   searchOneDrive, listOneDriveFolder, getOneDriveShareLink,
   listSharePointSites, searchSharePoint, listSharePointFiles,
+  createStickyNote,
   isConfigured
 };
 
