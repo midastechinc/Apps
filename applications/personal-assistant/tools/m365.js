@@ -641,64 +641,38 @@ async function createContact({ name, email, phone = null, company = null, title 
   return { success: true, id: data.id, name: data.displayName };
 }
 
-// ─── Sticky Notes ─────────────────────────────────────────────────────────────
+// ─── Sticky Notes (via To Do "Sticky Notes" list) ────────────────────────────
+// Microsoft blocks shortNotes POST via Application permissions (app-only auth).
+// We use a dedicated "Sticky Notes" list in Microsoft To Do instead —
+// a separate app from OneNote, accessible on phone/desktop/web.
 
 async function createStickyNote({ content }) {
   if (!content) return { error: 'content required' };
 
-  const token = await getAccessToken();
-  if (!token) return { error: 'M365 not configured or token unavailable.' };
+  const listsData = await graphFetch(`/users/${USER_PRINCIPAL}/todo/lists`);
+  if (listsData.error) return listsData;
 
-  // Try the Graph beta shortNotes API first
-  try {
-    const resp = await fetch(`https://graph.microsoft.com/beta/users/${USER_PRINCIPAL}/shortNotes`, {
+  const lists = listsData.value || [];
+  let stickyList = lists.find(l => l.displayName.toLowerCase() === 'sticky notes');
+
+  if (!stickyList) {
+    const newList = await graphFetch(`/users/${USER_PRINCIPAL}/todo/lists`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ body: { content, contentType: 'text' } })
+      body: JSON.stringify({ displayName: 'Sticky Notes' })
     });
-    if (resp.ok) {
-      const data = await resp.json();
-      console.log(`[M365] Sticky note created via shortNotes: "${content.slice(0, 50)}"`);
-      return { success: true, id: data.id, content };
-    }
-    const errText = await resp.text();
-    console.warn(`[M365] shortNotes API failed (${resp.status}): ${errText.slice(0, 100)} — falling back to OneNote`);
-  } catch (e) {
-    console.warn('[M365] shortNotes API error, falling back to OneNote:', e.message);
+    if (newList.error) return newList;
+    stickyList = newList;
+    console.log('[M365] Created "Sticky Notes" To Do list');
   }
 
-  // Fallback: write into the Sticky Notes notebook in OneNote
-  // (This is how Sticky Notes used to sync — still shows in OneNote)
-  const notebooks = await graphFetch(`/users/${USER_PRINCIPAL}/onenote/notebooks?$select=id,displayName&$top=50`);
-  if (notebooks.error) return { error: 'Could not create sticky note — shortNotes API unavailable and OneNote fallback failed.' };
-
-  const stickyNb = (notebooks.value || []).find(nb => nb.displayName?.toLowerCase().includes('sticky'));
-  if (!stickyNb) return { error: 'Sticky Notes notebook not found in OneNote. Open the Windows Sticky Notes app once to create it.' };
-
-  const sections = await graphFetch(`/users/${USER_PRINCIPAL}/onenote/notebooks/${stickyNb.id}/sections?$select=id,displayName&$top=20`);
-  if (sections.error) return { error: 'Could not find sections in Sticky Notes notebook.' };
-
-  const stickySec = (sections.value || []).find(s => s.displayName?.toLowerCase().includes('sticky'))
-    || (sections.value || [])[0];
-  if (!stickySec) return { error: 'No section found in Sticky Notes notebook.' };
-
-  const now = new Date().toLocaleString('en-CA', { timeZone: 'America/Toronto', dateStyle: 'medium', timeStyle: 'short' });
-  const safeContent = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const html = `<!DOCTYPE html><html><head><title>${safeContent.slice(0, 60)}</title></head><body><p>${safeContent}</p><p style="color:#999;font-size:0.8em;">Added by Claudia — ${now}</p></body></html>`;
-
-  const pageResp = await fetch(`https://graph.microsoft.com/v1.0/users/${USER_PRINCIPAL}/onenote/sections/${stickySec.id}/pages`, {
+  const task = await graphFetch(`/users/${USER_PRINCIPAL}/todo/lists/${stickyList.id}/tasks`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/xhtml+xml' },
-    body: html
+    body: JSON.stringify({ title: content })
   });
+  if (task.error) return task;
 
-  if (!pageResp.ok) {
-    const err = await pageResp.text();
-    return { error: `Failed to create sticky note: ${err.slice(0, 200)}` };
-  }
-
-  console.log(`[M365] Sticky note created via OneNote: "${content.slice(0, 50)}"`);
-  return { success: true, content };
+  console.log(`[M365] Sticky note created in To Do: "${content.slice(0, 50)}"`);
+  return { success: true, id: task.id, content };
 }
 
 // ─── Out of Office ────────────────────────────────────────────────────────────
