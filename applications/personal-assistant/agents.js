@@ -491,6 +491,7 @@ async function callLLM(senderJid, userText, agent, llmConfig, agentType = 'busin
           let args = {};
           try { args = JSON.parse(tc.function.arguments || '{}'); } catch {}
           const result = await executeTool(tc.function.name, args, agentType);
+          console.log(`[TOOL] ${tc.function.name} →`, JSON.stringify(result).slice(0, 200));
           return {
             role: 'tool',
             tool_call_id: tc.id,
@@ -500,6 +501,19 @@ async function callLLM(senderJid, userText, agent, llmConfig, agentType = 'busin
       );
 
       messages.push(...results);
+
+      // If any tool returned an error, inject a system message forcing exact error reporting
+      const toolErrors = results
+        .map(r => { try { return JSON.parse(r.content); } catch { return {}; } })
+        .filter(r => r.error)
+        .map(r => r.error);
+      if (toolErrors.length > 0) {
+        messages.push({
+          role: 'system',
+          content: `MANDATORY — tool error occurred. Your response must say EXACTLY: "Error: ${toolErrors.join(' | ')}" — no other text, no paraphrasing, no invented explanations.`
+        });
+      }
+
       continue;
     }
 
