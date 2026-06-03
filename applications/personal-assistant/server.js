@@ -240,6 +240,85 @@ app.put('/api/integrations/m365', requireAdminKey, (req, res) => {
   }
 });
 
+// ─── OneNote OAuth web flow ───────────────────────────────────────────────────
+// Step 1: visit /api/auth/onenote?key=ADMINKEY → redirects to Microsoft login
+app.get('/api/auth/onenote', (req, res, next) => {
+  const qKey = (req.query.key || '').trim();
+  if (ADMIN_KEY && qKey === ADMIN_KEY) return next();
+  requireAdminKey(req, res, next);
+}, (req, res) => {
+  const cfg = getConfig();
+  const m365 = cfg.integrations?.m365 || {};
+  if (!m365.clientId || !m365.tenantId) {
+    return res.status(400).send('M365 not configured — set Client ID and Tenant ID in Integrations first.');
+  }
+  const redirectUri = `https://${req.headers.host}/api/auth/onenote/callback`;
+  const params = new URLSearchParams({
+    client_id: m365.clientId,
+    response_type: 'code',
+    redirect_uri: redirectUri,
+    scope: 'https://graph.microsoft.com/Notes.ReadWrite.All offline_access openid profile',
+    response_mode: 'query',
+    state: ADMIN_KEY,
+    prompt: 'select_account'
+  });
+  res.redirect(`https://login.microsoftonline.com/${m365.tenantId}/oauth2/v2.0/authorize?${params}`);
+});
+
+// Step 2: Microsoft redirects here after login
+app.get('/api/auth/onenote/callback', async (req, res) => {
+  const { code, state, error, error_description } = req.query;
+  if (error) {
+    return res.status(400).send(`<pre>Auth error: ${error}\n${error_description || ''}</pre>`);
+  }
+  if (state !== ADMIN_KEY) return res.status(403).send('Invalid state — possible CSRF');
+  if (!code) return res.status(400).send('No code returned from Microsoft');
+
+  const cfg = getConfig();
+  const m365 = cfg.integrations?.m365 || {};
+  const redirectUri = `https://${req.headers.host}/api/auth/onenote/callback`;
+
+  try {
+    const tokenResp = await fetch(
+      `https://login.microsoftonline.com/${m365.tenantId}/oauth2/v2.0/token`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: m365.clientId,
+          client_secret: m365.clientSecret,
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: redirectUri,
+          scope: 'https://graph.microsoft.com/Notes.ReadWrite.All offline_access openid profile'
+        })
+      }
+    );
+    if (!tokenResp.ok) {
+      const err = await tokenResp.text();
+      console.error('[AUTH] OneNote callback token exchange failed:', tokenResp.status, err.slice(0, 400));
+      return res.status(500).send(`<pre>Token exchange failed (${tokenResp.status}):\n${err}</pre>`);
+    }
+    const data = await tokenResp.json();
+    const expiry = Date.now() + (data.expires_in || 3600) * 1000;
+    const cur = getConfig().integrations?.m365 || {};
+    updateConfig({ integrations: { m365: { ...cur,
+      oneNoteRefreshToken: data.refresh_token,
+      oneNoteAccessToken: data.access_token,
+      oneNoteTokenExpiry: expiry
+    }}});
+    console.log('[AUTH] OneNote OAuth complete, token saved, expires', new Date(expiry).toISOString());
+    res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;text-align:center">
+<h2 style="color:#107c10">✅ OneNote Connected!</h2>
+<p>Claudia can now read and write OneNote pages.</p>
+<p style="color:#666;font-size:13px">Token saved. You can close this tab.</p>
+</body></html>`);
+  } catch (err) {
+    console.error('[AUTH] OneNote callback error:', err.message);
+    res.status(500).send(`Error: ${err.message}`);
+  }
+});
+
 // ─── OneNote page ID diagnostic ───────────────────────────────────────────────
 app.get('/api/onenote/link-page-ids', requireAdminKey, async (_req, res) => {
   try {

@@ -51,16 +51,27 @@ async function getAccessToken() {
 }
 
 async function getOneNoteAccessToken() {
+  // 1. In-memory cache
   if (_cachedOneNoteToken && Date.now() < _oneNoteTokenExpiry - 60000) return _cachedOneNoteToken;
 
   const config = getConfig();
   const m365 = config.integrations?.m365;
   if (!m365?.clientId || !m365?.tenantId || !m365?.clientSecret) return null;
 
-  // Use dedicated OneNote token if set, otherwise fall back to main refresh token.
-  // fix_m365.py already requests Notes.ReadWrite.All scope, so the main token works.
+  // 2. Persisted access token (saved by OAuth callback or fix_onenote.py) — use directly if not expired
+  if (m365.oneNoteAccessToken && m365.oneNoteTokenExpiry && Date.now() < m365.oneNoteTokenExpiry - 60000) {
+    _cachedOneNoteToken = m365.oneNoteAccessToken;
+    _oneNoteTokenExpiry = m365.oneNoteTokenExpiry;
+    console.log('[M365] OneNote: using persisted access token (expires', new Date(m365.oneNoteTokenExpiry).toISOString(), ')');
+    return _cachedOneNoteToken;
+  }
+
+  // 3. Try refresh_token
   const refreshToken = m365.oneNoteRefreshToken || m365.refreshToken;
-  if (!refreshToken) return null;
+  if (!refreshToken) {
+    console.error('[M365] OneNote: no refresh token in config. Visit /api/auth/onenote?key=ADMINKEY to authenticate.');
+    return null;
+  }
 
   try {
     const resp = await fetch(
@@ -79,17 +90,20 @@ async function getOneNoteAccessToken() {
     );
     if (!resp.ok) {
       const err = await resp.text();
-      console.error('[M365] OneNote token refresh error:', resp.status, err.slice(0, 200));
+      console.error('[M365] OneNote token refresh failed:', resp.status, err.slice(0, 400));
       return null;
     }
     const data = await resp.json();
     _cachedOneNoteToken = data.access_token;
     _oneNoteTokenExpiry = Date.now() + (data.expires_in || 3600) * 1000;
-    if (data.refresh_token) {
-      const cur = getConfig().integrations?.m365 || {};
-      updateConfig({ integrations: { m365: { ...cur, oneNoteRefreshToken: data.refresh_token } } });
-    }
-    console.log('[M365] OneNote token obtained via delegated flow');
+    // Persist to disk so it survives Railway restarts
+    const cur = getConfig().integrations?.m365 || {};
+    updateConfig({ integrations: { m365: { ...cur,
+      oneNoteAccessToken: data.access_token,
+      oneNoteTokenExpiry: _oneNoteTokenExpiry,
+      ...(data.refresh_token ? { oneNoteRefreshToken: data.refresh_token } : {})
+    }}});
+    console.log('[M365] OneNote token refreshed, expires', new Date(_oneNoteTokenExpiry).toISOString());
     return _cachedOneNoteToken;
   } catch (err) {
     console.error('[M365] OneNote token refresh error:', err.message);
@@ -103,7 +117,7 @@ async function graphFetch(endpoint, options = {}) {
   const token = needsDelegated ? await getOneNoteAccessToken() : await getAccessToken();
   if (!token) {
     return needsDelegated
-      ? { error: 'OneNote requires a delegated token. Download and run fix_onenote.py from the management UI.' }
+      ? { error: 'OneNote not authenticated. Visit the management UI → Integrations → Connect OneNote.' }
       : { error: 'M365 not configured or token unavailable. Set credentials in the Integrations tab.' };
   }
 
