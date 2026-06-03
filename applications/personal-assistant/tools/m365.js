@@ -157,6 +157,30 @@ async function graphFetchText(endpoint) {
   }
 }
 
+// Site-specific OneNote endpoint — avoids Error 10008 (>5000 items across all SharePoint libraries)
+let _oneNoteSiteEndpoint = null;
+
+async function getOneNoteEndpoint() {
+  if (_oneNoteSiteEndpoint) return _oneNoteSiteEndpoint;
+  try {
+    const driveRoot = await graphFetch(`/users/${USER_PRINCIPAL}/drive/root`);
+    const siteId = driveRoot?.parentReference?.siteId;
+    _oneNoteSiteEndpoint = siteId ? `/sites/${siteId}/onenote` : `/users/${USER_PRINCIPAL}/onenote`;
+    console.log('[M365] OneNote endpoint resolved:', _oneNoteSiteEndpoint);
+  } catch {
+    _oneNoteSiteEndpoint = `/users/${USER_PRINCIPAL}/onenote`;
+  }
+  return _oneNoteSiteEndpoint;
+}
+
+async function oneNoteFetch(path, options = {}) {
+  return graphFetch(`${await getOneNoteEndpoint()}${path}`, options);
+}
+
+async function oneNoteTextFetch(path) {
+  return graphFetchText(`${await getOneNoteEndpoint()}${path}`);
+}
+
 async function fetchYouTubeTitle(url) {
   try {
     const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
@@ -206,8 +230,8 @@ const PLATFORM_CONFIG = {
 async function findOneNotePageByTitle(titleToFind) {
   const lower = titleToFind.toLowerCase();
 
-  // Fastest: direct search API across all pages in all notebooks
-  const searchData = await graphFetch(`/users/ali@midastech.ca/onenote/pages?$search="${titleToFind}"&$select=id,title&$top=20`);
+  // Fastest: direct search API
+  const searchData = await oneNoteFetch(`/pages?$search="${titleToFind}"&$select=id,title&$top=20`);
   if (!searchData.error) {
     const found = (searchData.value || []).find(p => p.title?.toLowerCase() === lower);
     if (found) {
@@ -216,11 +240,11 @@ async function findOneNotePageByTitle(titleToFind) {
     }
   }
 
-  // Flat sections endpoint — covers Quick Notes and all sections across all notebooks
-  const allSections = await graphFetch('/users/ali@midastech.ca/onenote/sections?$select=id,displayName&$top=100');
+  // Flat sections endpoint
+  const allSections = await oneNoteFetch('/sections?$select=id,displayName&$top=100');
   if (!allSections.error) {
     for (const sec of (allSections.value || [])) {
-      const pagesData = await graphFetch(`/users/ali@midastech.ca/onenote/sections/${sec.id}/pages?$select=id,title&$top=100`);
+      const pagesData = await oneNoteFetch(`/sections/${sec.id}/pages?$select=id,title&$top=100`);
       if (pagesData.error) continue;
       const found = (pagesData.value || []).find(p => p.title?.toLowerCase() === lower);
       if (found) {
@@ -230,14 +254,14 @@ async function findOneNotePageByTitle(titleToFind) {
     }
   }
 
-  // Final fallback: traverse notebooks → sections (handles section groups)
-  const notebooksData = await graphFetch('/users/ali@midastech.ca/onenote/notebooks?$select=id,displayName&$top=50');
+  // Final fallback: traverse notebooks → sections
+  const notebooksData = await oneNoteFetch('/notebooks?$select=id,displayName&$top=50');
   if (notebooksData.error) return null;
   for (const nb of (notebooksData.value || [])) {
-    const sectionsData = await graphFetch(`/users/ali@midastech.ca/onenote/notebooks/${nb.id}/sections?$select=id,displayName&$top=50`);
+    const sectionsData = await oneNoteFetch(`/notebooks/${nb.id}/sections?$select=id,displayName&$top=50`);
     if (sectionsData.error) continue;
     for (const sec of (sectionsData.value || [])) {
-      const pagesData = await graphFetch(`/users/ali@midastech.ca/onenote/sections/${sec.id}/pages?$select=id,title&$top=100`);
+      const pagesData = await oneNoteFetch(`/sections/${sec.id}/pages?$select=id,title&$top=100`);
       if (pagesData.error) continue;
       const found = (pagesData.value || []).find(p => p.title?.toLowerCase() === lower);
       if (found) return found;
@@ -268,9 +292,6 @@ async function getPageId(platform) {
 }
 
 async function appendToOneNotePage(pageId, nextNumber, title, url) {
-  const token = await getAccessToken();
-  if (!token) return { error: 'M365 token unavailable' };
-
   const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const patchBody = JSON.stringify([{
     target: 'body',
@@ -278,21 +299,19 @@ async function appendToOneNotePage(pageId, nextNumber, title, url) {
     content: `<p>${nextNumber}. <a href="${url}">${safeTitle}</a></p>`
   }]);
 
-  const patchResp = await fetch(`https://graph.microsoft.com/v1.0/users/ali@midastech.ca/onenote/pages/${pageId}/content`, {
+  const result = await oneNoteFetch(`/pages/${pageId}/content`, {
     method: 'PATCH',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     body: patchBody
   });
-
-  if (!patchResp.ok) {
-    const errText = await patchResp.text();
-    console.error('[OneNote] PATCH failed:', patchResp.status, errText);
-    return { error: `OneNote write failed (${patchResp.status}): ${errText}` };
+  if (result?.error) {
+    console.error('[OneNote] PATCH failed:', result.error);
+    return result;
   }
 
   // Verify the write actually committed
   await new Promise(r => setTimeout(r, 1500));
-  const verifyHtml = await graphFetchText(`/users/ali@midastech.ca/onenote/pages/${pageId}/content`);
+  const verifyHtml = await oneNoteTextFetch(`/pages/${pageId}/content`);
   if (verifyHtml && !verifyHtml.includes(url)) {
     return { error: 'OneNote accepted the request but the entry did not appear. Token may need Notes.ReadWrite.All scope.' };
   }
@@ -523,7 +542,7 @@ async function searchOneNote({ query }) {
     $select: 'id,title,createdDateTime,lastModifiedDateTime,links'
   });
 
-  const data = await graphFetch(`/users/ali@midastech.ca/onenote/pages?${params}`);
+  const data = await oneNoteFetch(`/pages?${params}`);
   if (data.error) return data;
 
   return {
@@ -539,15 +558,15 @@ async function searchOneNote({ query }) {
 }
 
 async function listOneNoteStructure() {
-  const notebooksData = await graphFetch('/users/ali@midastech.ca/onenote/notebooks?$select=id,displayName&$top=50');
+  const notebooksData = await oneNoteFetch('/notebooks?$select=id,displayName&$top=50');
   if (notebooksData.error) return { error: notebooksData.error };
 
   const result = [];
   for (const nb of (notebooksData.value || [])) {
-    const sectionsData = await graphFetch(`/users/ali@midastech.ca/onenote/notebooks/${nb.id}/sections?$select=id,displayName&$top=50`);
+    const sectionsData = await oneNoteFetch(`/notebooks/${nb.id}/sections?$select=id,displayName&$top=50`);
     const sections = [];
     for (const sec of (sectionsData.value || [])) {
-      const pagesData = await graphFetch(`/users/ali@midastech.ca/onenote/sections/${sec.id}/pages?$select=id,title&$top=50`);
+      const pagesData = await oneNoteFetch(`/sections/${sec.id}/pages?$select=id,title&$top=50`);
       sections.push({
         section: sec.displayName,
         pages: (pagesData.value || []).map(p => ({ title: p.title, id: p.id }))
@@ -803,7 +822,7 @@ async function sendDraft({ draft_id }) {
 async function createOneNotePage({ notebook_name = '', section_name = '', title, content = '' }) {
   if (!title) return { error: 'title is required' };
 
-  const notebooksData = await graphFetch(`/users/${USER_PRINCIPAL}/onenote/notebooks?$select=id,displayName&$top=50`);
+  const notebooksData = await oneNoteFetch('/notebooks?$select=id,displayName&$top=50');
   if (notebooksData.error) return notebooksData;
 
   let notebook = notebook_name
@@ -812,7 +831,7 @@ async function createOneNotePage({ notebook_name = '', section_name = '', title,
   if (!notebook) notebook = (notebooksData.value || [])[0];
   if (!notebook) return { error: 'No OneNote notebooks found.' };
 
-  const sectionsData = await graphFetch(`/users/${USER_PRINCIPAL}/onenote/notebooks/${notebook.id}/sections?$select=id,displayName&$top=50`);
+  const sectionsData = await oneNoteFetch(`/notebooks/${notebook.id}/sections?$select=id,displayName&$top=50`);
   if (sectionsData.error) return sectionsData;
 
   let section = section_name
@@ -823,13 +842,13 @@ async function createOneNotePage({ notebook_name = '', section_name = '', title,
 
   const now = new Date().toLocaleString('en-CA', { timeZone: 'America/Toronto', dateStyle: 'medium', timeStyle: 'short' });
   const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const safeContent = content
+  const safeContent = (content || '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/\n/g, '<br/>');
 
-  const html = `<!DOCTYPE html><html><head><title>${safeTitle}</title></head><body><h1>${safeTitle}</h1><p>${safeContent}</p><p style="color:#999;font-size:0.8em;">Created by Claudia — ${now}</p></body></html>`;
+  const html = `<!DOCTYPE html><html><head><title>${safeTitle}</title></head><body><h1>${safeTitle}</h1>${safeContent ? `<p>${safeContent}</p>` : ''}<p style="color:#999;font-size:0.8em;">Created by Claudia — ${now}</p></body></html>`;
 
-  const pageData = await graphFetch(`/users/${USER_PRINCIPAL}/onenote/sections/${section.id}/pages`, {
+  const pageData = await oneNoteFetch(`/sections/${section.id}/pages`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/xhtml+xml' },
     body: html
@@ -856,7 +875,7 @@ async function readOneNotePage({ page_id, page_title = null }) {
   }
   if (!id) return { error: 'page_id or page_title is required' };
 
-  const html = await graphFetchText(`/users/${USER_PRINCIPAL}/onenote/pages/${id}/content`);
+  const html = await oneNoteTextFetch(`/pages/${id}/content`);
   if (!html) return { error: 'Could not read page content.' };
 
   const text = html
