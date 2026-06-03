@@ -246,6 +246,21 @@ const DEFINITIONS = {
       parameters: { type: 'object', properties: {}, required: [] }
     }
   },
+  m365_set_onenote_section: {
+    type: 'function',
+    function: {
+      name: 'm365_set_onenote_section',
+      description: 'Save a OneNote section ID or URL for a named section so Claudia can use it directly without needing to enumerate all notebooks. Use when the user provides a OneNote section link or ID.',
+      parameters: {
+        type: 'object',
+        properties: {
+          section_name: { type: 'string', description: 'Section name (e.g. "travel", "work", "personal")' },
+          section_id_or_url: { type: 'string', description: 'The OneNote section ID (GUID format) or the full URL of the section from OneNote web' }
+        },
+        required: ['section_name', 'section_id_or_url']
+      }
+    }
+  },
   m365_send_email: {
     type: 'function',
     function: {
@@ -612,7 +627,7 @@ const AGENT_TOOLS = {
     'm365_list_emails', 'm365_search_emails', 'm365_read_email', 'm365_send_email', 'm365_reply_to_email', 'm365_create_email_draft', 'm365_send_draft',
     'm365_list_todos', 'm365_create_todo', 'm365_complete_todo', 'm365_update_todo',
     'm365_list_contacts', 'm365_create_contact',
-    'm365_search_onenote', 'm365_save_link', 'm365_list_onenote_structure', 'm365_create_onenote_page', 'm365_read_onenote_page',
+    'm365_search_onenote', 'm365_save_link', 'm365_list_onenote_structure', 'm365_set_onenote_section', 'm365_create_onenote_page', 'm365_read_onenote_page',
     'onedrive_search', 'onedrive_list_folder', 'onedrive_get_link',
     'sharepoint_list_sites', 'sharepoint_search', 'sharepoint_list_files',
     'web_search', 'fetch_webpage'
@@ -683,6 +698,7 @@ async function executeTool(toolName, args, agentType = 'business') {
       case 'm365_search_onenote':         return await m365.searchOneNote(args);
       case 'm365_save_link':                  return await m365.saveLink(args);
       case 'm365_list_onenote_structure':    return await m365.listOneNoteStructure();
+      case 'm365_set_onenote_section':      return await m365.setOneNoteSection(args);
 
       case 'onedrive_search':                return await m365.searchOneDrive(args);
       case 'onedrive_list_folder':           return await m365.listOneDriveFolder(args);

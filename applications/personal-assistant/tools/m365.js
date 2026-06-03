@@ -162,14 +162,7 @@ let _oneNoteSiteEndpoint = null;
 
 async function getOneNoteEndpoint() {
   if (_oneNoteSiteEndpoint) return _oneNoteSiteEndpoint;
-  try {
-    const driveRoot = await graphFetch(`/users/${USER_PRINCIPAL}/drive/root`);
-    const siteId = driveRoot?.parentReference?.siteId;
-    _oneNoteSiteEndpoint = siteId ? `/sites/${siteId}/onenote` : `/users/${USER_PRINCIPAL}/onenote`;
-    console.log('[M365] OneNote endpoint resolved:', _oneNoteSiteEndpoint);
-  } catch {
-    _oneNoteSiteEndpoint = `/users/${USER_PRINCIPAL}/onenote`;
-  }
+  _oneNoteSiteEndpoint = `/users/${USER_PRINCIPAL}/onenote`;
   return _oneNoteSiteEndpoint;
 }
 
@@ -179,6 +172,67 @@ async function oneNoteFetch(path, options = {}) {
 
 async function oneNoteTextFetch(path) {
   return graphFetchText(`${await getOneNoteEndpoint()}${path}`);
+}
+
+function cacheOneNoteSectionId(sectionName, sectionId) {
+  const cur = getConfig().integrations?.m365 || {};
+  const sections = { ...(cur.oneNoteSections || {}), [sectionName.toLowerCase()]: sectionId };
+  updateConfig({ integrations: { m365: { ...cur, oneNoteSections: sections } } });
+  console.log(`[OneNote] Cached section "${sectionName}" = ${sectionId}`);
+}
+
+async function findSectionId(sectionName) {
+  const key = sectionName.toLowerCase();
+
+  // 1. Config cache — fastest path, avoids all API calls
+  const cur = getConfig().integrations?.m365;
+  const cached = cur?.oneNoteSections?.[key];
+  if (cached) {
+    console.log(`[OneNote] Using cached section ID for "${sectionName}"`);
+    return cached;
+  }
+
+  // 2. Pages $search — uses search index, does NOT enumerate document libraries
+  const searchData = await graphFetch(
+    `/users/${USER_PRINCIPAL}/onenote/pages?$search="${sectionName}"&$expand=parentSection($select=id,displayName)&$select=id,title&$top=5`
+  );
+  if (!searchData.error && searchData.value?.length > 0) {
+    const sectionId = searchData.value[0]?.parentSection?.id;
+    if (sectionId) {
+      cacheOneNoteSectionId(sectionName, sectionId);
+      return sectionId;
+    }
+  }
+
+  // 3. Drive API: navigate notebook folders, derive OneNote notebook ID (ODB format: "1-{driveItemId}")
+  //    then query that SPECIFIC notebook's sections — avoids enumerating all notebooks
+  const driveLocations = [
+    `/users/${USER_PRINCIPAL}/drive/root/children`,
+    `/users/${USER_PRINCIPAL}/drive/root:/Documents:/children`,
+    `/users/${USER_PRINCIPAL}/drive/root:/Notebooks:/children`
+  ];
+  for (const loc of driveLocations) {
+    const children = await graphFetch(`${loc}?$select=id,name,folder&$top=50`);
+    if (children.error) continue;
+    for (const item of (children.value || [])) {
+      if (!item.folder) continue;
+      // Try OneDrive for Business notebook ID format
+      const notebookId = `1-${item.id}`;
+      const sectionsData = await graphFetch(
+        `/users/${USER_PRINCIPAL}/onenote/notebooks/${notebookId}/sections?$select=id,displayName&$top=50`
+      );
+      if (sectionsData.error) continue;
+      const match = (sectionsData.value || []).find(s =>
+        s.displayName.toLowerCase().includes(key)
+      );
+      if (match) {
+        cacheOneNoteSectionId(sectionName, match.id);
+        return match.id;
+      }
+    }
+  }
+
+  return null;
 }
 
 async function fetchYouTubeTitle(url) {
@@ -822,8 +876,38 @@ async function sendDraft({ draft_id }) {
 async function createOneNotePage({ notebook_name = '', section_name = '', title, content = '' }) {
   if (!title) return { error: 'title is required' };
 
+  const now = new Date().toLocaleString('en-CA', { timeZone: 'America/Toronto', dateStyle: 'medium', timeStyle: 'short' });
+  const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const safeContent = (content || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br/>');
+  const html = `<!DOCTYPE html><html><head><title>${safeTitle}</title></head><body><h1>${safeTitle}</h1>${safeContent ? `<p>${safeContent}</p>` : ''}<p style="color:#999;font-size:0.8em;">Created by Claudia — ${now}</p></body></html>`;
+
+  // Find the section ID without enumerating all notebooks (avoids Error 10008)
+  if (section_name) {
+    const sectionId = await findSectionId(section_name);
+    if (sectionId) {
+      const pageData = await graphFetch(`/users/${USER_PRINCIPAL}/onenote/sections/${sectionId}/pages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/xhtml+xml' },
+        body: html
+      });
+      if (!pageData.error) {
+        console.log(`[M365] OneNote page created: "${title}" in section ${sectionId}`);
+        cacheOneNoteSectionId(section_name, sectionId);
+        return { success: true, title, section: section_name, page_id: pageData.id, url: pageData.links?.oneNoteWebUrl?.href || null };
+      }
+      // Section ID might be stale — clear cache and fall through
+      const cur = getConfig().integrations?.m365 || {};
+      const sections = { ...(cur.oneNoteSections || {}) };
+      delete sections[section_name.toLowerCase()];
+      updateConfig({ integrations: { m365: { ...cur, oneNoteSections: sections } } });
+    }
+  }
+
+  // Fall back to notebook enumeration (fails with 10008 if >5000 items)
   const notebooksData = await oneNoteFetch('/notebooks?$select=id,displayName&$top=50');
-  if (notebooksData.error) return notebooksData;
+  if (notebooksData.error) return { error: `${notebooksData.error} — Your OneDrive has too many OneNote items for the API to enumerate. Please share the URL of your "${section_name}" section in OneNote so I can save it directly.` };
 
   let notebook = notebook_name
     ? (notebooksData.value || []).find(nb => nb.displayName.toLowerCase().includes(notebook_name.toLowerCase()))
@@ -840,13 +924,7 @@ async function createOneNotePage({ notebook_name = '', section_name = '', title,
   if (!section) section = (sectionsData.value || [])[0];
   if (!section) return { error: `No sections found in notebook "${notebook.displayName}".` };
 
-  const now = new Date().toLocaleString('en-CA', { timeZone: 'America/Toronto', dateStyle: 'medium', timeStyle: 'short' });
-  const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const safeContent = (content || '')
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/\n/g, '<br/>');
-
-  const html = `<!DOCTYPE html><html><head><title>${safeTitle}</title></head><body><h1>${safeTitle}</h1>${safeContent ? `<p>${safeContent}</p>` : ''}<p style="color:#999;font-size:0.8em;">Created by Claudia — ${now}</p></body></html>`;
+  if (section_name) cacheOneNoteSectionId(section_name, section.id);
 
   const pageData = await oneNoteFetch(`/sections/${section.id}/pages`, {
     method: 'POST',
@@ -856,14 +934,7 @@ async function createOneNotePage({ notebook_name = '', section_name = '', title,
   if (pageData.error) return pageData;
 
   console.log(`[M365] OneNote page created: "${title}" in ${notebook.displayName}/${section.displayName}`);
-  return {
-    success: true,
-    title,
-    notebook: notebook.displayName,
-    section: section.displayName,
-    page_id: pageData.id,
-    url: pageData.links?.oneNoteWebUrl?.href || null
-  };
+  return { success: true, title, notebook: notebook.displayName, section: section.displayName, page_id: pageData.id, url: pageData.links?.oneNoteWebUrl?.href || null };
 }
 
 async function readOneNotePage({ page_id, page_title = null }) {
@@ -1058,6 +1129,18 @@ async function listSharePointFiles({ site_id, folder_path = '/' } = {}) {
   };
 }
 
+function setOneNoteSection({ section_name, section_id_or_url }) {
+  if (!section_name || !section_id_or_url) return { error: 'section_name and section_id_or_url are required' };
+  // Extract GUID from URL (format: ...target(SectionName|GUID/) or ...target%28SectionName%7CGUID...) or raw GUID
+  const decoded = decodeURIComponent(section_id_or_url);
+  const guidMatch = decoded.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+  const rawId = guidMatch ? guidMatch[0] : section_id_or_url.trim();
+  // OneNote API section IDs from URLs may need the "1-" prefix
+  const sectionId = rawId.startsWith('1-') ? rawId : rawId;
+  cacheOneNoteSectionId(section_name, sectionId);
+  return { success: true, section_name, section_id: sectionId, message: `Saved! Claudia will now use this ID directly for the "${section_name}" section.` };
+}
+
 function isConfigured() {
   const config = getConfig();
   const m365 = config.integrations?.m365;
@@ -1071,7 +1154,7 @@ module.exports = {
   listTodos, createTodo, completeTodo, updateTodo,
   listContacts, createContact,
   searchOneNote, saveLink, listOneNoteStructure, getPageIdsForLinkPages,
-  createOneNotePage, readOneNotePage,
+  createOneNotePage, readOneNotePage, setOneNoteSection,
   searchOneDrive, listOneDriveFolder, getOneDriveShareLink,
   listSharePointSites, searchSharePoint, listSharePointFiles,
   isConfigured
