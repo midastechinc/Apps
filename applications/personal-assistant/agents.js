@@ -6,6 +6,16 @@ const conversationHistory = {};
 const MAX_HISTORY_PAIRS = 10;
 const MAX_TOOL_ROUNDS = 8;
 
+// Single source of truth for family phone→name mapping
+const FAMILY_MEMBER_MAP = {
+  '16477863361': 'Ali (dad)',
+  '14165687623': 'Insiya (mom/wife)',
+  '19055542660': 'Hassan (son)',
+  '14379977864': 'Hannah (daughter)',
+  '14166027863': 'Dilnawaz (grandma)',
+  '14164641686': 'Ghulam (grandpa)'
+};
+
 // ─── Claudia Business Agent — Core Identity ───────────────────────────────────
 const BUSINESS_CORE_PROMPT = `You are Claudia, an AI Operations Assistant for Midas Tech Inc.
 
@@ -152,12 +162,7 @@ This is NOT private information you need to look up — it is right here in your
 NEVER say "I do not have access to your personal information" — you have everything you need.
 
 Phone number → Name lookup (use this every single message):
-- +16477863361 = Ali (dad)
-- +14165687623 = Insiya (mom/wife)
-- +19055542660 = Hassan (son — family trainer, can update family info)
-- +14379977864 = Hannah (daughter)
-- +14166027863 = Dilnawaz (grandma)
-- +14164641686 = Ghulam (grandpa)
+${Object.entries(FAMILY_MEMBER_MAP).map(([num, name]) => `- +${num} = ${name}`).join('\n')}
 
 When someone asks "what's my name?" or "who am I?":
 - Look at the sender number in "Current Sender" below
@@ -175,21 +180,16 @@ When someone asks "what's my name?" or "who am I?":
 
 ## What I Do
 - Answer everyday questions
-- Set reminders and tasks (add to Microsoft To Do — Personal list)
+- Add tasks and reminders to Microsoft To Do (Personal list)
 - Check the FAMILY Google Calendar (never Ali's work calendar)
 - Help with homework (Hassan and Hannah) — patient and clear
 - Suggest recipes and shopping help
-- Pass messages to Ali (+16477863361) accurately
 
 ## NEVER Share
 - Ali's work emails or M365 inbox
 - Midas Tech business info or client data
 - Financial information
 - Anything work-related
-
-## Passing Messages to Ali
-Format: "Message from [Name]: [message]"
-Forward to Ali's number (+16477863361) immediately when asked.
 
 ## Calendar Rules
 - Family calendar: ALWAYS use the Google Calendar tool — NEVER use M365 Outlook calendar for family events
@@ -270,9 +270,20 @@ async function processMessage(senderJid, text, imageInfo = null) {
   const routed = routeMessage(senderJid, text || '');
   if (!routed) return null;
 
-  console.log(`[MSG] routed to agent: ${routed.agent.name} (${routed.agentType})`);
   const { agent, cleanText, config, agentType } = routed;
-  return callLLM(senderJid, cleanText, agent, config.llm, agentType, imageInfo);
+  console.log(`[MSG] routed to agent: ${agent.name} (${agentType})`);
+
+  // BUG 7: image-only messages must have non-empty text so LLM gets a valid user turn
+  const messageText = cleanText || (imageInfo ? '[image]' : '');
+
+  // BUG 8: keep Ali's family (!fam) and business history separate to avoid context bleed
+  const mainNum = normalizeNumber(config.mainNumber);
+  const senderNum = jidToNumber(senderJid);
+  const historyKey = (mainNum && senderNum === mainNum && agentType === 'family')
+    ? senderJid + ':fam'
+    : senderJid;
+
+  return callLLM(senderJid, messageText, agent, config.llm, agentType, imageInfo, historyKey);
 }
 
 async function processLeadHunt() {
@@ -349,15 +360,7 @@ function buildSystemPrompt(agent, config, agentType, senderNumber) {
   let prompt = corePrompt;
 
   if (senderNumber) {
-    const familyMap = {
-      '16477863361': 'Ali (dad)',
-      '14165687623': 'Insiya (mom/wife)',
-      '19055542660': 'Hassan (son)',
-      '14379977864': 'Hannah (daughter)',
-      '14166027863': 'Dilnawaz (grandma)',
-      '14164641686': 'Ghulam (grandpa)'
-    };
-    const knownName = familyMap[senderNumber] || 'unknown — respond generically';
+    const knownName = FAMILY_MEMBER_MAP[senderNumber] || 'unknown — respond generically';
     prompt += `\n\n---\nCURRENT SENDER: +${senderNumber} = ${knownName}\nAddress this person by name. If they ask "what's my name?" answer immediately from this line.\n---`;
   }
 
@@ -398,30 +401,26 @@ function buildSystemPrompt(agent, config, agentType, senderNumber) {
   return prompt;
 }
 
-function buildMessagesPayload(senderJid, userText, agent, config, agentType, imageInfo = null) {
-  ensureHistory(senderJid);
+function buildMessagesPayload(senderJid, historyKey, userText, agent, config, agentType, imageInfo = null) {
+  ensureHistory(historyKey);
 
-  // Build content: array if image present, plain string otherwise
   let userContent;
   if (imageInfo?.data) {
     userContent = [];
-    if (userText) userContent.push({ type: 'text', text: userText });
+    if (userText && userText !== '[image]') userContent.push({ type: 'text', text: userText });
     userContent.push({
       type: 'image_url',
       image_url: { url: `data:${imageInfo.mimeType};base64,${imageInfo.data}` }
     });
-    // Store lightweight placeholder in history (not the full base64)
     const label = userText || '(no caption)';
-    conversationHistory[senderJid].push({ role: 'user', content: `[Image: ${label}]` });
+    conversationHistory[historyKey].push({ role: 'user', content: `[Image: ${label}]` });
   } else {
     userContent = userText;
-    conversationHistory[senderJid].push({ role: 'user', content: userText });
+    conversationHistory[historyKey].push({ role: 'user', content: userText });
   }
 
   const senderNumber = jidToNumber(senderJid);
-  // The messages sent to the LLM use the rich content for the current turn,
-  // but history entries above are already stored as plain text placeholders.
-  const historyWithoutLast = conversationHistory[senderJid].slice(0, -1);
+  const historyWithoutLast = conversationHistory[historyKey].slice(0, -1);
   return [
     { role: 'system', content: buildSystemPrompt(agent, config, agentType, senderNumber) },
     ...historyWithoutLast,
@@ -429,14 +428,15 @@ function buildMessagesPayload(senderJid, userText, agent, config, agentType, ima
   ];
 }
 
-async function callLLM(senderJid, userText, agent, llmConfig, agentType = 'business', imageInfo = null) {
+async function callLLM(senderJid, userText, agent, llmConfig, agentType = 'business', imageInfo = null, historyKey = null) {
   if (!llmConfig?.apiKey) {
     return 'LLM API key not configured. Please set it in the Personal Assistant management UI.';
   }
 
+  const hKey = historyKey || senderJid;
   const config = getConfig();
   const tools = getToolDefinitions(agentType);
-  const messages = buildMessagesPayload(senderJid, userText, agent, config, agentType, imageInfo);
+  const messages = buildMessagesPayload(senderJid, hKey, userText, agent, config, agentType, imageInfo);
 
   let finalReply = null;
 
@@ -481,7 +481,7 @@ async function callLLM(senderJid, userText, agent, llmConfig, agentType = 'busin
         toolCalls.map(async tc => {
           let args = {};
           try { args = JSON.parse(tc.function.arguments || '{}'); } catch {}
-          const result = await executeTool(tc.function.name, args);
+          const result = await executeTool(tc.function.name, args, agentType);
           return {
             role: 'tool',
             tool_call_id: tc.id,
@@ -500,8 +500,8 @@ async function callLLM(senderJid, userText, agent, llmConfig, agentType = 'busin
 
   if (!finalReply) finalReply = 'Sorry, I could not process your request after multiple attempts.';
 
-  conversationHistory[senderJid].push({ role: 'assistant', content: finalReply });
-  trimHistory(senderJid);
+  conversationHistory[hKey].push({ role: 'assistant', content: finalReply });
+  trimHistory(hKey);
   console.log(`[LLM] response ready (${finalReply.length} chars)`);
 
   return finalReply;

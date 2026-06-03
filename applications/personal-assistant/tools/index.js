@@ -621,12 +621,13 @@ const AGENT_TOOLS = {
     'get_current_time', 'get_current_date',
     'google_list_events', 'google_create_event', 'google_list_calendars',
     'family_save_memory', 'family_recall_memory', 'family_list_memory',
+    'm365_list_todos', 'm365_create_todo',
     'web_search', 'fetch_webpage'
   ]
 };
 
 function getToolDefinitions(agentType) {
-  const allowed = AGENT_TOOLS[agentType] || AGENT_TOOLS.business;
+  const allowed = AGENT_TOOLS[agentType] || AGENT_TOOLS.family;
   const googleOk = googleCalendar.isConfigured();
   const m365Ok = m365.isConfigured();
 
@@ -640,7 +641,12 @@ function getToolDefinitions(agentType) {
     .filter(Boolean);
 }
 
-async function executeTool(toolName, args) {
+async function executeTool(toolName, args, agentType = 'business') {
+  const allowed = AGENT_TOOLS[agentType] || AGENT_TOOLS.family;
+  if (!allowed.includes(toolName)) {
+    console.warn(`[TOOL] blocked: "${toolName}" not in ${agentType} toolset`);
+    return { error: `Tool ${toolName} is not available in this context.` };
+  }
   console.log(`[TOOL] ${toolName}(${JSON.stringify(args)})`);
   try {
     switch (toolName) {

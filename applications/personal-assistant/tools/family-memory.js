@@ -16,8 +16,8 @@ function recallMemory({ key }) {
   if (!key) return { error: 'key required' };
   const memory = getMemory();
   const normalizedKey = String(key).trim().toLowerCase();
-  const value = memory[normalizedKey] || null;
-  if (!value) {
+  const value = memory[normalizedKey] !== undefined ? memory[normalizedKey] : null;
+  if (value === null) {
     // Try partial match
     const match = Object.entries(memory).find(([k]) => k.includes(normalizedKey) || normalizedKey.includes(k));
     if (match) return { key: match[0], value: match[1] };
