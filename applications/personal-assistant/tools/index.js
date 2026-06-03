@@ -442,11 +442,11 @@ const DEFINITIONS = {
         type: 'object',
         properties: {
           title: { type: 'string', description: 'Page title' },
-          content: { type: 'string', description: 'Page content (plain text, newlines supported)' },
+          content: { type: 'string', description: 'Page content (plain text, newlines supported). When a PDF or document was in the conversation, pass its full extracted text here.' },
           notebook_name: { type: 'string', description: 'Notebook name to save into (optional, uses first notebook if not specified)' },
           section_name:  { type: 'string', description: 'Section name within the notebook (optional, uses first section if not specified)' }
         },
-        required: ['title', 'content']
+        required: ['title']
       }
     }
   },

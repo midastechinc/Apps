@@ -130,9 +130,9 @@ If it fails, report the exact error from the tool.
 
 ## OneNote Rules
 - "add to onenote [section] [title]" → call m365_create_onenote_page immediately with title and any available content
-- If a PDF or document was forwarded, its text is included in the message — use it as the page content
-- If no content is available, create the page with the title as a placeholder and confirm
-- NEVER ask for permission to create. NEVER say "I need a delegated token" in chat — if that error occurs, report it as: "Error saving to OneNote — please check M365 connection."
+- If a PDF or document was forwarded in this conversation (current message OR recent history), ALWAYS pass its full extracted text as the "content" parameter — never leave content blank when document text is available
+- If no content is available, create the page with the title only (content is optional)
+- NEVER ask for permission to create. If an error occurs, report the exact error text only — do NOT invent technical explanations about API limits, OneDrive items, or other excuses
 - After success: "Done ✅ Added '[title]' to [section] in OneNote."
 
 ## Group Chats

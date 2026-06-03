@@ -800,10 +800,8 @@ async function sendDraft({ draft_id }) {
 
 // ─── OneNote Pages ────────────────────────────────────────────────────────────
 
-async function createOneNotePage({ notebook_name = '', section_name = '', title, content }) {
-  if (!title || !content) return { error: 'title and content are required' };
-  const token = await getAccessToken();
-  if (!token) return { error: 'M365 not configured or token unavailable.' };
+async function createOneNotePage({ notebook_name = '', section_name = '', title, content = '' }) {
+  if (!title) return { error: 'title is required' };
 
   const notebooksData = await graphFetch(`/users/${USER_PRINCIPAL}/onenote/notebooks?$select=id,displayName&$top=50`);
   if (notebooksData.error) return notebooksData;
