@@ -220,14 +220,16 @@ app.put('/api/integrations/m365', requireAdminKey, (req, res) => {
     const { clientId, clientSecret, tenantId, refreshToken, accessToken, tokenExpiry, oneNoteRefreshToken } = req.body;
     const current = getConfig().integrations?.m365 || {};
 
+    const resolvedClientId = clientId || current.clientId || '';
+    const resolvedTenantId = tenantId || current.tenantId || '';
     const patch = {
-      enabled: !!(clientId && tenantId),
-      clientId: clientId || current.clientId || '',
-      tenantId: tenantId || current.tenantId || '',
+      enabled: !!(resolvedClientId && resolvedTenantId),
+      clientId: resolvedClientId,
+      tenantId: resolvedTenantId,
       clientSecret: clientSecret === '••••••••' ? (current.clientSecret || '') : (clientSecret || current.clientSecret || ''),
       refreshToken: refreshToken === '••••••••' ? (current.refreshToken || '') : (refreshToken || current.refreshToken || ''),
-      accessToken: accessToken || '',
-      tokenExpiry: tokenExpiry || 0,
+      accessToken: accessToken || current.accessToken || '',
+      tokenExpiry: tokenExpiry || current.tokenExpiry || 0,
       oneNoteRefreshToken: oneNoteRefreshToken === '••••••••' ? (current.oneNoteRefreshToken || '') : (oneNoteRefreshToken !== undefined ? oneNoteRefreshToken : (current.oneNoteRefreshToken || ''))
     };
 
