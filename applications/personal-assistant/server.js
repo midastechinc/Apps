@@ -479,7 +479,7 @@ app.listen(PORT, () => {
   const cfg = getConfig();
   console.log(`Personal Assistant API listening on port ${PORT}`);
   console.log(`[CONFIG] path=${configPath}`);
-  console.log(`[CONFIG] m365.enabled=${cfg.integrations?.m365?.enabled} hasRefreshToken=${!!cfg.integrations?.m365?.refreshToken} brave.apiKey=${cfg.integrations?.brave?.apiKey ? 'set' : 'missing'} BRAVE_API_KEY_env=${!!process.env.BRAVE_API_KEY}`);
+  console.log(`[CONFIG] m365.enabled=${cfg.integrations?.m365?.enabled} hasRefreshToken=${!!cfg.integrations?.m365?.refreshToken} hasOneNoteToken=${!!cfg.integrations?.m365?.oneNoteRefreshToken} brave.apiKey=${cfg.integrations?.brave?.apiKey ? 'set' : 'missing'} BRAVE_API_KEY_env=${!!process.env.BRAVE_API_KEY}`);
 });
 
 startWhatsApp(processMessage).catch(err => {

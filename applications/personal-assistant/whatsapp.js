@@ -249,6 +249,40 @@ async function connect() {
         }
       }
 
+      // Handle document messages (PDFs, Word docs, etc.)
+      const docMsg =
+        msg.message?.documentMessage ||
+        msg.message?.documentWithCaptionMessage?.message?.documentMessage;
+      if (docMsg && !text && !imageInfo) {
+        const fileName = docMsg.fileName || 'document';
+        const mimeType = docMsg.mimetype || '';
+        const docCaption = docMsg.caption || '';
+        if (docCaption) text = docCaption;
+
+        if (mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')) {
+          try {
+            const pdfParse = require('pdf-parse');
+            const buffer = await downloadMediaMessage(msg, 'buffer', {}, { logger, reuploadRequest: sock.updateMediaMessage });
+            console.log(`[WA] PDF downloaded ${Math.round(buffer.length / 1024)}KB: ${fileName}`);
+            const data = await pdfParse(buffer);
+            const pdfText = data.text?.trim() || '';
+            if (pdfText) {
+              const truncated = pdfText.length > 8000;
+              const body = truncated ? pdfText.slice(0, 8000) + '\n...(truncated)' : pdfText;
+              text = (text ? text + '\n\n' : '') + `[PDF: ${fileName}]\n${body}`;
+              console.log(`[WA] PDF extracted ${pdfText.length} chars from ${fileName}`);
+            } else {
+              text = (text || '') + `[PDF received: ${fileName} — no extractable text]`;
+            }
+          } catch (err) {
+            console.error('[WA] PDF extraction failed:', err.message);
+            text = (text || '') + `[PDF received: ${fileName} — could not read content]`;
+          }
+        } else {
+          text = (text || '') + `[Document received: ${fileName}]`;
+        }
+      }
+
       if (!text && !imageInfo) continue;
       // Image with no caption → describe only, no tool calls
       if (!text && imageInfo) text = '[Image received with no caption — describe what you see. Do NOT add tasks, save links, or call any tools.]';
