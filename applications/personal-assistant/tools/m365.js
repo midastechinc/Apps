@@ -55,7 +55,12 @@ async function getOneNoteAccessToken() {
 
   const config = getConfig();
   const m365 = config.integrations?.m365;
-  if (!m365?.clientId || !m365?.tenantId || !m365?.clientSecret || !m365?.oneNoteRefreshToken) return null;
+  if (!m365?.clientId || !m365?.tenantId || !m365?.clientSecret) return null;
+
+  // Use dedicated OneNote token if set, otherwise fall back to main refresh token.
+  // fix_m365.py already requests Notes.ReadWrite.All scope, so the main token works.
+  const refreshToken = m365.oneNoteRefreshToken || m365.refreshToken;
+  if (!refreshToken) return null;
 
   try {
     const resp = await fetch(
@@ -67,7 +72,7 @@ async function getOneNoteAccessToken() {
           client_id: m365.clientId,
           client_secret: m365.clientSecret,
           grant_type: 'refresh_token',
-          refresh_token: m365.oneNoteRefreshToken,
+          refresh_token: refreshToken,
           scope: 'https://graph.microsoft.com/Notes.ReadWrite.All offline_access'
         })
       }
@@ -84,7 +89,7 @@ async function getOneNoteAccessToken() {
       const cur = getConfig().integrations?.m365 || {};
       updateConfig({ integrations: { m365: { ...cur, oneNoteRefreshToken: data.refresh_token } } });
     }
-    console.log('[M365] OneNote token refreshed via delegated flow');
+    console.log('[M365] OneNote token obtained via delegated flow');
     return _cachedOneNoteToken;
   } catch (err) {
     console.error('[M365] OneNote token refresh error:', err.message);
