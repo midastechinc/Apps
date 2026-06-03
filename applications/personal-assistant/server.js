@@ -145,6 +145,7 @@ app.get('/api/integrations', requireAdminKey, (_req, res) => {
       hasClientSecret: !!m.clientSecret,
       hasTenantId: !!m.tenantId,
       hasRefreshToken: !!m.refreshToken,
+      hasOneNoteToken: !!m.oneNoteRefreshToken,
       configured: !!(m.clientId && m.tenantId && (m.accessToken || m.refreshToken))
     },
     brave: {
@@ -216,7 +217,7 @@ app.delete('/api/integrations/google', requireAdminKey, (req, res) => {
 // M365: save credentials
 app.put('/api/integrations/m365', requireAdminKey, (req, res) => {
   try {
-    const { clientId, clientSecret, tenantId, refreshToken, accessToken, tokenExpiry } = req.body;
+    const { clientId, clientSecret, tenantId, refreshToken, accessToken, tokenExpiry, oneNoteRefreshToken } = req.body;
     const current = getConfig().integrations?.m365 || {};
 
     const patch = {
@@ -226,7 +227,8 @@ app.put('/api/integrations/m365', requireAdminKey, (req, res) => {
       clientSecret: clientSecret === '••••••••' ? (current.clientSecret || '') : (clientSecret || current.clientSecret || ''),
       refreshToken: refreshToken === '••••••••' ? (current.refreshToken || '') : (refreshToken || current.refreshToken || ''),
       accessToken: accessToken || '',
-      tokenExpiry: tokenExpiry || 0
+      tokenExpiry: tokenExpiry || 0,
+      oneNoteRefreshToken: oneNoteRefreshToken === '••••••••' ? (current.oneNoteRefreshToken || '') : (oneNoteRefreshToken !== undefined ? oneNoteRefreshToken : (current.oneNoteRefreshToken || ''))
     };
 
     updateConfig({ integrations: { m365: patch } });
@@ -359,6 +361,112 @@ print("\\nDone! M365 is reconnected.")
 
   res.setHeader('Content-Type', 'text/plain');
   res.setHeader('Content-Disposition', 'attachment; filename="fix_m365.py"');
+  res.send(script);
+});
+
+// ─── Download fix_onenote.py ──────────────────────────────────────────────────
+app.get('/download/fix_onenote.py', (req, res, next) => {
+  const qKey = (req.query.key || '').trim();
+  if (ADMIN_KEY && qKey === ADMIN_KEY) return next();
+  requireAdminKey(req, res, next);
+}, (req, res) => {
+  const cfg = getConfig();
+  const m365 = cfg.integrations?.m365 || {};
+  const TENANT_ID     = m365.tenantId     || '';
+  const CLIENT_ID     = m365.clientId     || '';
+  const CLIENT_SECRET = m365.clientSecret || '';
+  const BACKEND       = `https://${req.headers.host}`;
+
+  const script = `"""
+OneNote Device Code Login — gets a delegated refresh token for OneNote API.
+Microsoft blocked app-only (client_credentials) access to OneNote from March 2025.
+Run: python fix_onenote.py
+"""
+import urllib.request
+import urllib.parse
+import json
+import time
+
+BACKEND   = "${BACKEND}"
+ADMIN_KEY = "${ADMIN_KEY}"
+
+TENANT_ID     = "${TENANT_ID}"
+CLIENT_ID     = "${CLIENT_ID}"
+CLIENT_SECRET = "${CLIENT_SECRET}"
+SCOPES = "https://graph.microsoft.com/Notes.ReadWrite.All offline_access openid profile"
+
+def ms_post(url, body_dict):
+    data = urllib.parse.urlencode(body_dict).encode()
+    req = urllib.request.Request(url, data=data,
+          headers={"Content-Type": "application/x-www-form-urlencoded"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        raise Exception(f"HTTP {e.code}: {body}")
+
+def api_patch(path, body):
+    data = json.dumps(body).encode()
+    req = urllib.request.Request(f"{BACKEND}{path}", data=data, method="PUT",
+          headers={"Authorization": f"Bearer {ADMIN_KEY}",
+                   "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=15) as r:
+        return json.loads(r.read())
+
+print("Requesting device code for OneNote...")
+device = ms_post(
+    f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/devicecode",
+    {"client_id": CLIENT_ID, "scope": SCOPES}
+)
+
+print("\\n" + "="*55)
+print("  Go to:", device.get("verification_uri", "https://microsoft.com/devicelogin"))
+print("  Enter code:", device["user_code"])
+print("="*55)
+print("\\nSign in with ali@midastech.ca then come back here.")
+input("\\nPress ENTER after you have approved in the browser...")
+
+print("Fetching token...", end="", flush=True)
+interval = int(device.get("interval", 5))
+token = None
+
+for _ in range(30):
+    time.sleep(interval)
+    print(".", end="", flush=True)
+    try:
+        token = ms_post(
+            f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token",
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "client_id": CLIENT_ID,
+                "client_secret": CLIENT_SECRET,
+                "device_code": device["device_code"]
+            }
+        )
+        if "refresh_token" in token:
+            break
+        token = None
+    except Exception as e:
+        if "authorization_pending" in str(e) or "slow_down" in str(e):
+            continue
+        print(f"\\nError: {e}")
+        break
+
+if not token or "refresh_token" not in token:
+    print("\\nFailed — try running the script again.")
+    exit(1)
+
+print("\\n\\nSaving OneNote token to Railway...")
+result = api_patch("/api/integrations/m365", {
+    "oneNoteRefreshToken": token["refresh_token"]
+})
+print(f"Saved: {result}")
+print("\\nDone! OneNote is now connected with delegated access.")
+`;
+
+  res.setHeader('Content-Type', 'text/plain');
+  res.setHeader('Content-Disposition', 'attachment; filename="fix_onenote.py"');
   res.send(script);
 });
 

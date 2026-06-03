@@ -2,9 +2,13 @@ const { getConfig, updateConfig } = require('../config-manager');
 
 const USER_PRINCIPAL = 'ali@midastech.ca';
 
-// Cache token in memory to avoid hammering the token endpoint
+// client_credentials token (for calendar, email, tasks, contacts, OneDrive, SharePoint)
 let _cachedToken = null;
 let _tokenExpiry = 0;
+
+// Delegated token for OneNote (Microsoft blocked app-only access to OneNote API from March 2025)
+let _cachedOneNoteToken = null;
+let _oneNoteTokenExpiry = 0;
 
 async function getAccessToken() {
   const config = getConfig();
@@ -46,10 +50,56 @@ async function getAccessToken() {
   }
 }
 
+async function getOneNoteAccessToken() {
+  if (_cachedOneNoteToken && Date.now() < _oneNoteTokenExpiry - 60000) return _cachedOneNoteToken;
+
+  const config = getConfig();
+  const m365 = config.integrations?.m365;
+  if (!m365?.clientId || !m365?.tenantId || !m365?.clientSecret || !m365?.oneNoteRefreshToken) return null;
+
+  try {
+    const resp = await fetch(
+      `https://login.microsoftonline.com/${m365.tenantId}/oauth2/v2.0/token`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: m365.clientId,
+          client_secret: m365.clientSecret,
+          grant_type: 'refresh_token',
+          refresh_token: m365.oneNoteRefreshToken,
+          scope: 'https://graph.microsoft.com/Notes.ReadWrite.All offline_access'
+        })
+      }
+    );
+    if (!resp.ok) {
+      const err = await resp.text();
+      console.error('[M365] OneNote token refresh error:', resp.status, err.slice(0, 200));
+      return null;
+    }
+    const data = await resp.json();
+    _cachedOneNoteToken = data.access_token;
+    _oneNoteTokenExpiry = Date.now() + (data.expires_in || 3600) * 1000;
+    if (data.refresh_token) {
+      const cur = getConfig().integrations?.m365 || {};
+      updateConfig({ integrations: { m365: { ...cur, oneNoteRefreshToken: data.refresh_token } } });
+    }
+    console.log('[M365] OneNote token refreshed via delegated flow');
+    return _cachedOneNoteToken;
+  } catch (err) {
+    console.error('[M365] OneNote token refresh error:', err.message);
+    return null;
+  }
+}
+
 async function graphFetch(endpoint, options = {}) {
-  const token = await getAccessToken();
+  // OneNote API requires delegated (user) tokens — Microsoft blocked app-only access March 2025
+  const needsDelegated = endpoint.includes('/onenote/');
+  const token = needsDelegated ? await getOneNoteAccessToken() : await getAccessToken();
   if (!token) {
-    return { error: 'M365 not configured or token unavailable. Set credentials in the Integrations tab.' };
+    return needsDelegated
+      ? { error: 'OneNote requires a delegated token. Download and run fix_onenote.py from the management UI.' }
+      : { error: 'M365 not configured or token unavailable. Set credentials in the Integrations tab.' };
   }
 
   const resp = await fetch(`https://graph.microsoft.com/v1.0${endpoint}`, {
@@ -74,7 +124,8 @@ async function graphFetch(endpoint, options = {}) {
 }
 
 async function graphFetchText(endpoint) {
-  const token = await getAccessToken();
+  const needsDelegated = endpoint.includes('/onenote/');
+  const token = needsDelegated ? await getOneNoteAccessToken() : await getAccessToken();
   if (!token) return null;
   try {
     const resp = await fetch(`https://graph.microsoft.com/v1.0${endpoint}`, {
