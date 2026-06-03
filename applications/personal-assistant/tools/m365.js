@@ -192,46 +192,39 @@ async function findSectionId(sectionName) {
     return cached;
   }
 
-  // 2. Pages $search — uses search index, does NOT enumerate document libraries
-  const searchData = await graphFetch(
-    `/users/${USER_PRINCIPAL}/onenote/pages?$search="${sectionName}"&$expand=parentSection($select=id,displayName)&$select=id,title&$top=5`
+  // 2. Drive API: search for .onetoc2 files to locate notebook folders, then query
+  //    each folder's sections via /drive/items/{id}/onenote/sections.
+  //    This completely avoids the general /onenote/ enumeration that causes Error 10008.
+  console.log(`[OneNote] Searching for section "${sectionName}" via Drive .onetoc2 discovery...`);
+  const tocSearch = await graphFetch(
+    `/users/${USER_PRINCIPAL}/drive/search(q='.onetoc2')?$select=id,name,parentReference&$top=30`
   );
-  if (!searchData.error && searchData.value?.length > 0) {
-    const sectionId = searchData.value[0]?.parentSection?.id;
-    if (sectionId) {
-      cacheOneNoteSectionId(sectionName, sectionId);
-      return sectionId;
-    }
-  }
 
-  // 3. Drive API: navigate notebook folders, derive OneNote notebook ID (ODB format: "1-{driveItemId}")
-  //    then query that SPECIFIC notebook's sections — avoids enumerating all notebooks
-  const driveLocations = [
-    `/users/${USER_PRINCIPAL}/drive/root/children`,
-    `/users/${USER_PRINCIPAL}/drive/root:/Documents:/children`,
-    `/users/${USER_PRINCIPAL}/drive/root:/Notebooks:/children`
-  ];
-  for (const loc of driveLocations) {
-    const children = await graphFetch(`${loc}?$select=id,name,folder&$top=50`);
-    if (children.error) continue;
-    for (const item of (children.value || [])) {
-      if (!item.folder) continue;
-      // Try OneDrive for Business notebook ID format
-      const notebookId = `1-${item.id}`;
+  if (!tocSearch.error && tocSearch.value?.length > 0) {
+    const folderIds = [...new Set(
+      tocSearch.value.map(f => f.parentReference?.id).filter(Boolean)
+    )];
+
+    for (const folderId of folderIds) {
       const sectionsData = await graphFetch(
-        `/users/${USER_PRINCIPAL}/onenote/notebooks/${notebookId}/sections?$select=id,displayName&$top=50`
+        `/users/${USER_PRINCIPAL}/drive/items/${folderId}/onenote/sections?$select=id,displayName&$top=100`
       );
-      if (sectionsData.error) continue;
+      if (sectionsData.error) {
+        console.log(`[OneNote] drive/items/${folderId}/onenote/sections error: ${sectionsData.error}`);
+        continue;
+      }
       const match = (sectionsData.value || []).find(s =>
         s.displayName.toLowerCase().includes(key)
       );
       if (match) {
+        console.log(`[OneNote] Found section "${match.displayName}" via Drive folder ${folderId}`);
         cacheOneNoteSectionId(sectionName, match.id);
         return match.id;
       }
     }
   }
 
+  console.log(`[OneNote] Section "${sectionName}" not found via Drive discovery.`);
   return null;
 }
 
@@ -284,7 +277,7 @@ const PLATFORM_CONFIG = {
 async function findOneNotePageByTitle(titleToFind) {
   const lower = titleToFind.toLowerCase();
 
-  // Fastest: direct search API
+  // Use pages search API — scoped to user, avoids cross-library enumeration (Error 10008)
   const searchData = await oneNoteFetch(`/pages?$search="${titleToFind}"&$select=id,title&$top=20`);
   if (!searchData.error) {
     const found = (searchData.value || []).find(p => p.title?.toLowerCase() === lower);
@@ -294,33 +287,31 @@ async function findOneNotePageByTitle(titleToFind) {
     }
   }
 
-  // Flat sections endpoint
-  const allSections = await oneNoteFetch('/sections?$select=id,displayName&$top=100');
-  if (!allSections.error) {
-    for (const sec of (allSections.value || [])) {
-      const pagesData = await oneNoteFetch(`/sections/${sec.id}/pages?$select=id,title&$top=100`);
-      if (pagesData.error) continue;
-      const found = (pagesData.value || []).find(p => p.title?.toLowerCase() === lower);
-      if (found) {
-        console.log(`[OneNote] Found "${titleToFind}" in section "${sec.displayName}" via flat sections`);
-        return found;
+  // Fallback: discover sections via Drive .onetoc2 search, query each section's pages
+  const tocSearch = await graphFetch(
+    `/users/${USER_PRINCIPAL}/drive/search(q='.onetoc2')?$select=id,name,parentReference&$top=30`
+  );
+  if (!tocSearch.error && tocSearch.value?.length > 0) {
+    const folderIds = [...new Set(
+      tocSearch.value.map(f => f.parentReference?.id).filter(Boolean)
+    )];
+    for (const folderId of folderIds) {
+      const sectionsData = await graphFetch(
+        `/users/${USER_PRINCIPAL}/drive/items/${folderId}/onenote/sections?$select=id,displayName&$top=100`
+      );
+      if (sectionsData.error) continue;
+      for (const sec of (sectionsData.value || [])) {
+        const pagesData = await oneNoteFetch(`/sections/${sec.id}/pages?$select=id,title&$top=100`);
+        if (pagesData.error) continue;
+        const found = (pagesData.value || []).find(p => p.title?.toLowerCase() === lower);
+        if (found) {
+          console.log(`[OneNote] Found "${titleToFind}" in section "${sec.displayName}" via Drive`);
+          return found;
+        }
       }
     }
   }
 
-  // Final fallback: traverse notebooks → sections
-  const notebooksData = await oneNoteFetch('/notebooks?$select=id,displayName&$top=50');
-  if (notebooksData.error) return null;
-  for (const nb of (notebooksData.value || [])) {
-    const sectionsData = await oneNoteFetch(`/notebooks/${nb.id}/sections?$select=id,displayName&$top=50`);
-    if (sectionsData.error) continue;
-    for (const sec of (sectionsData.value || [])) {
-      const pagesData = await oneNoteFetch(`/sections/${sec.id}/pages?$select=id,title&$top=100`);
-      if (pagesData.error) continue;
-      const found = (pagesData.value || []).find(p => p.title?.toLowerCase() === lower);
-      if (found) return found;
-    }
-  }
   return null;
 }
 
@@ -612,21 +603,34 @@ async function searchOneNote({ query }) {
 }
 
 async function listOneNoteStructure() {
-  const notebooksData = await oneNoteFetch('/notebooks?$select=id,displayName&$top=50');
-  if (notebooksData.error) return { error: notebooksData.error };
+  // Use Drive .onetoc2 search to discover notebooks without triggering Error 10008
+  const tocSearch = await graphFetch(
+    `/users/${USER_PRINCIPAL}/drive/search(q='.onetoc2')?$select=id,name,parentReference&$top=30`
+  );
+  if (tocSearch.error) return { error: tocSearch.error };
+
+  const folderIds = [...new Set(
+    (tocSearch.value || []).map(f => f.parentReference?.id).filter(Boolean)
+  )];
+
+  if (folderIds.length === 0) return { structure: [], note: 'No OneNote notebooks found in Drive.' };
 
   const result = [];
-  for (const nb of (notebooksData.value || [])) {
-    const sectionsData = await oneNoteFetch(`/notebooks/${nb.id}/sections?$select=id,displayName&$top=50`);
-    const sections = [];
-    for (const sec of (sectionsData.value || [])) {
-      const pagesData = await oneNoteFetch(`/sections/${sec.id}/pages?$select=id,title&$top=50`);
-      sections.push({
-        section: sec.displayName,
-        pages: (pagesData.value || []).map(p => ({ title: p.title, id: p.id }))
-      });
-    }
-    result.push({ notebook: nb.displayName, sections });
+  for (const folderId of folderIds) {
+    const folderData = await graphFetch(
+      `/users/${USER_PRINCIPAL}/drive/items/${folderId}?$select=name`
+    );
+    const notebookName = folderData.name || folderId;
+
+    const sectionsData = await graphFetch(
+      `/users/${USER_PRINCIPAL}/drive/items/${folderId}/onenote/sections?$select=id,displayName&$top=100`
+    );
+    if (sectionsData.error) continue;
+
+    result.push({
+      notebook: notebookName,
+      sections: (sectionsData.value || []).map(s => ({ id: s.id, name: s.displayName }))
+    });
   }
   return { structure: result };
 }
@@ -905,36 +909,8 @@ async function createOneNotePage({ notebook_name = '', section_name = '', title,
     }
   }
 
-  // Fall back to notebook enumeration (fails with 10008 if >5000 items)
-  const notebooksData = await oneNoteFetch('/notebooks?$select=id,displayName&$top=50');
-  if (notebooksData.error) return { error: `${notebooksData.error} — Your OneDrive has too many OneNote items for the API to enumerate. Please share the URL of your "${section_name}" section in OneNote so I can save it directly.` };
-
-  let notebook = notebook_name
-    ? (notebooksData.value || []).find(nb => nb.displayName.toLowerCase().includes(notebook_name.toLowerCase()))
-    : null;
-  if (!notebook) notebook = (notebooksData.value || [])[0];
-  if (!notebook) return { error: 'No OneNote notebooks found.' };
-
-  const sectionsData = await oneNoteFetch(`/notebooks/${notebook.id}/sections?$select=id,displayName&$top=50`);
-  if (sectionsData.error) return sectionsData;
-
-  let section = section_name
-    ? (sectionsData.value || []).find(s => s.displayName.toLowerCase().includes(section_name.toLowerCase()))
-    : null;
-  if (!section) section = (sectionsData.value || [])[0];
-  if (!section) return { error: `No sections found in notebook "${notebook.displayName}".` };
-
-  if (section_name) cacheOneNoteSectionId(section_name, section.id);
-
-  const pageData = await oneNoteFetch(`/sections/${section.id}/pages`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/xhtml+xml' },
-    body: html
-  });
-  if (pageData.error) return pageData;
-
-  console.log(`[M365] OneNote page created: "${title}" in ${notebook.displayName}/${section.displayName}`);
-  return { success: true, title, notebook: notebook.displayName, section: section.displayName, page_id: pageData.id, url: pageData.links?.oneNoteWebUrl?.href || null };
+  // Could not find the section — ask user to provide the section URL
+  return { error: `Could not find OneNote section "${section_name || '(none specified)'}". Please open OneNote, right-click the section tab, copy the link, and send it to me with: "Set my OneNote section [section name] to [URL]"` };
 }
 
 async function readOneNotePage({ page_id, page_title = null }) {
