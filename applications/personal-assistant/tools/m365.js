@@ -192,19 +192,46 @@ async function findSectionId(sectionName) {
     return cached;
   }
 
-  // 2. Drive API: search for .onetoc2 files to locate notebook folders, then query
-  //    each folder's sections via /drive/items/{id}/onenote/sections.
-  //    This completely avoids the general /onenote/ enumeration that causes Error 10008.
-  console.log(`[OneNote] Searching for section "${sectionName}" via Drive .onetoc2 discovery...`);
+  // 2. Navigate from the YouTube Links page (known hardcoded ID) → parentSection → parentNotebook
+  //    → list that notebook's sections. Direct-by-ID access never triggers Error 10008.
+  const ANCHOR_PAGE_ID = '1-a9da38968f2a4e05826e53d9b8c8f5e4!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e';
+  const pageDetail = await oneNoteFetch(
+    `/pages/${ANCHOR_PAGE_ID}?$expand=parentSection($select=id,displayName,$expand=parentNotebook($select=id,displayName))`
+  );
+  const notebookId = pageDetail?.parentSection?.parentNotebook?.id;
+  console.log(`[OneNote] Anchor notebook ID: ${notebookId || 'not found'}, error: ${pageDetail?.error || 'none'}`);
+
+  if (notebookId) {
+    // Targeted: list sections of ONE known notebook — not a cross-library enumeration
+    const sectionsData = await oneNoteFetch(
+      `/notebooks/${notebookId}/sections?$select=id,displayName&$top=100`
+    );
+    console.log(`[OneNote] Sections in notebook: ${JSON.stringify(
+      sectionsData.value?.map(s => s.displayName) || sectionsData.error
+    )}`);
+    if (!sectionsData.error) {
+      const match = (sectionsData.value || []).find(s =>
+        s.displayName.toLowerCase().includes(key)
+      );
+      if (match) {
+        console.log(`[OneNote] Found section "${match.displayName}" via notebook anchor`);
+        cacheOneNoteSectionId(sectionName, match.id);
+        return match.id;
+      }
+    }
+  }
+
+  // 3. Drive .onetoc2 search (works for personal OneDrive; may not find SharePoint-hosted notebooks)
+  console.log(`[OneNote] Trying Drive .onetoc2 discovery for "${sectionName}"...`);
   const tocSearch = await graphFetch(
     `/users/${USER_PRINCIPAL}/drive/search(q='.onetoc2')?$select=id,name,parentReference&$top=30`
   );
+  console.log(`[OneNote] .onetoc2 search: error=${tocSearch.error || 'none'}, count=${tocSearch.value?.length ?? 0}`);
 
   if (!tocSearch.error && tocSearch.value?.length > 0) {
     const folderIds = [...new Set(
       tocSearch.value.map(f => f.parentReference?.id).filter(Boolean)
     )];
-
     for (const folderId of folderIds) {
       const sectionsData = await graphFetch(
         `/users/${USER_PRINCIPAL}/drive/items/${folderId}/onenote/sections?$select=id,displayName&$top=100`
@@ -224,7 +251,7 @@ async function findSectionId(sectionName) {
     }
   }
 
-  console.log(`[OneNote] Section "${sectionName}" not found via Drive discovery.`);
+  console.log(`[OneNote] Section "${sectionName}" not found. Cache it via m365_set_onenote_section.`);
   return null;
 }
 
@@ -1137,6 +1164,17 @@ module.exports = {
   createOneNotePage, readOneNotePage, setOneNoteSection,
   searchOneDrive, listOneDriveFolder, getOneDriveShareLink,
   listSharePointSites, searchSharePoint, listSharePointFiles,
-  isConfigured
+  isConfigured,
+
+  // Debug helpers for /api/debug/onenote
+  debugGetPageDetail: (pageId) => oneNoteFetch(
+    `/pages/${pageId}?$expand=parentSection($select=id,displayName,$expand=parentNotebook($select=id,displayName))`
+  ),
+  debugListNotebookSections: (notebookId) => oneNoteFetch(
+    `/notebooks/${notebookId}/sections?$select=id,displayName&$top=100`
+  ),
+  debugTocSearch: () => graphFetch(
+    `/users/${USER_PRINCIPAL}/drive/search(q='.onetoc2')?$select=id,name,parentReference&$top=30`
+  )
 };
 

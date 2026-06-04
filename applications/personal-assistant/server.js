@@ -551,6 +551,35 @@ print("\\nDone! OneNote is now connected with delegated access.")
   res.send(script);
 });
 
+// ─── OneNote diagnostics ──────────────────────────────────────────────────────
+// GET /api/debug/onenote?section=travel  (requires admin key in Authorization header)
+app.get('/api/debug/onenote', requireAdminKey, async (req, res) => {
+  const sectionName = (req.query.section || 'travel').trim();
+  const results = {};
+
+  // Test 1: anchor page lookup
+  const ANCHOR_PAGE_ID = '1-a9da38968f2a4e05826e53d9b8c8f5e4!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e';
+  const pageDetail = await m365Tools.debugGetPageDetail(ANCHOR_PAGE_ID).catch(e => ({ error: e.message }));
+  results.anchorPage = pageDetail;
+
+  // Test 2: if we got a notebook ID, list its sections
+  const notebookId = pageDetail?.parentSection?.parentNotebook?.id;
+  if (notebookId) {
+    const sections = await m365Tools.debugListNotebookSections(notebookId).catch(e => ({ error: e.message }));
+    results.notebookSections = sections;
+  }
+
+  // Test 3: Drive .onetoc2 search
+  const tocResult = await m365Tools.debugTocSearch().catch(e => ({ error: e.message }));
+  results.tocSearch = tocResult;
+
+  // Test 4: current cached section IDs
+  const { getConfig } = require('./config-manager');
+  results.cachedSections = getConfig().integrations?.m365?.oneNoteSections || {};
+
+  res.json(results);
+});
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   const path = require('path');
