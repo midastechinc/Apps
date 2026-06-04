@@ -934,11 +934,13 @@ async function createOneNotePage({ notebook_name = '', section_name = '', title,
         cacheOneNoteSectionId(section_name, sectionId);
         return { success: true, title, section: section_name, page_id: pageData.id, url: pageData.links?.oneNoteWebUrl?.href || null };
       }
-      // Section ID might be stale — clear cache and fall through
-      const cur = getConfig().integrations?.m365 || {};
-      const sections = { ...(cur.oneNoteSections || {}) };
-      delete sections[section_name.toLowerCase()];
-      updateConfig({ integrations: { m365: { ...cur, oneNoteSections: sections } } });
+      console.log(`[OneNote] Section ID ${sectionId} rejected by API: ${pageData.error} — clearing cache`);
+      // Cached ID is wrong format — clear it so next call re-discovers
+      const cur2 = getConfig().integrations?.m365 || {};
+      const sections2 = { ...(cur2.oneNoteSections || {}) };
+      delete sections2[section_name.toLowerCase()];
+      updateConfig({ integrations: { m365: { ...cur2, oneNoteSections: sections2 } } });
+      return { error: `OneNote section "${section_name}" ID was invalid (${pageData.error}). The section URL you provided uses a SharePoint file ID, not a Graph API ID. Please send Claudia a direct link to a PAGE inside the Travel section (open any page in Travel → share → copy link) so she can discover the correct section ID.` };
     }
   }
 
