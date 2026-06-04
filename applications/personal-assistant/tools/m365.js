@@ -221,35 +221,21 @@ async function findSectionId(sectionName) {
       s.displayName.toLowerCase().includes(key)
     );
     if (match) {
-      console.log(`[OneNote] Found section "${match.displayName}", resolving compound section ID...`);
-      // IDs from notebooks/{id}/sections are bare GUIDs — Graph API POST rejects them with 20112.
-      // Fetch one page from this section; page.parentSection.id is always compound format.
-      const sPageData = await oneNoteFetch(
+      console.log(`[OneNote] Found section "${match.displayName}", verifying its ID is usable...`);
+      // Verify the ID actually works for page operations (some IDs returned by enumeration
+      // are rejected with error 20112 on POST). Fetch one page; parentSection.id is the
+      // canonical ID to cache. Only return a VERIFIED id — never a guess that 500s the user.
+      const verify = await oneNoteFetch(
         `/sections/${match.id}/pages?$expand=parentSection($select=id)&$select=id&$top=1`
       );
-      const compoundId = sPageData.value?.[0]?.parentSection?.id;
-      if (compoundId) {
-        console.log(`[OneNote] Resolved compound section ID: ${compoundId}`);
-        cacheOneNoteSectionId(sectionName, compoundId);
-        return compoundId;
+      if (!verify.error) {
+        const canonicalId = verify.value?.[0]?.parentSection?.id || match.id;
+        console.log(`[OneNote] Verified section ID: ${canonicalId}`);
+        cacheOneNoteSectionId(sectionName, canonicalId);
+        return canonicalId;
       }
-      // Section may be empty or GET failed — try page $search filtered by section displayName
-      const normS = s => (s || '').toLowerCase().replace(/[-_\s]+/g, '');
-      const pSearch = await oneNoteFetch(
-        `/pages?$search="${match.displayName}"&$expand=parentSection($select=id,displayName)&$top=20`
-      );
-      const sectionPage = (!pSearch.error && pSearch.value || []).find(p =>
-        normS(p.parentSection?.displayName) === normS(match.displayName)
-      );
-      if (sectionPage?.parentSection?.id) {
-        console.log(`[OneNote] Compound section ID via page search: ${sectionPage.parentSection.id}`);
-        cacheOneNoteSectionId(sectionName, sectionPage.parentSection.id);
-        return sectionPage.parentSection.id;
-      }
-      // Last resort: bare GUID (POST will likely fail, but cache it)
-      console.log(`[OneNote] Warning: only bare GUID available for "${match.displayName}"`);
-      cacheOneNoteSectionId(sectionName, match.id);
-      return match.id;
+      console.log(`[OneNote] Section "${match.displayName}" id ${match.id} not directly usable (${verify.error}) — caller will fall back to sectionName= create`);
+      // Do NOT cache or return a bad ID; let discovery fall through / caller use sectionName.
     }
   }
 
@@ -946,45 +932,53 @@ async function createOneNotePage({ notebook_name = '', section_name = '', title,
     .replace(/\n/g, '<br/>');
   const html = `<!DOCTYPE html><html><head><title>${safeTitle}</title></head><body><h1>${safeTitle}</h1>${safeContent ? `<p>${safeContent}</p>` : ''}<p style="color:#999;font-size:0.8em;">Created by Claudia — ${now}</p></body></html>`;
 
-  // Find the section ID without enumerating all notebooks (avoids Error 10008)
+  const postPage = (endpoint) => graphFetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/xhtml+xml' },
+    body: html
+  });
+  const ok = (pageData) => {
+    // Cache the canonical section ID from the response so the next create is a direct hit
+    if (section_name && pageData.parentSection?.id) cacheOneNoteSectionId(section_name, pageData.parentSection.id);
+    return { success: true, title, section: section_name || 'default', page_id: pageData.id, url: pageData.links?.oneNoteWebUrl?.href || null };
+  };
+
   if (section_name) {
+    // 1. Try a cached/discovered section ID (findSectionId only returns VERIFIED-usable IDs now).
     const sectionId = await findSectionId(section_name);
     if (sectionId) {
-      const pageData = await graphFetch(`/users/${USER_PRINCIPAL}/onenote/sections/${sectionId}/pages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/xhtml+xml' },
-        body: html
-      });
+      const pageData = await postPage(`/users/${USER_PRINCIPAL}/onenote/sections/${sectionId}/pages`);
       if (!pageData.error) {
         console.log(`[M365] OneNote page created: "${title}" in section ${sectionId}`);
-        cacheOneNoteSectionId(section_name, sectionId);
-        return { success: true, title, section: section_name, page_id: pageData.id, url: pageData.links?.oneNoteWebUrl?.href || null };
+        return ok(pageData);
       }
-      console.log(`[OneNote] Cached ID ${sectionId} rejected: ${pageData.error} — clearing and retrying discovery`);
-      // Cached ID wrong format — clear it then retry discovery without cache
+      console.log(`[OneNote] Section ID ${sectionId} rejected (${pageData.error}); clearing cache and using sectionName= fallback`);
       const cur2 = getConfig().integrations?.m365 || {};
       const sections2 = { ...(cur2.oneNoteSections || {}) };
       delete sections2[section_name.toLowerCase()];
       updateConfig({ integrations: { m365: { ...cur2, oneNoteSections: sections2 } } });
-      // Retry findSectionId (cache is now empty so it runs full discovery)
-      const retrySectionId = await findSectionId(section_name);
-      if (retrySectionId) {
-        const retryData = await graphFetch(`/users/${USER_PRINCIPAL}/onenote/sections/${retrySectionId}/pages`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/xhtml+xml' },
-          body: html
-        });
-        if (!retryData.error) {
-          console.log(`[M365] OneNote page created on retry: "${title}" in section ${retrySectionId}`);
-          return { success: true, title, section: section_name, page_id: retryData.id, url: retryData.links?.oneNoteWebUrl?.href || null };
-        }
-        return { error: `OneNote API error after rediscovery: ${retryData.error}` };
-      }
     }
+
+    // 2. Reliable fallback: create by section NAME in the default notebook.
+    //    Microsoft Graph auto-creates the section if missing and accepts this for
+    //    enterprise M365 notebooks — no compound section ID required (avoids error 20112).
+    const byName = await postPage(
+      `/users/${USER_PRINCIPAL}/onenote/pages?sectionName=${encodeURIComponent(section_name)}`
+    );
+    if (!byName.error) {
+      console.log(`[M365] OneNote page created via sectionName="${section_name}"`);
+      return ok(byName);
+    }
+    return { error: `Could not create the OneNote page in "${section_name}": ${byName.error}` };
   }
 
-  // Could not find the section — ask user to provide the section URL
-  return { error: `Could not find OneNote section "${section_name || '(none specified)'}". Please open OneNote, right-click the section tab, copy the link, and send it to me with: "Set my OneNote section [section name] to [URL]"` };
+  // No section specified → default section of the default notebook
+  const def = await postPage(`/users/${USER_PRINCIPAL}/onenote/pages`);
+  if (!def.error) {
+    console.log(`[M365] OneNote page created in default section: "${title}"`);
+    return ok(def);
+  }
+  return { error: `Could not create the OneNote page: ${def.error}` };
 }
 
 async function readOneNotePage({ page_id, page_title = null }) {
