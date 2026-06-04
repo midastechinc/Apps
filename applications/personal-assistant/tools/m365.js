@@ -231,26 +231,30 @@ async function findSectionId(sectionName) {
     updateConfig({ integrations: { m365: { ...cur, oneNoteSections: sections } } });
   }
 
-  // 2. Page full-text search by section name. OneNote's `search=` (NOT OData `$search`)
-  //    is served by the search index and keeps working even when bulk enumeration fails
-  //    with Error 10008. Page results expand parentSection (id, name) by default.
-  const searchData = await oneNoteFetch(
-    `/pages?search=${encodeURIComponent(sectionName)}&$top=50`
-  );
-  if (!searchData.error) {
-    const match = (searchData.value || []).find(p =>
-      isCompoundOneNoteId(p.parentSection?.id) && norm(sectionDisplayName(p)) === norm(sectionName)
+  // 2. Page full-text search. OneNote `search=` (not OData `$search`) is index-based and keeps
+  //    working under Error 10008. We expand parentSection so displayName is available for matching.
+  //    First try the section name itself; if that hits nothing in that section, fall back to broad
+  //    common words so any page in the section can surface the section ID.
+  const trySearch = async (query) => {
+    const data = await oneNoteFetch(
+      `/pages?search=${encodeURIComponent(query)}&$top=50&$expand=parentSection`
     );
+    if (data.error) { console.log(`[OneNote] Page search "${query}" error: ${data.error}`); return null; }
+    return (data.value || []).find(p =>
+      isCompoundOneNoteId(p.parentSection?.id) && norm(sectionDisplayName(p)) === norm(sectionName)
+    ) || null;
+  };
+
+  for (const term of [sectionName, 'note', 'the', 'and']) {
+    const match = await trySearch(term);
     if (match) {
-      console.log(`[OneNote] Found section "${sectionDisplayName(match)}" via page search → ${match.parentSection.id}`);
+      console.log(`[OneNote] Found section "${sectionDisplayName(match)}" via search("${term}") → ${match.parentSection.id}`);
       cacheOneNoteSectionId(sectionName, match.parentSection.id);
       return match.parentSection.id;
     }
-  } else {
-    console.log(`[OneNote] Page search for "${sectionName}" failed: ${searchData.error}`);
   }
 
-  console.log(`[OneNote] Section "${sectionName}" not found via search. Register it with m365_set_onenote_section using a page link from that section.`);
+  console.log(`[OneNote] Section "${sectionName}" not found. Use m365_set_onenote_section with a page link OR just a page title from that section (e.g. "DALLAS-2026").`);
   return null;
 }
 
@@ -925,7 +929,7 @@ async function createOneNotePage({ notebook_name = '', section_name = '', title,
     return { success: true, title, section: section_name || 'default', page_id: pageData.id, url: pageData.links?.oneNoteWebUrl?.href || null };
   };
   // Friendly guidance when the account's library is over the 5,000-item API limit.
-  const tooManyItems = `Microsoft is blocking notebook lookups on your account (error 10008 — a OneDrive/SharePoint library has over 5,000 OneNote items). To save into "${section_name}" anyway, open any page inside that section in OneNote, tap "Copy Link to Page", and send it to me like: "set onenote section ${section_name || 'travel'} <link>". I'll save straight to it after that.`;
+  const tooManyItems = `Microsoft is blocking notebook lookups on your account (error 10008 — a OneDrive/SharePoint library has over 5,000 OneNote items). To save into "${section_name}" anyway, register the section once using either:\n• A page title: "set onenote section ${section_name || 'travel'} DALLAS-2026" (or any page title from that section)\n• A page link: open a page inside "${section_name || 'travel'}" in OneNote, tap "Copy Link to Page", and send: "set onenote section ${section_name || 'travel'} <link>"\nAfter that I'll save straight to the section.`;
   const is10008 = (e) => /10008/.test(e || '');
 
   if (section_name) {
@@ -1172,16 +1176,10 @@ async function setOneNoteSection({ section_name, section_id_or_url }) {
     return { success: true, section_name, section_id: decoded.trim(), message: `Saved section ID for "${section_name}".` };
   }
 
-  // Case 2: a OneNote/SharePoint link — find page titles in it and $search each one.
-  // A page's parentSection.id is the real, usable Graph compound section ID, and
-  // $search keeps working even under Error 10008.
-  const titleCandidates = extractOneNoteTitles(section_id_or_url);
-  console.log(`[OneNote] setOneNoteSection: page-title candidates from link: ${JSON.stringify(titleCandidates)}`);
-
-  // helper: full-text search a query (OneNote `search=`, not OData `$search`), return a
-  // matching page whose parentSection is a usable compound id. parentSection expands by default.
+  // helper: full-text search (OneNote `search=`, not OData `$search`); expands parentSection so
+  // displayName is available. Returns a page whose parentSection is a usable compound ID.
   const searchForPage = async (query, requireTitleMatch) => {
-    const data = await oneNoteFetch(`/pages?search=${encodeURIComponent(query)}&$top=20`);
+    const data = await oneNoteFetch(`/pages?search=${encodeURIComponent(query)}&$top=20&$expand=parentSection`);
     if (data.error) return { error: data.error };
     const page = (data.value || []).find(p =>
       isCompoundOneNoteId(p.parentSection?.id) &&
@@ -1189,6 +1187,23 @@ async function setOneNoteSection({ section_name, section_id_or_url }) {
     );
     return { page };
   };
+
+  // Case 2a: plain page title (no URL characters) — user said e.g. "set onenote section travel DALLAS-2026"
+  const isUrl = decoded.includes('http') || decoded.includes('/') || decoded.includes('\\') || decoded.includes('|');
+  if (!isUrl) {
+    const { page, error } = await searchForPage(decoded.trim(), true);
+    if (error) return { error: `Couldn't search OneNote: ${error}` };
+    if (page?.parentSection?.id) {
+      console.log(`[OneNote] Resolved section "${sectionDisplayName(page)}" → ${page.parentSection.id} via page title "${page.title}"`);
+      cacheOneNoteSectionId(section_name, page.parentSection.id);
+      return { success: true, section_name, section_id: page.parentSection.id, message: `Done — "${section_name}" is now linked to the "${sectionDisplayName(page)}" section (found via page "${page.title}"). I can save notes there now.` };
+    }
+    return { error: `No page titled "${decoded.trim()}" was found in OneNote. Try another page title from the "${section_name}" section, or copy a page link from OneNote and send that instead.` };
+  }
+
+  // Case 2b: a OneNote/SharePoint link — extract page titles from the URL and search each one.
+  const titleCandidates = extractOneNoteTitles(section_id_or_url);
+  console.log(`[OneNote] setOneNoteSection: page-title candidates from link: ${JSON.stringify(titleCandidates)}`);
 
   let lastError = null;
   for (const cand of titleCandidates) {
@@ -1213,7 +1228,7 @@ async function setOneNoteSection({ section_name, section_id_or_url }) {
   if (lastError) {
     return { error: `Couldn't search OneNote: ${lastError}` };
   }
-  return { error: `I couldn't locate that page in OneNote search. Open a PAGE inside "${section_name}" in OneNote (not the section tab), use "Copy Link to Page", and send me that link. ${titleCandidates.length ? `(I looked for: ${titleCandidates.join(', ')}.)` : ''}`.trim() };
+  return { error: `I couldn't locate that page in OneNote search. You can also just send me the title of any page inside "${section_name}" (e.g. "set onenote section ${section_name} DALLAS-2026"). Or open a PAGE inside "${section_name}" in OneNote, use "Copy Link to Page", and send me that link. ${titleCandidates.length ? `(I looked for: ${titleCandidates.join(', ')}.)` : ''}`.trim() };
 }
 
 function isConfigured() {
