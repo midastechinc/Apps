@@ -231,30 +231,44 @@ async function findSectionId(sectionName) {
     updateConfig({ integrations: { m365: { ...cur, oneNoteSections: sections } } });
   }
 
-  // 2. Page full-text search. OneNote `search=` (not OData `$search`) is index-based and keeps
-  //    working under Error 10008. We expand parentSection so displayName is available for matching.
-  //    First try the section name itself; if that hits nothing in that section, fall back to broad
-  //    common words so any page in the section can surface the section ID.
-  const trySearch = async (query) => {
-    const data = await oneNoteFetch(
-      `/pages?search=${encodeURIComponent(query)}&$top=50&$expand=parentSection`
-    );
+  // 2. Page full-text search. OneNote `search=` is index-based (works under Error 10008).
+  //    IMPORTANT: $expand is NOT supported on the search endpoint (causes 20108).
+  //    parentSection.id is returned inline by default; displayName may or may not be.
+  //    Strategy: if displayName is available in the response, match directly. Otherwise
+  //    verify each candidate section ID with a direct GET /sections/{id} call (which is
+  //    a single-resource lookup, safe under 10008). Try section name first, then common
+  //    fallback words so any page in the section can surface the section ID.
+  const searchAndVerify = async (query) => {
+    const data = await oneNoteFetch(`/pages?search=${encodeURIComponent(query)}&$top=50`);
     if (data.error) { console.log(`[OneNote] Page search "${query}" error: ${data.error}`); return null; }
-    return (data.value || []).find(p =>
+
+    // Fast path: displayName already in response
+    const direct = (data.value || []).find(p =>
       isCompoundOneNoteId(p.parentSection?.id) && norm(sectionDisplayName(p)) === norm(sectionName)
-    ) || null;
+    );
+    if (direct) return direct.parentSection.id;
+
+    // Slow path: verify each unique compound section ID with a direct section fetch
+    const candidateIds = [...new Set(
+      (data.value || []).map(p => p.parentSection?.id).filter(id => isCompoundOneNoteId(id))
+    )].slice(0, 5); // cap at 5 candidates
+    for (const secId of candidateIds) {
+      const sec = await oneNoteFetch(`/sections/${secId}?$select=id,displayName`);
+      if (!sec.error && norm(sec.displayName) === norm(sectionName)) return secId;
+    }
+    return null;
   };
 
-  for (const term of [sectionName, 'note', 'the', 'and']) {
-    const match = await trySearch(term);
-    if (match) {
-      console.log(`[OneNote] Found section "${sectionDisplayName(match)}" via search("${term}") → ${match.parentSection.id}`);
-      cacheOneNoteSectionId(sectionName, match.parentSection.id);
-      return match.parentSection.id;
+  for (const term of [sectionName, 'note', 'the']) {
+    const secId = await searchAndVerify(term);
+    if (secId) {
+      console.log(`[OneNote] Found section "${sectionName}" via search("${term}") → ${secId}`);
+      cacheOneNoteSectionId(sectionName, secId);
+      return secId;
     }
   }
 
-  console.log(`[OneNote] Section "${sectionName}" not found. Use m365_set_onenote_section with a page link OR just a page title from that section (e.g. "DALLAS-2026").`);
+  console.log(`[OneNote] Section "${sectionName}" not found. Use m365_set_onenote_section with a page title (e.g. "DALLAS-2026") or a page link from that section.`);
   return null;
 }
 
@@ -1176,10 +1190,11 @@ async function setOneNoteSection({ section_name, section_id_or_url }) {
     return { success: true, section_name, section_id: decoded.trim(), message: `Saved section ID for "${section_name}".` };
   }
 
-  // helper: full-text search (OneNote `search=`, not OData `$search`); expands parentSection so
-  // displayName is available. Returns a page whose parentSection is a usable compound ID.
+  // helper: full-text search (OneNote `search=`, not OData `$search`).
+  // NOTE: $expand is NOT supported on the search endpoint — omit it.
+  // parentSection.id is returned inline by default.
   const searchForPage = async (query, requireTitleMatch) => {
-    const data = await oneNoteFetch(`/pages?search=${encodeURIComponent(query)}&$top=20&$expand=parentSection`);
+    const data = await oneNoteFetch(`/pages?search=${encodeURIComponent(query)}&$top=20`);
     if (data.error) return { error: data.error };
     const page = (data.value || []).find(p =>
       isCompoundOneNoteId(p.parentSection?.id) &&
