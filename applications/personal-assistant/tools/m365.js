@@ -934,13 +934,26 @@ async function createOneNotePage({ notebook_name = '', section_name = '', title,
         cacheOneNoteSectionId(section_name, sectionId);
         return { success: true, title, section: section_name, page_id: pageData.id, url: pageData.links?.oneNoteWebUrl?.href || null };
       }
-      console.log(`[OneNote] Section ID ${sectionId} rejected by API: ${pageData.error} — clearing cache`);
-      // Cached ID is wrong format — clear it so next call re-discovers
+      console.log(`[OneNote] Cached ID ${sectionId} rejected: ${pageData.error} — clearing and retrying discovery`);
+      // Cached ID wrong format — clear it then retry discovery without cache
       const cur2 = getConfig().integrations?.m365 || {};
       const sections2 = { ...(cur2.oneNoteSections || {}) };
       delete sections2[section_name.toLowerCase()];
       updateConfig({ integrations: { m365: { ...cur2, oneNoteSections: sections2 } } });
-      return { error: `OneNote section "${section_name}" ID was invalid (${pageData.error}). The section URL you provided uses a SharePoint file ID, not a Graph API ID. Please send Claudia a direct link to a PAGE inside the Travel section (open any page in Travel → share → copy link) so she can discover the correct section ID.` };
+      // Retry findSectionId (cache is now empty so it runs full discovery)
+      const retrySectionId = await findSectionId(section_name);
+      if (retrySectionId) {
+        const retryData = await graphFetch(`/users/${USER_PRINCIPAL}/onenote/sections/${retrySectionId}/pages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/xhtml+xml' },
+          body: html
+        });
+        if (!retryData.error) {
+          console.log(`[M365] OneNote page created on retry: "${title}" in section ${retrySectionId}`);
+          return { success: true, title, section: section_name, page_id: retryData.id, url: retryData.links?.oneNoteWebUrl?.href || null };
+        }
+        return { error: `OneNote API error after rediscovery: ${retryData.error}` };
+      }
     }
   }
 
@@ -1140,20 +1153,44 @@ async function listSharePointFiles({ site_id, folder_path = '/' } = {}) {
   };
 }
 
-function setOneNoteSection({ section_name, section_id_or_url }) {
+async function setOneNoteSection({ section_name, section_id_or_url }) {
   if (!section_name || !section_id_or_url) return { error: 'section_name and section_id_or_url are required' };
   const decoded = decodeURIComponent(section_id_or_url);
 
-  // Priority 1: wdsectionfileid param — most explicit section identifier in SharePoint URLs
+  // If the URL contains a PAGE path (SectionName|sectionId/PageTitle|pageId/)
+  // search for that page to get the REAL Graph API section ID (not the SharePoint file ID).
+  const pageMatch = decoded.match(/\.one\|[^/]+\/([^|/]+)\|[0-9a-f-]+\//i);
+  const pageTitle = pageMatch?.[1]?.replace(/-/g, ' ').trim();
+  if (pageTitle) {
+    console.log(`[OneNote] setOneNoteSection: detected page URL, searching for page "${pageTitle}"`);
+    const searchData = await oneNoteFetch(
+      `/pages?$search="${pageTitle}"&$expand=parentSection($select=id,displayName)&$select=id,title&$top=10`
+    );
+    if (!searchData.error) {
+      const page = (searchData.value || []).find(p =>
+        p.title?.toLowerCase().includes(pageTitle.toLowerCase()) ||
+        pageTitle.toLowerCase().includes(p.title?.toLowerCase())
+      );
+      if (page?.parentSection?.id) {
+        const sectionId = page.parentSection.id;
+        console.log(`[OneNote] Found real section ID via page search: ${sectionId} (section: "${page.parentSection.displayName}")`);
+        cacheOneNoteSectionId(section_name, sectionId);
+        return { success: true, section_name, section_id: sectionId, message: `Saved! Found the real section ID for "${section_name}" via the page "${page.title}".` };
+      }
+    }
+    console.log(`[OneNote] Page search for "${pageTitle}" returned no results (error: ${searchData.error || 'none, 0 results'})`);
+  }
+
+  // Fall back: extract GUID directly from URL
+  // Priority 1: wdsectionfileid param
   const wdSection = decoded.match(/wdsectionfileid[=\s{]*([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
   // Priority 2: GUID after pipe in wd=target(SectionName|GUID/) pattern
   const wdTarget = decoded.match(/\|([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
-  // Fallback: any GUID in the string
   const anyGuid = decoded.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
 
   const sectionId = wdSection?.[1] || wdTarget?.[1] || anyGuid?.[0] || section_id_or_url.trim();
   cacheOneNoteSectionId(section_name, sectionId);
-  return { success: true, section_name, section_id: sectionId, message: `Saved! Claudia will now use this ID directly for the "${section_name}" section.` };
+  return { success: true, section_name, section_id: sectionId, message: `Saved section ID for "${section_name}" (note: this is a SharePoint file ID — it may not work directly with the Graph API).` };
 }
 
 function isConfigured() {
