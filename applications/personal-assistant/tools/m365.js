@@ -181,95 +181,52 @@ function cacheOneNoteSectionId(sectionName, sectionId) {
   console.log(`[OneNote] Cached section "${sectionName}" = ${sectionId}`);
 }
 
+// Valid OneNote (Graph) compound IDs always contain "!", e.g. 1-{hex}!{n}-{guid}.
+// A bare GUID (like a SharePoint wdsectionfileid) is NOT usable for page operations
+// and is the source of error 20112. Use this to reject/purge bad cached values.
+function isCompoundOneNoteId(id) {
+  return typeof id === 'string' && id.includes('!');
+}
+
+const norm = s => (s || '').toLowerCase().replace(/[-_\s]+/g, '');
+
 async function findSectionId(sectionName) {
   const key = sectionName.toLowerCase();
 
-  // 1. Config cache — fastest path, avoids all API calls
+  // 1. Config cache — fastest path. Only trust real compound IDs; purge legacy bad GUIDs.
   const cur = getConfig().integrations?.m365;
   const cached = cur?.oneNoteSections?.[key];
   if (cached) {
-    console.log(`[OneNote] Using cached section ID for "${sectionName}"`);
-    return cached;
+    if (isCompoundOneNoteId(cached)) {
+      console.log(`[OneNote] Using cached section ID for "${sectionName}"`);
+      return cached;
+    }
+    console.log(`[OneNote] Purging bad cached section ID for "${sectionName}" (not a compound ID): ${cached}`);
+    const sections = { ...(cur.oneNoteSections || {}) };
+    delete sections[key];
+    updateConfig({ integrations: { m365: { ...cur, oneNoteSections: sections } } });
   }
 
-  // 2. Navigate from known page IDs → parentNotebook → sections.
-  //    Direct-by-ID access never triggers Error 10008.
-  //    Use the hardcoded YouTube page plus any page IDs already cached from config.
-  const knownPageIds = [
-    '1-a9da38968f2a4e05826e53d9b8c8f5e4!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e', // YouTube Links page
-    ...(Object.values(cur?.pageIds || {})) // any other cached page IDs
-  ].filter(Boolean);
-
-  const checkedNotebookIds = new Set();
-  for (const anchorPageId of knownPageIds) {
-    const pageDetail = await oneNoteFetch(
-      `/pages/${anchorPageId}?$expand=parentSection($select=id;$expand=parentNotebook($select=id,displayName))`
-    );
-    const nbId = pageDetail?.parentSection?.parentNotebook?.id;
-    console.log(`[OneNote] Anchor ${anchorPageId.slice(-8)} → notebook ${nbId || 'not found'}, err: ${pageDetail?.error || 'none'}`);
-    if (!nbId || checkedNotebookIds.has(nbId)) continue;
-    checkedNotebookIds.add(nbId);
-
-    const sectionsData = await oneNoteFetch(
-      `/notebooks/${nbId}/sections?$select=id,displayName&$top=100`
-    );
-    console.log(`[OneNote] Notebook "${pageDetail.parentSection?.parentNotebook?.displayName}" sections: ${JSON.stringify(
-      sectionsData.value?.map(s => s.displayName) || sectionsData.error
-    )}`);
-    if (sectionsData.error) continue;
-    const match = (sectionsData.value || []).find(s =>
-      s.displayName.toLowerCase().includes(key)
+  // 2. Page $search by section name. The OneNote $search index keeps working even when
+  //    bulk enumeration fails with Error 10008. Find any page whose parent section matches.
+  //    (This is best-effort: it only finds the section if a page title/content mentions it.)
+  const searchData = await oneNoteFetch(
+    `/pages?$search="${sectionName}"&$expand=parentSection($select=id,displayName)&$select=id,title&$top=50`
+  );
+  if (!searchData.error) {
+    const match = (searchData.value || []).find(p =>
+      isCompoundOneNoteId(p.parentSection?.id) && norm(p.parentSection?.displayName) === norm(sectionName)
     );
     if (match) {
-      console.log(`[OneNote] Found section "${match.displayName}", verifying its ID is usable...`);
-      // Verify the ID actually works for page operations (some IDs returned by enumeration
-      // are rejected with error 20112 on POST). Fetch one page; parentSection.id is the
-      // canonical ID to cache. Only return a VERIFIED id — never a guess that 500s the user.
-      const verify = await oneNoteFetch(
-        `/sections/${match.id}/pages?$expand=parentSection($select=id)&$select=id&$top=1`
-      );
-      if (!verify.error) {
-        const canonicalId = verify.value?.[0]?.parentSection?.id || match.id;
-        console.log(`[OneNote] Verified section ID: ${canonicalId}`);
-        cacheOneNoteSectionId(sectionName, canonicalId);
-        return canonicalId;
-      }
-      console.log(`[OneNote] Section "${match.displayName}" id ${match.id} not directly usable (${verify.error}) — caller will fall back to sectionName= create`);
-      // Do NOT cache or return a bad ID; let discovery fall through / caller use sectionName.
+      console.log(`[OneNote] Found section "${match.parentSection.displayName}" via page search → ${match.parentSection.id}`);
+      cacheOneNoteSectionId(sectionName, match.parentSection.id);
+      return match.parentSection.id;
     }
+  } else {
+    console.log(`[OneNote] Page $search for "${sectionName}" failed: ${searchData.error}`);
   }
 
-  // 3. Drive .onetoc2 search (works for personal OneDrive; may not find SharePoint-hosted notebooks)
-  console.log(`[OneNote] Trying Drive .onetoc2 discovery for "${sectionName}"...`);
-  const tocSearch = await graphFetch(
-    `/users/${USER_PRINCIPAL}/drive/search(q='.onetoc2')?$select=id,name,parentReference&$top=30`
-  );
-  console.log(`[OneNote] .onetoc2 search: error=${tocSearch.error || 'none'}, count=${tocSearch.value?.length ?? 0}`);
-
-  if (!tocSearch.error && tocSearch.value?.length > 0) {
-    const folderIds = [...new Set(
-      tocSearch.value.map(f => f.parentReference?.id).filter(Boolean)
-    )];
-    for (const folderId of folderIds) {
-      const sectionsData = await graphFetch(
-        `/users/${USER_PRINCIPAL}/drive/items/${folderId}/onenote/sections?$select=id,displayName&$top=100`
-      );
-      if (sectionsData.error) {
-        console.log(`[OneNote] drive/items/${folderId}/onenote/sections error: ${sectionsData.error}`);
-        continue;
-      }
-      const match = (sectionsData.value || []).find(s =>
-        s.displayName.toLowerCase().includes(key)
-      );
-      if (match) {
-        console.log(`[OneNote] Found section "${match.displayName}" via Drive folder ${folderId}`);
-        cacheOneNoteSectionId(sectionName, match.id);
-        return match.id;
-      }
-    }
-  }
-
-  console.log(`[OneNote] Section "${sectionName}" not found. Cache it via m365_set_onenote_section.`);
+  console.log(`[OneNote] Section "${sectionName}" not found via search. Register it with m365_set_onenote_section using a page link from that section.`);
   return null;
 }
 
@@ -939,12 +896,16 @@ async function createOneNotePage({ notebook_name = '', section_name = '', title,
   });
   const ok = (pageData) => {
     // Cache the canonical section ID from the response so the next create is a direct hit
-    if (section_name && pageData.parentSection?.id) cacheOneNoteSectionId(section_name, pageData.parentSection.id);
+    if (section_name && isCompoundOneNoteId(pageData.parentSection?.id)) cacheOneNoteSectionId(section_name, pageData.parentSection.id);
     return { success: true, title, section: section_name || 'default', page_id: pageData.id, url: pageData.links?.oneNoteWebUrl?.href || null };
   };
+  // Friendly guidance when the account's library is over the 5,000-item API limit.
+  const tooManyItems = `Microsoft is blocking notebook lookups on your account (error 10008 — a OneDrive/SharePoint library has over 5,000 OneNote items). To save into "${section_name}" anyway, open any page inside that section in OneNote, tap "Copy Link to Page", and send it to me like: "set onenote section ${section_name || 'travel'} <link>". I'll save straight to it after that.`;
+  const is10008 = (e) => /10008/.test(e || '');
 
   if (section_name) {
-    // 1. Try a cached/discovered section ID (findSectionId only returns VERIFIED-usable IDs now).
+    // 1. Direct create using a known-good compound section ID (cache or page-search discovery).
+    //    Direct-by-ID writes are the only OneNote operation that keeps working under Error 10008.
     const sectionId = await findSectionId(section_name);
     if (sectionId) {
       const pageData = await postPage(`/users/${USER_PRINCIPAL}/onenote/sections/${sectionId}/pages`);
@@ -952,16 +913,17 @@ async function createOneNotePage({ notebook_name = '', section_name = '', title,
         console.log(`[M365] OneNote page created: "${title}" in section ${sectionId}`);
         return ok(pageData);
       }
-      console.log(`[OneNote] Section ID ${sectionId} rejected (${pageData.error}); clearing cache and using sectionName= fallback`);
+      console.log(`[OneNote] Section ID ${sectionId} rejected (${pageData.error}); clearing cache`);
       const cur2 = getConfig().integrations?.m365 || {};
       const sections2 = { ...(cur2.oneNoteSections || {}) };
       delete sections2[section_name.toLowerCase()];
       updateConfig({ integrations: { m365: { ...cur2, oneNoteSections: sections2 } } });
+      if (is10008(pageData.error)) return { error: tooManyItems };
     }
 
-    // 2. Reliable fallback: create by section NAME in the default notebook.
-    //    Microsoft Graph auto-creates the section if missing and accepts this for
-    //    enterprise M365 notebooks — no compound section ID required (avoids error 20112).
+    // 2. Fallback: create by section NAME in the default notebook (auto-creates the section).
+    //    This needs server-side enumeration, so it fails with 10008 on oversized libraries —
+    //    in that case guide the user to register the section via a page link instead.
     const byName = await postPage(
       `/users/${USER_PRINCIPAL}/onenote/pages?sectionName=${encodeURIComponent(section_name)}`
     );
@@ -969,6 +931,7 @@ async function createOneNotePage({ notebook_name = '', section_name = '', title,
       console.log(`[M365] OneNote page created via sectionName="${section_name}"`);
       return ok(byName);
     }
+    if (is10008(byName.error)) return { error: tooManyItems };
     return { error: `Could not create the OneNote page in "${section_name}": ${byName.error}` };
   }
 
@@ -978,6 +941,7 @@ async function createOneNotePage({ notebook_name = '', section_name = '', title,
     console.log(`[M365] OneNote page created in default section: "${title}"`);
     return ok(def);
   }
+  if (is10008(def.error)) return { error: tooManyItems };
   return { error: `Could not create the OneNote page: ${def.error}` };
 }
 
@@ -1177,41 +1141,39 @@ async function setOneNoteSection({ section_name, section_id_or_url }) {
   if (!section_name || !section_id_or_url) return { error: 'section_name and section_id_or_url are required' };
   const decoded = decodeURIComponent(section_id_or_url);
 
-  // If the URL contains a PAGE path (SectionName|sectionId/PageTitle|pageId/)
-  // search for that page to get the REAL Graph API section ID (not the SharePoint file ID).
+  // Case 1: user pasted a real Graph compound section ID directly (contains "!").
+  if (isCompoundOneNoteId(decoded.trim()) && !/\s/.test(decoded.trim())) {
+    cacheOneNoteSectionId(section_name, decoded.trim());
+    return { success: true, section_name, section_id: decoded.trim(), message: `Saved section ID for "${section_name}".` };
+  }
+
+  // Case 2: a SharePoint page URL (…SectionName.one|fileGuid/PageTitle|pageGuid/…).
+  // Search by the PAGE title to get the page's parentSection.id, which is the real,
+  // usable Graph compound section ID. ($search works even under Error 10008.)
   const pageMatch = decoded.match(/\.one\|[^/]+\/([^|/]+)\|[0-9a-f-]+\//i);
-  const pageTitle = pageMatch?.[1]?.trim(); // Keep hyphens — "DALLAS-2026" not "DALLAS 2026"
+  const pageTitle = pageMatch?.[1]?.trim(); // keep hyphens: "DALLAS-2026"
   if (pageTitle) {
     console.log(`[OneNote] setOneNoteSection: detected page URL, searching for page "${pageTitle}"`);
     const searchData = await oneNoteFetch(
-      `/pages?$search="${pageTitle}"&$expand=parentSection($select=id,displayName)&$select=id,title&$top=10`
+      `/pages?$search="${pageTitle}"&$expand=parentSection($select=id,displayName)&$select=id,title&$top=20`
     );
-    if (!searchData.error) {
-      // Normalize for comparison: treat hyphens/underscores/spaces as equivalent
-      const norm = s => (s || '').toLowerCase().replace(/[-_\s]+/g, '');
-      const page = (searchData.value || []).find(p =>
-        norm(p.title).includes(norm(pageTitle)) || norm(pageTitle).includes(norm(p.title))
-      );
-      if (page?.parentSection?.id) {
-        const sectionId = page.parentSection.id;
-        console.log(`[OneNote] Found real section ID via page search: ${sectionId} (section: "${page.parentSection.displayName}")`);
-        cacheOneNoteSectionId(section_name, sectionId);
-        return { success: true, section_name, section_id: sectionId, message: `Saved! Found the real section ID for "${section_name}" via the page "${page.title}".` };
-      }
+    if (searchData.error) {
+      return { error: `Couldn't search OneNote for "${pageTitle}": ${searchData.error}` };
     }
-    console.log(`[OneNote] Page search for "${pageTitle}" returned no results (error: ${searchData.error || 'none, 0 results'})`);
+    const page = (searchData.value || []).find(p =>
+      isCompoundOneNoteId(p.parentSection?.id) &&
+      (norm(p.title).includes(norm(pageTitle)) || norm(pageTitle).includes(norm(p.title)))
+    );
+    if (page?.parentSection?.id) {
+      console.log(`[OneNote] Resolved section "${page.parentSection.displayName}" → ${page.parentSection.id} via page "${page.title}"`);
+      cacheOneNoteSectionId(section_name, page.parentSection.id);
+      return { success: true, section_name, section_id: page.parentSection.id, message: `Done — "${section_name}" is now linked to the "${page.parentSection.displayName}" section (found via the page "${page.title}"). I can save notes there now.` };
+    }
+    return { error: `I found the link but couldn't locate the page "${pageTitle}" in OneNote search. Open a page inside the "${section_name}" section in OneNote, use "Copy Link to Page", and send me that link.` };
   }
 
-  // Fall back: extract GUID directly from URL
-  // Priority 1: wdsectionfileid param
-  const wdSection = decoded.match(/wdsectionfileid[=\s{]*([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
-  // Priority 2: GUID after pipe in wd=target(SectionName|GUID/) pattern
-  const wdTarget = decoded.match(/\|([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
-  const anyGuid = decoded.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-
-  const sectionId = wdSection?.[1] || wdTarget?.[1] || anyGuid?.[0] || section_id_or_url.trim();
-  cacheOneNoteSectionId(section_name, sectionId);
-  return { success: true, section_name, section_id: sectionId, message: `Saved section ID for "${section_name}" (note: this is a SharePoint file ID — it may not work directly with the Graph API).` };
+  // Case 3: only a section URL (no page) — the SharePoint file GUID is NOT usable by the API.
+  return { error: `That link points to a section, but the section's SharePoint ID can't be used by the OneNote API directly. Please open any PAGE inside "${section_name}" in OneNote, use "Copy Link to Page", and send me that link instead.` };
 }
 
 function isConfigured() {
