@@ -190,6 +190,9 @@ function isCompoundOneNoteId(id) {
 
 const norm = s => (s || '').toLowerCase().replace(/[-_\s]+/g, '');
 
+// A page's parent section name: Graph v1.0 uses displayName; older responses use name.
+const sectionDisplayName = p => p?.parentSection?.displayName || p?.parentSection?.name || '';
+
 // Pull page-title candidates out of a OneNote/SharePoint link in any form.
 // In these links each item appears as "Name|{guid}" (encoded as Name%7C{guid}),
 // e.g. "...Travel.one|{secGuid}/DALLAS-2026|{pageGuid}/...". The page title is the
@@ -228,23 +231,23 @@ async function findSectionId(sectionName) {
     updateConfig({ integrations: { m365: { ...cur, oneNoteSections: sections } } });
   }
 
-  // 2. Page $search by section name. The OneNote $search index keeps working even when
-  //    bulk enumeration fails with Error 10008. Find any page whose parent section matches.
-  //    (This is best-effort: it only finds the section if a page title/content mentions it.)
+  // 2. Page full-text search by section name. OneNote's `search=` (NOT OData `$search`)
+  //    is served by the search index and keeps working even when bulk enumeration fails
+  //    with Error 10008. Page results expand parentSection (id, name) by default.
   const searchData = await oneNoteFetch(
-    `/pages?$search="${sectionName}"&$expand=parentSection($select=id,displayName)&$select=id,title&$top=50`
+    `/pages?search=${encodeURIComponent(sectionName)}&$top=50`
   );
   if (!searchData.error) {
     const match = (searchData.value || []).find(p =>
-      isCompoundOneNoteId(p.parentSection?.id) && norm(p.parentSection?.displayName) === norm(sectionName)
+      isCompoundOneNoteId(p.parentSection?.id) && norm(sectionDisplayName(p)) === norm(sectionName)
     );
     if (match) {
-      console.log(`[OneNote] Found section "${match.parentSection.displayName}" via page search → ${match.parentSection.id}`);
+      console.log(`[OneNote] Found section "${sectionDisplayName(match)}" via page search → ${match.parentSection.id}`);
       cacheOneNoteSectionId(sectionName, match.parentSection.id);
       return match.parentSection.id;
     }
   } else {
-    console.log(`[OneNote] Page $search for "${sectionName}" failed: ${searchData.error}`);
+    console.log(`[OneNote] Page search for "${sectionName}" failed: ${searchData.error}`);
   }
 
   console.log(`[OneNote] Section "${sectionName}" not found via search. Register it with m365_set_onenote_section using a page link from that section.`);
@@ -300,8 +303,9 @@ const PLATFORM_CONFIG = {
 async function findOneNotePageByTitle(titleToFind) {
   const lower = titleToFind.toLowerCase();
 
-  // Use pages search API — scoped to user, avoids cross-library enumeration (Error 10008)
-  const searchData = await oneNoteFetch(`/pages?$search="${titleToFind}"&$select=id,title&$top=20`);
+  // Use OneNote full-text search (`search=`, NOT OData `$search`) — served by the search
+  // index, so it keeps working even when bulk enumeration fails with Error 10008.
+  const searchData = await oneNoteFetch(`/pages?search=${encodeURIComponent(titleToFind)}&$top=20`);
   if (!searchData.error) {
     const found = (searchData.value || []).find(p => p.title?.toLowerCase() === lower);
     if (found) {
@@ -1174,11 +1178,10 @@ async function setOneNoteSection({ section_name, section_id_or_url }) {
   const titleCandidates = extractOneNoteTitles(section_id_or_url);
   console.log(`[OneNote] setOneNoteSection: page-title candidates from link: ${JSON.stringify(titleCandidates)}`);
 
-  // helper: search a query, return a matching page (with compound parentSection) or null
+  // helper: full-text search a query (OneNote `search=`, not OData `$search`), return a
+  // matching page whose parentSection is a usable compound id. parentSection expands by default.
   const searchForPage = async (query, requireTitleMatch) => {
-    const data = await oneNoteFetch(
-      `/pages?$search="${query}"&$expand=parentSection($select=id,displayName)&$select=id,title&$top=20`
-    );
+    const data = await oneNoteFetch(`/pages?search=${encodeURIComponent(query)}&$top=20`);
     if (data.error) return { error: data.error };
     const page = (data.value || []).find(p =>
       isCompoundOneNoteId(p.parentSection?.id) &&
@@ -1192,18 +1195,18 @@ async function setOneNoteSection({ section_name, section_id_or_url }) {
     const { page, error } = await searchForPage(cand, true);
     if (error) { lastError = error; continue; }
     if (page?.parentSection?.id) {
-      console.log(`[OneNote] Resolved section "${page.parentSection.displayName}" → ${page.parentSection.id} via page "${page.title}"`);
+      console.log(`[OneNote] Resolved section "${sectionDisplayName(page)}" → ${page.parentSection.id} via page "${page.title}"`);
       cacheOneNoteSectionId(section_name, page.parentSection.id);
-      return { success: true, section_name, section_id: page.parentSection.id, message: `Done — "${section_name}" is now linked to the "${page.parentSection.displayName}" section (found via the page "${page.title}"). I can save notes there now.` };
+      return { success: true, section_name, section_id: page.parentSection.id, message: `Done — "${section_name}" is now linked to the "${sectionDisplayName(page)}" section (found via the page "${page.title}"). I can save notes there now.` };
     }
   }
 
-  // Fallback: search by the section name itself and match on parentSection.displayName.
+  // Fallback: search by the section name itself and match on the parent section's name.
   const { page: byName, error: nameErr } = await searchForPage(section_name, false);
-  if (byName && norm(byName.parentSection?.displayName) === norm(section_name)) {
-    console.log(`[OneNote] Resolved section "${byName.parentSection.displayName}" → ${byName.parentSection.id} via section-name search`);
+  if (byName && norm(sectionDisplayName(byName)) === norm(section_name)) {
+    console.log(`[OneNote] Resolved section "${sectionDisplayName(byName)}" → ${byName.parentSection.id} via section-name search`);
     cacheOneNoteSectionId(section_name, byName.parentSection.id);
-    return { success: true, section_name, section_id: byName.parentSection.id, message: `Done — "${section_name}" is now linked to the "${byName.parentSection.displayName}" section. I can save notes there now.` };
+    return { success: true, section_name, section_id: byName.parentSection.id, message: `Done — "${section_name}" is now linked to the "${sectionDisplayName(byName)}" section. I can save notes there now.` };
   }
   lastError = lastError || nameErr;
 
