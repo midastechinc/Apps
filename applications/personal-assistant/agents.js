@@ -502,16 +502,14 @@ async function callLLM(senderJid, userText, agent, llmConfig, agentType = 'busin
 
       messages.push(...results);
 
-      // If any tool returned an error, inject a system message forcing exact error reporting
+      // If any tool returned an error, return the error directly — no LLM reformatting
       const toolErrors = results
         .map(r => { try { return JSON.parse(r.content); } catch { return {}; } })
         .filter(r => r.error)
         .map(r => r.error);
       if (toolErrors.length > 0) {
-        messages.push({
-          role: 'system',
-          content: `MANDATORY — tool error occurred. Your response must say EXACTLY: "Error: ${toolErrors.join(' | ')}" — no other text, no paraphrasing, no invented explanations.`
-        });
+        finalReply = `Error: ${toolErrors.join(' | ')}`;
+        break;
       }
 
       continue;
