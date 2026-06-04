@@ -515,11 +515,22 @@ async function callLLM(senderJid, userText, agent, llmConfig, agentType = 'busin
       continue;
     }
 
-    finalReply = assistantMsg.content ?? 'Sorry, I could not process your request.';
+    if (assistantMsg.content == null) {
+      // Model returned null content with no tool calls — log and retry rather than giving up
+      console.log(`[LLM] null content, no tool_calls (finish_reason=${data.choices?.[0]?.finish_reason}) round=${round + 1} — retrying`);
+      continue;
+    }
+    finalReply = assistantMsg.content;
     break;
   }
 
-  if (!finalReply) finalReply = 'Sorry, I could not process your request after multiple attempts.';
+  if (!finalReply) {
+    console.log(`[LLM] exhausted rounds or got no content — returning fallback`);
+    // Don't pollute history with a failure state — pop the user message we added
+    conversationHistory[hKey].pop();
+    trimHistory(hKey);
+    return 'I had trouble processing that. Please try again or rephrase your message.';
+  }
 
   conversationHistory[hKey].push({ role: 'assistant', content: finalReply });
   trimHistory(hKey);
