@@ -192,32 +192,38 @@ async function findSectionId(sectionName) {
     return cached;
   }
 
-  // 2. Navigate from the YouTube Links page (known hardcoded ID) → parentSection → parentNotebook
-  //    → list that notebook's sections. Direct-by-ID access never triggers Error 10008.
-  const ANCHOR_PAGE_ID = '1-a9da38968f2a4e05826e53d9b8c8f5e4!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e';
-  const pageDetail = await oneNoteFetch(
-    `/pages/${ANCHOR_PAGE_ID}?$expand=parentSection($select=id,displayName,$expand=parentNotebook($select=id,displayName))`
-  );
-  const notebookId = pageDetail?.parentSection?.parentNotebook?.id;
-  console.log(`[OneNote] Anchor notebook ID: ${notebookId || 'not found'}, error: ${pageDetail?.error || 'none'}`);
+  // 2. Navigate from known page IDs → parentNotebook → sections.
+  //    Direct-by-ID access never triggers Error 10008.
+  //    Use the hardcoded YouTube page plus any page IDs already cached from config.
+  const knownPageIds = [
+    '1-a9da38968f2a4e05826e53d9b8c8f5e4!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e', // YouTube Links page
+    ...(Object.values(cur?.pageIds || {})) // any other cached page IDs
+  ].filter(Boolean);
 
-  if (notebookId) {
-    // Targeted: list sections of ONE known notebook — not a cross-library enumeration
-    const sectionsData = await oneNoteFetch(
-      `/notebooks/${notebookId}/sections?$select=id,displayName&$top=100`
+  const checkedNotebookIds = new Set();
+  for (const anchorPageId of knownPageIds) {
+    const pageDetail = await oneNoteFetch(
+      `/pages/${anchorPageId}?$expand=parentSection($select=id;$expand=parentNotebook($select=id,displayName))`
     );
-    console.log(`[OneNote] Sections in notebook: ${JSON.stringify(
+    const nbId = pageDetail?.parentSection?.parentNotebook?.id;
+    console.log(`[OneNote] Anchor ${anchorPageId.slice(-8)} → notebook ${nbId || 'not found'}, err: ${pageDetail?.error || 'none'}`);
+    if (!nbId || checkedNotebookIds.has(nbId)) continue;
+    checkedNotebookIds.add(nbId);
+
+    const sectionsData = await oneNoteFetch(
+      `/notebooks/${nbId}/sections?$select=id,displayName&$top=100`
+    );
+    console.log(`[OneNote] Notebook "${pageDetail.parentSection?.parentNotebook?.displayName}" sections: ${JSON.stringify(
       sectionsData.value?.map(s => s.displayName) || sectionsData.error
     )}`);
-    if (!sectionsData.error) {
-      const match = (sectionsData.value || []).find(s =>
-        s.displayName.toLowerCase().includes(key)
-      );
-      if (match) {
-        console.log(`[OneNote] Found section "${match.displayName}" via notebook anchor`);
-        cacheOneNoteSectionId(sectionName, match.id);
-        return match.id;
-      }
+    if (sectionsData.error) continue;
+    const match = (sectionsData.value || []).find(s =>
+      s.displayName.toLowerCase().includes(key)
+    );
+    if (match) {
+      console.log(`[OneNote] Found section "${match.displayName}" in notebook "${pageDetail.parentSection?.parentNotebook?.displayName}"`);
+      cacheOneNoteSectionId(sectionName, match.id);
+      return match.id;
     }
   }
 
