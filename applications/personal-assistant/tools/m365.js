@@ -1107,12 +1107,16 @@ async function listSharePointFiles({ site_id, folder_path = '/' } = {}) {
 
 function setOneNoteSection({ section_name, section_id_or_url }) {
   if (!section_name || !section_id_or_url) return { error: 'section_name and section_id_or_url are required' };
-  // Extract GUID from URL (format: ...target(SectionName|GUID/) or ...target%28SectionName%7CGUID...) or raw GUID
   const decoded = decodeURIComponent(section_id_or_url);
-  const guidMatch = decoded.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-  const rawId = guidMatch ? guidMatch[0] : section_id_or_url.trim();
-  // OneNote API section IDs from URLs may need the "1-" prefix
-  const sectionId = rawId.startsWith('1-') ? rawId : rawId;
+
+  // Priority 1: wdsectionfileid param — most explicit section identifier in SharePoint URLs
+  const wdSection = decoded.match(/wdsectionfileid[=\s{]*([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
+  // Priority 2: GUID after pipe in wd=target(SectionName|GUID/) pattern
+  const wdTarget = decoded.match(/\|([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
+  // Fallback: any GUID in the string
+  const anyGuid = decoded.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+
+  const sectionId = wdSection?.[1] || wdTarget?.[1] || anyGuid?.[0] || section_id_or_url.trim();
   cacheOneNoteSectionId(section_name, sectionId);
   return { success: true, section_name, section_id: sectionId, message: `Saved! Claudia will now use this ID directly for the "${section_name}" section.` };
 }
