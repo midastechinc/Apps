@@ -221,7 +221,33 @@ async function findSectionId(sectionName) {
       s.displayName.toLowerCase().includes(key)
     );
     if (match) {
-      console.log(`[OneNote] Found section "${match.displayName}" in notebook "${pageDetail.parentSection?.parentNotebook?.displayName}"`);
+      console.log(`[OneNote] Found section "${match.displayName}", resolving compound section ID...`);
+      // IDs from notebooks/{id}/sections are bare GUIDs — Graph API POST rejects them with 20112.
+      // Fetch one page from this section; page.parentSection.id is always compound format.
+      const sPageData = await oneNoteFetch(
+        `/sections/${match.id}/pages?$expand=parentSection($select=id)&$select=id&$top=1`
+      );
+      const compoundId = sPageData.value?.[0]?.parentSection?.id;
+      if (compoundId) {
+        console.log(`[OneNote] Resolved compound section ID: ${compoundId}`);
+        cacheOneNoteSectionId(sectionName, compoundId);
+        return compoundId;
+      }
+      // Section may be empty or GET failed — try page $search filtered by section displayName
+      const normS = s => (s || '').toLowerCase().replace(/[-_\s]+/g, '');
+      const pSearch = await oneNoteFetch(
+        `/pages?$search="${match.displayName}"&$expand=parentSection($select=id,displayName)&$top=20`
+      );
+      const sectionPage = (!pSearch.error && pSearch.value || []).find(p =>
+        normS(p.parentSection?.displayName) === normS(match.displayName)
+      );
+      if (sectionPage?.parentSection?.id) {
+        console.log(`[OneNote] Compound section ID via page search: ${sectionPage.parentSection.id}`);
+        cacheOneNoteSectionId(sectionName, sectionPage.parentSection.id);
+        return sectionPage.parentSection.id;
+      }
+      // Last resort: bare GUID (POST will likely fail, but cache it)
+      console.log(`[OneNote] Warning: only bare GUID available for "${match.displayName}"`);
       cacheOneNoteSectionId(sectionName, match.id);
       return match.id;
     }
@@ -1160,16 +1186,17 @@ async function setOneNoteSection({ section_name, section_id_or_url }) {
   // If the URL contains a PAGE path (SectionName|sectionId/PageTitle|pageId/)
   // search for that page to get the REAL Graph API section ID (not the SharePoint file ID).
   const pageMatch = decoded.match(/\.one\|[^/]+\/([^|/]+)\|[0-9a-f-]+\//i);
-  const pageTitle = pageMatch?.[1]?.replace(/-/g, ' ').trim();
+  const pageTitle = pageMatch?.[1]?.trim(); // Keep hyphens — "DALLAS-2026" not "DALLAS 2026"
   if (pageTitle) {
     console.log(`[OneNote] setOneNoteSection: detected page URL, searching for page "${pageTitle}"`);
     const searchData = await oneNoteFetch(
       `/pages?$search="${pageTitle}"&$expand=parentSection($select=id,displayName)&$select=id,title&$top=10`
     );
     if (!searchData.error) {
+      // Normalize for comparison: treat hyphens/underscores/spaces as equivalent
+      const norm = s => (s || '').toLowerCase().replace(/[-_\s]+/g, '');
       const page = (searchData.value || []).find(p =>
-        p.title?.toLowerCase().includes(pageTitle.toLowerCase()) ||
-        pageTitle.toLowerCase().includes(p.title?.toLowerCase())
+        norm(p.title).includes(norm(pageTitle)) || norm(pageTitle).includes(norm(p.title))
       );
       if (page?.parentSection?.id) {
         const sectionId = page.parentSection.id;
