@@ -190,6 +190,27 @@ function isCompoundOneNoteId(id) {
 
 const norm = s => (s || '').toLowerCase().replace(/[-_\s]+/g, '');
 
+// Pull page-title candidates out of a OneNote/SharePoint link in any form.
+// In these links each item appears as "Name|{guid}" (encoded as Name%7C{guid}),
+// e.g. "...Travel.one|{secGuid}/DALLAS-2026|{pageGuid}/...". The page title is the
+// "Name" that precedes a guid and is NOT a "*.one" section file. Robust to partial
+// encoding and missing trailing slashes.
+function extractOneNoteTitles(raw) {
+  const titles = [];
+  const sources = [raw];
+  try { sources.push(decodeURIComponent(raw)); } catch {}
+  for (let s of sources) {
+    s = s.replace(/%7C/gi, '|').replace(/%2F/gi, '/').replace(/%28/gi, '(').replace(/%29/gi, ')');
+    const re = /([^/|()]+?)\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}/gi;
+    let m;
+    while ((m = re.exec(s)) !== null) {
+      let name = m[1].replace(/^.*[(/]/, '').trim(); // drop any leading path/paren junk
+      if (name && !/\.one$/i.test(name) && !titles.includes(name)) titles.push(name);
+    }
+  }
+  return titles;
+}
+
 async function findSectionId(sectionName) {
   const key = sectionName.toLowerCase();
 
@@ -1147,33 +1168,49 @@ async function setOneNoteSection({ section_name, section_id_or_url }) {
     return { success: true, section_name, section_id: decoded.trim(), message: `Saved section ID for "${section_name}".` };
   }
 
-  // Case 2: a SharePoint page URL (…SectionName.one|fileGuid/PageTitle|pageGuid/…).
-  // Search by the PAGE title to get the page's parentSection.id, which is the real,
-  // usable Graph compound section ID. ($search works even under Error 10008.)
-  const pageMatch = decoded.match(/\.one\|[^/]+\/([^|/]+)\|[0-9a-f-]+\//i);
-  const pageTitle = pageMatch?.[1]?.trim(); // keep hyphens: "DALLAS-2026"
-  if (pageTitle) {
-    console.log(`[OneNote] setOneNoteSection: detected page URL, searching for page "${pageTitle}"`);
-    const searchData = await oneNoteFetch(
-      `/pages?$search="${pageTitle}"&$expand=parentSection($select=id,displayName)&$select=id,title&$top=20`
+  // Case 2: a OneNote/SharePoint link — find page titles in it and $search each one.
+  // A page's parentSection.id is the real, usable Graph compound section ID, and
+  // $search keeps working even under Error 10008.
+  const titleCandidates = extractOneNoteTitles(section_id_or_url);
+  console.log(`[OneNote] setOneNoteSection: page-title candidates from link: ${JSON.stringify(titleCandidates)}`);
+
+  // helper: search a query, return a matching page (with compound parentSection) or null
+  const searchForPage = async (query, requireTitleMatch) => {
+    const data = await oneNoteFetch(
+      `/pages?$search="${query}"&$expand=parentSection($select=id,displayName)&$select=id,title&$top=20`
     );
-    if (searchData.error) {
-      return { error: `Couldn't search OneNote for "${pageTitle}": ${searchData.error}` };
-    }
-    const page = (searchData.value || []).find(p =>
+    if (data.error) return { error: data.error };
+    const page = (data.value || []).find(p =>
       isCompoundOneNoteId(p.parentSection?.id) &&
-      (norm(p.title).includes(norm(pageTitle)) || norm(pageTitle).includes(norm(p.title)))
+      (!requireTitleMatch || norm(p.title).includes(norm(query)) || norm(query).includes(norm(p.title)))
     );
+    return { page };
+  };
+
+  let lastError = null;
+  for (const cand of titleCandidates) {
+    const { page, error } = await searchForPage(cand, true);
+    if (error) { lastError = error; continue; }
     if (page?.parentSection?.id) {
       console.log(`[OneNote] Resolved section "${page.parentSection.displayName}" → ${page.parentSection.id} via page "${page.title}"`);
       cacheOneNoteSectionId(section_name, page.parentSection.id);
       return { success: true, section_name, section_id: page.parentSection.id, message: `Done — "${section_name}" is now linked to the "${page.parentSection.displayName}" section (found via the page "${page.title}"). I can save notes there now.` };
     }
-    return { error: `I found the link but couldn't locate the page "${pageTitle}" in OneNote search. Open a page inside the "${section_name}" section in OneNote, use "Copy Link to Page", and send me that link.` };
   }
 
-  // Case 3: only a section URL (no page) — the SharePoint file GUID is NOT usable by the API.
-  return { error: `That link points to a section, but the section's SharePoint ID can't be used by the OneNote API directly. Please open any PAGE inside "${section_name}" in OneNote, use "Copy Link to Page", and send me that link instead.` };
+  // Fallback: search by the section name itself and match on parentSection.displayName.
+  const { page: byName, error: nameErr } = await searchForPage(section_name, false);
+  if (byName && norm(byName.parentSection?.displayName) === norm(section_name)) {
+    console.log(`[OneNote] Resolved section "${byName.parentSection.displayName}" → ${byName.parentSection.id} via section-name search`);
+    cacheOneNoteSectionId(section_name, byName.parentSection.id);
+    return { success: true, section_name, section_id: byName.parentSection.id, message: `Done — "${section_name}" is now linked to the "${byName.parentSection.displayName}" section. I can save notes there now.` };
+  }
+  lastError = lastError || nameErr;
+
+  if (lastError) {
+    return { error: `Couldn't search OneNote: ${lastError}` };
+  }
+  return { error: `I couldn't locate that page in OneNote search. Open a PAGE inside "${section_name}" in OneNote (not the section tab), use "Copy Link to Page", and send me that link. ${titleCandidates.length ? `(I looked for: ${titleCandidates.join(', ')}.)` : ''}`.trim() };
 }
 
 function isConfigured() {
