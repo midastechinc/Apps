@@ -657,14 +657,28 @@ function getToolDefinitions(agentType) {
 }
 
 async function executeTool(toolName, args, agentType = 'business') {
+  // Normalize alternative tool names the model sometimes uses
+  const ALIASES = {
+    'search':         'web_search',
+    'web_browse':     'fetch_webpage',
+    'browser':        'fetch_webpage',
+    'browse':         'fetch_webpage',
+    'lookup':         'web_search',
+    'internet_search':'web_search'
+  };
+  const resolvedName = ALIASES[toolName] || toolName;
+  if (resolvedName !== toolName) {
+    console.log(`[TOOL] alias "${toolName}" → "${resolvedName}"`);
+  }
+
   const allowed = AGENT_TOOLS[agentType] || AGENT_TOOLS.family;
-  if (!allowed.includes(toolName)) {
-    console.warn(`[TOOL] blocked: "${toolName}" not in ${agentType} toolset`);
+  if (!allowed.includes(resolvedName)) {
+    console.warn(`[TOOL] blocked: "${toolName}" (resolved: "${resolvedName}") not in ${agentType} toolset`);
     return { error: `Tool ${toolName} is not available in this context.` };
   }
-  console.log(`[TOOL] ${toolName}(${JSON.stringify(args)})`);
+  console.log(`[TOOL] ${resolvedName}(${JSON.stringify(args)})`);
   try {
-    switch (toolName) {
+    switch (resolvedName) {
       case 'family_save_memory':          return familyMemory.saveMemory(args);
       case 'family_recall_memory':        return familyMemory.recallMemory(args);
       case 'family_list_memory':          return familyMemory.listMemory();
