@@ -295,7 +295,8 @@ async function connect() {
       // For group messages: only respond when the bot is @mentioned
       if (isGroup) {
         const mentionedJids = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
-        const botPhone = digits(sock.user?.id);
+        // sock.user?.id is "phone:device@s.whatsapp.net" — strip device suffix before extracting digits
+        const botPhone = digits((sock.user?.id || '').split(':')[0]);
         const isMentioned = mentionedJids.some(jid => digits(jid) === botPhone);
         if (!isMentioned) continue; // Ignore group messages where bot isn't @mentioned
         // Strip the @mention tag from the text so the LLM sees clean input
