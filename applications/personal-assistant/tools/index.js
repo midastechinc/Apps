@@ -1,5 +1,6 @@
 const datetime = require('./datetime');
 const googleCalendar = require('./google-calendar');
+const googleTasks = require('./google-tasks');
 const m365 = require('./m365');
 const familyMemory = require('./family-memory');
 const web = require('./web');
@@ -98,6 +99,53 @@ const DEFINITIONS = {
       name: 'google_list_calendars',
       description: 'List all available Google Calendars to find their IDs.',
       parameters: { type: 'object', properties: {}, required: [] }
+    }
+  },
+  google_list_tasks: {
+    type: 'function',
+    function: {
+      name: 'google_list_tasks',
+      description: 'List tasks from Google Tasks. Use for family to-do items, shopping lists, reminders.',
+      parameters: {
+        type: 'object',
+        properties: {
+          list_name: { type: 'string', description: 'Task list name (default: "My Tasks")' },
+          show_completed: { type: 'boolean', description: 'Include completed tasks (default: false)' }
+        },
+        required: []
+      }
+    }
+  },
+  google_create_task: {
+    type: 'function',
+    function: {
+      name: 'google_create_task',
+      description: 'Create a task in Google Tasks.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Task title' },
+          notes: { type: 'string', description: 'Optional notes or details' },
+          due: { type: 'string', description: 'Optional due date (ISO format or natural language)' },
+          list_name: { type: 'string', description: 'Task list name (default: "My Tasks")' }
+        },
+        required: ['title']
+      }
+    }
+  },
+  google_complete_task: {
+    type: 'function',
+    function: {
+      name: 'google_complete_task',
+      description: 'Mark a Google Task as completed.',
+      parameters: {
+        type: 'object',
+        properties: {
+          task_id: { type: 'string', description: 'Task ID from google_list_tasks' },
+          list_name: { type: 'string', description: 'Task list name (default: "My Tasks")' }
+        },
+        required: ['task_id']
+      }
     }
   },
   m365_list_calendar_events: {
@@ -635,6 +683,7 @@ const AGENT_TOOLS = {
   family: [
     'get_current_time', 'get_current_date',
     'google_list_events', 'google_create_event', 'google_list_calendars',
+    'google_list_tasks', 'google_create_task', 'google_complete_task',
     'family_save_memory', 'family_recall_memory', 'family_list_memory',
     'm365_list_todos', 'm365_create_todo',
     'web_search', 'fetch_webpage'
@@ -687,6 +736,9 @@ async function executeTool(toolName, args, agentType = 'business') {
       case 'google_list_events':          return await googleCalendar.listEvents(args);
       case 'google_create_event':         return await googleCalendar.createEvent(args);
       case 'google_list_calendars':       return await googleCalendar.listCalendars();
+      case 'google_list_tasks':           return await googleTasks.listTasks(args);
+      case 'google_create_task':          return await googleTasks.createTask(args);
+      case 'google_complete_task':        return await googleTasks.completeTask(args);
       case 'm365_list_calendar_events':   return await m365.listCalendarEvents(args);
       case 'm365_create_calendar_event':  return await m365.createCalendarEvent(args);
       case 'm365_update_calendar_event':  return await m365.updateCalendarEvent(args);
