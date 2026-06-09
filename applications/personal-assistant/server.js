@@ -187,10 +187,17 @@ app.put('/api/integrations/google/credentials', requireAdminKey, (req, res) => {
   }
 });
 
-// Google: debug — show exact redirect URI (no auth needed, safe to share)
+// Google: debug — show exact redirect URI and which client_id is stored
 app.get('/api/auth/google/debug-uri', (_req, res) => {
   const uri = `https://apps-production-e6cc.up.railway.app/api/auth/google/callback`;
-  res.json({ redirectUri: uri, note: 'Add this EXACTLY to Google Cloud Console → OAuth Client → Authorized redirect URIs' });
+  const GOOGLE_CREDS = path.join(AUTH_DIR, 'google-creds.json');
+  let clientId = 'NOT SET', hasSecret = false;
+  try {
+    const c = JSON.parse(fs.readFileSync(GOOGLE_CREDS, 'utf-8'));
+    clientId = c.client_id || 'NOT SET';
+    hasSecret = !!(c.client_secret);
+  } catch {}
+  res.json({ redirectUri: uri, clientId, hasClientSecret: hasSecret });
 });
 
 // Google: browser-based OAuth flow
