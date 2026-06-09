@@ -187,6 +187,12 @@ app.put('/api/integrations/google/credentials', requireAdminKey, (req, res) => {
   }
 });
 
+// Google: debug — show exact redirect URI (no auth needed, safe to share)
+app.get('/api/auth/google/debug-uri', (_req, res) => {
+  const uri = `https://apps-production-e6cc.up.railway.app/api/auth/google/callback`;
+  res.json({ redirectUri: uri, note: 'Add this EXACTLY to Google Cloud Console → OAuth Client → Authorized redirect URIs' });
+});
+
 // Google: browser-based OAuth flow
 // Step 1: GET /api/auth/google?key=ADMINKEY  → redirects to Google consent screen
 app.get('/api/auth/google', (req, res) => {
@@ -209,7 +215,7 @@ app.get('/api/auth/google', (req, res) => {
     );
   }
 
-  const redirectUri = `https://${req.get('host')}/api/auth/google/callback`;
+  const redirectUri = `https://apps-production-e6cc.up.railway.app/api/auth/google/callback`;
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
@@ -237,7 +243,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
 
   if (!clientId || !clientSecret) return res.status(500).send('<h2>Missing client credentials</h2>');
 
-  const redirectUri = `https://${req.get('host')}/api/auth/google/callback`;
+  const redirectUri = `https://apps-production-e6cc.up.railway.app/api/auth/google/callback`;
   try {
     const resp = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
