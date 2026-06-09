@@ -209,7 +209,7 @@ app.get('/api/auth/google', (req, res) => {
     );
   }
 
-  const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+  const redirectUri = `https://${req.get('host')}/api/auth/google/callback`;
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
@@ -237,7 +237,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
 
   if (!clientId || !clientSecret) return res.status(500).send('<h2>Missing client credentials</h2>');
 
-  const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+  const redirectUri = `https://${req.get('host')}/api/auth/google/callback`;
   try {
     const resp = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
