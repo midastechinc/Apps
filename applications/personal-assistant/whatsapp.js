@@ -290,10 +290,25 @@ async function connect() {
       const rawJid = msg.key.remoteJid;
       if (!rawJid) continue;
 
+      const isGroup = rawJid.endsWith('@g.us');
+
+      // For group messages: only respond when the bot is @mentioned
+      if (isGroup) {
+        const mentionedJids = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+        const botPhone = digits(sock.user?.id);
+        const isMentioned = mentionedJids.some(jid => digits(jid) === botPhone);
+        if (!isMentioned) continue; // Ignore group messages where bot isn't @mentioned
+        // Strip the @mention tag from the text so the LLM sees clean input
+        if (text) text = text.replace(/@\d+/g, '').trim();
+      }
+
+      // For group messages the actual sender is msg.key.participant, not the group JID
+      const senderRaw = isGroup ? (msg.key.participant || rawJid) : rawJid;
+
       // Resolve LID → phone JID for routing (v7 native mapping)
-      const sender = await resolveSenderJid(rawJid);
-      if (sender !== rawJid) {
-        console.log(`[WA] Resolved sender: ${rawJid} → ${sender}`);
+      const sender = await resolveSenderJid(senderRaw);
+      if (sender !== senderRaw) {
+        console.log(`[WA] Resolved sender: ${senderRaw} → ${sender}`);
       }
 
       // Mark as read (helps establish the session before replying)
