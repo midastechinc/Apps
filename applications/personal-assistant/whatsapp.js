@@ -298,6 +298,7 @@ async function connect() {
         // sock.user?.id is "phone:device@s.whatsapp.net" — strip device suffix before extracting digits
         const botPhone = digits((sock.user?.id || '').split(':')[0]);
         const isMentioned = mentionedJids.some(jid => digits(jid) === botPhone);
+        console.log(`[WA] Group msg from ${rawJid} | botId=${sock.user?.id} botPhone=${botPhone} | mentionedJids=${JSON.stringify(mentionedJids)} | isMentioned=${isMentioned} | text="${(text || '').slice(0, 80)}"`);
         if (!isMentioned) continue; // Ignore group messages where bot isn't @mentioned
         // Strip the @mention tag from the text so the LLM sees clean input
         if (text) text = text.replace(/@\d+/g, '').trim();
