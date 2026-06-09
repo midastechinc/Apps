@@ -168,7 +168,118 @@ app.put('/api/integrations/brave', requireAdminKey, (req, res) => {
   }
 });
 
-// Google: paste token.json (from Python OAuth flow)
+// Google: save OAuth client credentials (client_id + client_secret) without a token
+// Call this before the browser auth flow if the credentials aren't stored yet.
+app.put('/api/integrations/google/credentials', requireAdminKey, (req, res) => {
+  try {
+    const { clientId, clientSecret } = req.body;
+    if (!clientId || !clientSecret) return res.status(400).json({ error: 'clientId and clientSecret required' });
+
+    const GOOGLE_CREDS = path.join(AUTH_DIR, 'google-creds.json');
+    let existing = {};
+    try { existing = JSON.parse(fs.readFileSync(GOOGLE_CREDS, 'utf-8')); } catch {}
+    const updated = { ...existing, client_id: clientId, client_secret: clientSecret };
+    if (!fs.existsSync(AUTH_DIR)) fs.mkdirSync(AUTH_DIR, { recursive: true });
+    fs.writeFileSync(GOOGLE_CREDS, JSON.stringify(updated, null, 2));
+    res.json({ ok: true, message: 'Credentials saved. Now visit /api/auth/google?key=ADMINKEY to authenticate.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Google: browser-based OAuth flow
+// Step 1: GET /api/auth/google?key=ADMINKEY  → redirects to Google consent screen
+app.get('/api/auth/google', (req, res) => {
+  const key = req.query.key || '';
+  if (!ADMIN_KEY || key !== ADMIN_KEY) return res.status(401).send('Unauthorized');
+
+  const GOOGLE_CREDS = path.join(AUTH_DIR, 'google-creds.json');
+  let clientId = '', clientSecret = '';
+  try {
+    const c = JSON.parse(fs.readFileSync(GOOGLE_CREDS, 'utf-8'));
+    clientId = c.client_id || '';
+    clientSecret = c.client_secret || '';
+  } catch {}
+
+  if (!clientId || !clientSecret) {
+    return res.status(400).send(
+      '<h2>Google OAuth not configured</h2>' +
+      '<p>No <code>client_id</code> or <code>client_secret</code> found in google-creds.json.</p>' +
+      '<p>Paste your <code>credentials.json</code> content via the management UI first, then try again.</p>'
+    );
+  }
+
+  const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'https://www.googleapis.com/auth/calendar',
+    access_type: 'offline',
+    prompt: 'consent'   // force refresh_token to be returned even if previously granted
+  });
+  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+});
+
+// Step 2: GET /api/auth/google/callback?code=... → exchange code for tokens, save
+app.get('/api/auth/google/callback', async (req, res) => {
+  const { code, error } = req.query;
+  if (error) return res.status(400).send(`<h2>Google denied access</h2><p>${error}</p>`);
+  if (!code) return res.status(400).send('<h2>No code returned from Google</h2>');
+
+  const GOOGLE_CREDS = path.join(AUTH_DIR, 'google-creds.json');
+  let clientId = '', clientSecret = '';
+  try {
+    const c = JSON.parse(fs.readFileSync(GOOGLE_CREDS, 'utf-8'));
+    clientId = c.client_id || '';
+    clientSecret = c.client_secret || '';
+  } catch {}
+
+  if (!clientId || !clientSecret) return res.status(500).send('<h2>Missing client credentials</h2>');
+
+  const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+  try {
+    const resp = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code'
+      })
+    });
+    const data = await resp.json();
+    if (!resp.ok || data.error) {
+      return res.status(400).send(`<h2>Token exchange failed</h2><pre>${JSON.stringify(data, null, 2)}</pre>`);
+    }
+
+    const updated = {
+      client_id: clientId,
+      client_secret: clientSecret,
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expiry: new Date(Date.now() + (data.expires_in || 3600) * 1000).toISOString()
+    };
+    if (!fs.existsSync(AUTH_DIR)) fs.mkdirSync(AUTH_DIR, { recursive: true });
+    fs.writeFileSync(GOOGLE_CREDS, JSON.stringify(updated, null, 2));
+    updateConfig({ integrations: { google: { enabled: true } } });
+    console.log('[Google OAuth] Token saved successfully via browser flow');
+
+    res.send(`
+      <html><body style="font-family:sans-serif;padding:2rem;max-width:500px;margin:auto">
+        <h2>✅ Google Calendar connected!</h2>
+        <p>Claudia can now access your Google Calendar. You can close this tab.</p>
+        ${!data.refresh_token ? '<p style="color:orange"><strong>⚠️ No refresh token returned.</strong> If it expires, visit this URL again.</p>' : ''}
+      </body></html>
+    `);
+  } catch (err) {
+    res.status(500).send(`<h2>Error</h2><p>${err.message}</p>`);
+  }
+});
+
+// Google: paste token.json (from Python OAuth flow — kept for compatibility)
 app.post('/api/integrations/google', requireAdminKey, (req, res) => {
   try {
     const { tokenJson, credentialsJson } = req.body;
