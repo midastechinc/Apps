@@ -433,29 +433,46 @@ async function saveLink({ url }) {
     : await fetchPageTitle(url);
   if (!title) title = `${cfg.pageName.replace(' Links', '')} Post`;
 
-  // Get page ID (hardcoded → cached → search)
+  // Get page ID (hardcoded → cached → search → auto-create)
   let pageId = await getPageId(platform);
+
+  // Auto-create the page if it doesn't exist yet
   if (!pageId) {
-    return { error: `Could not find the "${cfg.pageName}" page in OneNote. Please create a page named "${cfg.pageName}" in your OneNote notebook so I can save links there.` };
+    console.log(`[OneNote] "${cfg.pageName}" not found — creating it automatically`);
+    const created = await oneNoteFetch('/pages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/xhtml+xml' },
+      body: `<?xml version="1.0" encoding="utf-8"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>${cfg.pageName}</title></head><body><p>Links saved by Claudia</p></body></html>`
+    });
+    if (created?.error) {
+      return { error: `Could not create "${cfg.pageName}" page in OneNote: ${created.error}` };
+    }
+    // The create response includes the page id
+    if (created?.id) {
+      pageId = created.id;
+      const m365 = getConfig().integrations?.m365 || {};
+      updateConfig({ integrations: { m365: { ...m365, [cfg.pageIdKey]: pageId } } });
+      console.log(`[OneNote] Created and cached "${cfg.pageName}" page: ${pageId}`);
+      // Give OneNote a moment to index the new page
+      await new Promise(r => setTimeout(r, 2000));
+    } else {
+      return { error: `Could not find or create "${cfg.pageName}" page in OneNote.` };
+    }
   }
 
   // Count existing entries
   let html = await graphFetchText(`/users/${USER_PRINCIPAL}/onenote/pages/${pageId}/content`);
 
-  // If the hardcoded/cached ID is stale (404), try re-searching by page title
+  // If the cached ID is stale (page moved/deleted), re-search and try once more
   if (html === null) {
     console.log(`[OneNote] Page ${pageId} returned no content — re-searching for "${cfg.pageName}"`);
     const freshPage = await findOneNotePageByTitle(cfg.pageName);
     if (freshPage) {
       pageId = freshPage.id;
-      // Update cache (clear hardcoded reliance by caching fresh ID)
-      const config = getConfig();
-      const m365 = config.integrations?.m365 || {};
+      const m365 = getConfig().integrations?.m365 || {};
       updateConfig({ integrations: { m365: { ...m365, [cfg.pageIdKey]: freshPage.id } } });
       console.log(`[OneNote] Re-cached ${cfg.pageIdKey} = ${freshPage.id}`);
       html = await graphFetchText(`/users/${USER_PRINCIPAL}/onenote/pages/${pageId}/content`);
-    } else {
-      return { error: `The "${cfg.pageName}" page could not be found in OneNote. Please create it and try again.` };
     }
   }
 
