@@ -398,14 +398,26 @@ async function appendToOneNotePage(pageId, nextNumber, title, url) {
     console.error('[OneNote] PATCH failed:', result.error);
     return result;
   }
+  console.log('[OneNote] PATCH accepted — waiting for commit...');
 
-  // Verify the write actually committed
-  await new Promise(r => setTimeout(r, 1500));
-  const verifyHtml = await oneNoteTextFetch(`/pages/${pageId}/content`);
-  if (verifyHtml && !verifyHtml.includes(url)) {
-    return { error: 'OneNote accepted the request but the entry did not appear. Token may need Notes.ReadWrite.All scope.' };
+  // OneNote processes page updates asynchronously — poll until the URL appears (up to 8s)
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    await new Promise(r => setTimeout(r, attempt * 1000));
+    const verifyHtml = await oneNoteTextFetch(`/pages/${pageId}/content`);
+    console.log(`[OneNote] Verify attempt ${attempt}: html length=${verifyHtml?.length ?? 'null'}, hasUrl=${verifyHtml?.includes(url)}`);
+    if (verifyHtml && verifyHtml.includes(url)) return null; // confirmed
   }
-  return null;
+
+  // Final attempt with longer wait
+  await new Promise(r => setTimeout(r, 3000));
+  const finalHtml = await oneNoteTextFetch(`/pages/${pageId}/content`);
+  if (finalHtml && finalHtml.includes(url)) return null;
+
+  const readError = !finalHtml
+    ? 'Could not read page content after write — token may lack Notes.ReadWrite.All scope or the page may be in a shared notebook'
+    : 'OneNote accepted the write but the entry did not appear after 12 seconds. The token may not have write permission to this page.';
+  console.error('[OneNote] Verification failed:', readError);
+  return { error: readError };
 }
 
 async function saveLink({ url }) {
