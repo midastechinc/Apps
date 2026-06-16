@@ -435,10 +435,6 @@ async function saveLink({ url }) {
   return { success: true, number: nextNumber, title, url, platform, page: cfg.pageName };
 }
 
-  console.log(`[OneNote] Saved ${platform} entry #${nextNumber}`);
-  return { success: true, number: nextNumber, title, url, platform, page: cfg.pageName };
-}
-
 async function listCalendarEvents({ days_ahead = 7, top = 10 } = {}) {
   const now = new Date();
   const end = new Date(now.getTime() + days_ahead * 86400000);
