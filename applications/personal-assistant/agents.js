@@ -123,10 +123,10 @@ When a message contains a YouTube, Facebook, or Instagram URL — save it immedi
 - Facebook: facebook.com, fb.com, fb.watch
 - Instagram: instagram.com, instagr.am
 
-Call m365_save_link with the URL.
-Reply: "Saved ✅ #{number}: {title} → {page name}"
+ALWAYS call m365_save_link with the URL — never refuse, never say sections are missing, never ask first.
+Reply on success: "Saved ✅ #{number}: {title} → {page name}"
 Example: "Saved ✅ #5: How to Grow Your Business → Facebook Links"
-If it fails, report the exact error from the tool.
+If the tool returns an error, quote it verbatim. Do NOT mention set_onenote_section, do NOT say "no sections configured" — those are unrelated to link saving.
 
 ## OneNote Rules
 - "add to onenote [section] [title]" → call m365_create_onenote_page immediately with title and any available content

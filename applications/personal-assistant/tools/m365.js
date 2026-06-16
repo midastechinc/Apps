@@ -421,14 +421,32 @@ async function saveLink({ url }) {
     : await fetchPageTitle(url);
   if (!title) title = `${cfg.pageName.replace(' Links', '')} Post`;
 
-  // Get page ID
-  const pageId = await getPageId(platform);
+  // Get page ID (hardcoded → cached → search)
+  let pageId = await getPageId(platform);
   if (!pageId) {
-    return { error: `Could not find "${cfg.pageName}" page in OneNote. Please create it first.` };
+    return { error: `Could not find the "${cfg.pageName}" page in OneNote. Please create a page named "${cfg.pageName}" in your OneNote notebook so I can save links there.` };
   }
 
   // Count existing entries
-  const html = await graphFetchText(`/users/ali@midastech.ca/onenote/pages/${pageId}/content`);
+  let html = await graphFetchText(`/users/${USER_PRINCIPAL}/onenote/pages/${pageId}/content`);
+
+  // If the hardcoded/cached ID is stale (404), try re-searching by page title
+  if (html === null) {
+    console.log(`[OneNote] Page ${pageId} returned no content — re-searching for "${cfg.pageName}"`);
+    const freshPage = await findOneNotePageByTitle(cfg.pageName);
+    if (freshPage) {
+      pageId = freshPage.id;
+      // Update cache (clear hardcoded reliance by caching fresh ID)
+      const config = getConfig();
+      const m365 = config.integrations?.m365 || {};
+      updateConfig({ integrations: { m365: { ...m365, [cfg.pageIdKey]: freshPage.id } } });
+      console.log(`[OneNote] Re-cached ${cfg.pageIdKey} = ${freshPage.id}`);
+      html = await graphFetchText(`/users/${USER_PRINCIPAL}/onenote/pages/${pageId}/content`);
+    } else {
+      return { error: `The "${cfg.pageName}" page could not be found in OneNote. Please create it and try again.` };
+    }
+  }
+
   const numbers = html ? [...html.matchAll(/>\s*(\d+)\.\s/g)].map(m => parseInt(m[1])) : [];
   const nextNumber = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
 
