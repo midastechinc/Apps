@@ -394,18 +394,34 @@ async function saveLink({ url }) {
     : await fetchPageTitle(url);
   if (!title) title = `${cfg.pageName.replace(' Links', '')} Post`;
 
-  // Resolve section ID: hardcoded → cached (compound) → search (bypasses 10008)
-  let sectionId = cfg.hardcodedSectionId
-    || getConfig().integrations?.m365?.oneNoteSections?.[cfg.pageName.toLowerCase()];
+  // Resolve compound section ID: cached → page-ID lookup → search
+  // NOTE: bare GUIDs (from OneNote protocol links) don't work with Graph API.
+  //       We need the compound format (contains '!'). Discover it once and cache.
+  let sectionId = getConfig().integrations?.m365?.oneNoteSections?.[cfg.pageName.toLowerCase()];
 
-  if (!sectionId) {
-    console.log(`[OneNote] No section ID for "${cfg.pageName}" — searching...`);
+  if (!sectionId || !isCompoundOneNoteId(sectionId)) {
+    // Try getting compound section ID via a known page ID (direct access, bypasses 10008)
+    if (cfg.hardcodedPageId) {
+      console.log(`[OneNote] Resolving compound section ID via page ${cfg.hardcodedPageId}...`);
+      const pageData = await oneNoteFetch(`/pages/${cfg.hardcodedPageId}?$select=id,parentSection`);
+      if (!pageData.error && isCompoundOneNoteId(pageData.parentSection?.id)) {
+        sectionId = pageData.parentSection.id;
+        cacheOneNoteSectionId(cfg.pageName, sectionId);
+        console.log(`[OneNote] Resolved compound section ID: ${sectionId}`);
+      } else {
+        console.log(`[OneNote] Page lookup result:`, JSON.stringify(pageData).slice(0, 200));
+      }
+    }
+  }
+
+  if (!sectionId || !isCompoundOneNoteId(sectionId)) {
+    console.log(`[OneNote] No compound section ID — trying search for "${cfg.pageName}"...`);
     sectionId = await findSectionId(cfg.pageName);
   }
 
   if (!sectionId) {
     return {
-      error: `OneNote Error 10008: Cannot auto-create the "${cfg.pageName}" section. One-time setup:\n1. Open OneNote → create a section named "${cfg.pageName}"\n2. Add any page inside it\n3. Long-press the page → Copy Link to Page\n4. Send me: set onenote section ${cfg.pageName} [paste link]\nAfter that I can save all links automatically.`
+      error: `Cannot find compound section ID for "${cfg.pageName}". One-time setup:\n1. Open OneNote → go to the "${cfg.pageName}" section\n2. Long-press any page → Copy Link to Page\n3. Send me: set onenote section ${cfg.pageName} [paste link]`
     };
   }
 
@@ -413,7 +429,7 @@ async function saveLink({ url }) {
   const pagesData = await oneNoteFetch(`/sections/${sectionId}/pages?$select=id,title`);
   const nextNumber = !pagesData.error ? (pagesData.value || []).length + 1 : 1;
 
-  // POST directly to the compound section ID — this bypasses Error 10008
+  // POST directly to the compound section ID (direct write, bypasses Error 10008)
   const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const safeUrl = url.replace(/&/g, '&amp;');
   const pageTitle = `#${nextNumber}: ${safeTitle}`;
@@ -424,11 +440,11 @@ async function saveLink({ url }) {
   });
 
   if (result?.error) {
-    console.error('[OneNote] Section page create failed:', result.error);
+    console.error(`[OneNote] Section page create failed (sectionId=${sectionId}):`, result.error);
     return result;
   }
 
-  console.log(`[OneNote] Created "${pageTitle}" in section "${cfg.pageName}" (${sectionId})`);
+  console.log(`[OneNote] Created "${pageTitle}" in "${cfg.pageName}" (${sectionId})`);
   return { success: true, number: nextNumber, title, url, platform, page: cfg.pageName };
 }
 
@@ -1188,7 +1204,7 @@ async function setOneNoteSection({ section_name, section_id_or_url }) {
   // NOTE: $expand is NOT supported on the search endpoint — omit it.
   // parentSection.id is returned inline by default.
   const searchForPage = async (query, requireTitleMatch) => {
-    const data = await oneNoteFetch(`/pages?search=${encodeURIComponent(query)}&$top=20`);
+    const data = await oneNoteFetch(`/pages?search=${encodeURIComponent(query)}`);
     if (data.error) return { error: data.error };
     const page = (data.value || []).find(p =>
       isCompoundOneNoteId(p.parentSection?.id) &&
