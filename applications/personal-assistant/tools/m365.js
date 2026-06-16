@@ -386,7 +386,7 @@ async function saveLink({ url }) {
   if (!platform) return { error: 'URL is not from YouTube, Facebook, or Instagram.' };
 
   const cfg = PLATFORM_CONFIG[platform];
-  console.log(`[OneNote] Saving ${platform} link via page-per-link approach:`, url);
+  console.log(`[OneNote] Saving ${platform} link:`, url);
 
   // Fetch title
   let title = platform === 'youtube'
@@ -394,46 +394,43 @@ async function saveLink({ url }) {
     : await fetchPageTitle(url);
   if (!title) title = `${cfg.pageName.replace(' Links', '')} Post`;
 
-  // Determine next number — list pages in the cached section if we have its ID
-  const sectionIdKey = `${cfg.pageIdKey}_sectionId`;
-  let sectionId = getConfig().integrations?.m365?.[sectionIdKey];
-  let nextNumber = 1;
+  // Get section ID: cached in oneNoteSections → search (bypasses 10008) → setup error
+  let sectionId = getConfig().integrations?.m365?.oneNoteSections?.[cfg.pageName.toLowerCase()];
 
-  if (sectionId) {
-    const pagesData = await oneNoteFetch(`/sections/${sectionId}/pages?$select=id,title&$top=100`);
-    if (!pagesData.error) {
-      nextNumber = (pagesData.value || []).length + 1;
-    }
+  if (!sectionId) {
+    console.log(`[OneNote] No cached section for "${cfg.pageName}" — searching...`);
+    sectionId = await findSectionId(cfg.pageName);
   }
 
-  // POST a new page into the named section — sectionName auto-creates the section if missing
+  if (!sectionId) {
+    return {
+      error: `OneNote Error 10008: Your account has too many items and Microsoft blocked automatic section creation. One-time setup:\n1. Open OneNote → create a section named "${cfg.pageName}"\n2. Add any page inside it\n3. Long-press the page → Copy Link to Page\n4. Send me: set onenote section ${cfg.pageName} [paste link]\nAfter that I can save all ${cfg.pageName.replace(' Links', '')} links automatically.`
+    };
+  }
+
+  // Count pages already in this section for sequential numbering
+  const pagesData = await oneNoteFetch(`/sections/${sectionId}/pages?$select=id,title&$top=100`);
+  const nextNumber = !pagesData.error ? (pagesData.value || []).length + 1 : 1;
+
+  // POST directly to the compound section ID — this bypasses Error 10008
   const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const safeUrl = url.replace(/&/g, '&amp;');
   const pageTitle = `#${nextNumber}: ${safeTitle}`;
-  const pageHtml = `<!DOCTYPE html><html><head><title>${pageTitle}</title></head><body><p><a href="${safeUrl}">${safeTitle}</a></p></body></html>`;
-
-  const result = await oneNoteFetch(`/pages?sectionName=${encodeURIComponent(cfg.pageName)}`, {
+  const result = await oneNoteFetch(`/sections/${sectionId}/pages`, {
     method: 'POST',
     headers: { 'Content-Type': 'text/html' },
-    body: pageHtml
+    body: `<!DOCTYPE html><html><head><title>${pageTitle}</title></head><body><p><a href="${safeUrl}">${safeTitle}</a></p></body></html>`
   });
 
   if (result?.error) {
-    console.error('[OneNote] Page create failed:', result.error);
+    console.error('[OneNote] Section page create failed:', result.error);
     return result;
   }
 
-  // Cache the section ID from the POST response for fast counting next time
-  const newSectionId = result?.parentSection?.id;
-  if (newSectionId && newSectionId !== sectionId) {
-    const m365 = getConfig().integrations?.m365 || {};
-    updateConfig({ integrations: { m365: { ...m365, [sectionIdKey]: newSectionId } } });
-    console.log(`[OneNote] Cached section "${cfg.pageName}" id: ${newSectionId}`);
-  }
-
-  console.log(`[OneNote] Created page "${pageTitle}" in section "${cfg.pageName}"`);
+  console.log(`[OneNote] Created "${pageTitle}" in section "${cfg.pageName}" (${sectionId})`);
   return { success: true, number: nextNumber, title, url, platform, page: cfg.pageName };
 }
+
 
 async function listCalendarEvents({ days_ahead = 7, top = 10 } = {}) {
   const now = new Date();
