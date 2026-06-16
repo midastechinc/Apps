@@ -381,51 +381,12 @@ async function getPageId(platform) {
   return page.id;
 }
 
-async function appendToOneNotePage(pageId, nextNumber, title, url) {
-  const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const patchBody = JSON.stringify([{
-    target: 'body',
-    action: 'append',
-    content: `<p>${nextNumber}. <a href="${url}">${safeTitle}</a></p>`
-  }]);
-
-  const result = await oneNoteFetch(`/pages/${pageId}/content`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: patchBody
-  });
-  if (result?.error) {
-    console.error('[OneNote] PATCH failed:', result.error);
-    return result;
-  }
-  console.log('[OneNote] PATCH accepted — waiting for commit...');
-
-  // OneNote processes page updates asynchronously — poll until the URL appears (up to 8s)
-  for (let attempt = 1; attempt <= 4; attempt++) {
-    await new Promise(r => setTimeout(r, attempt * 1000));
-    const verifyHtml = await oneNoteTextFetch(`/pages/${pageId}/content`);
-    console.log(`[OneNote] Verify attempt ${attempt}: html length=${verifyHtml?.length ?? 'null'}, hasUrl=${verifyHtml?.includes(url)}`);
-    if (verifyHtml && verifyHtml.includes(url)) return null; // confirmed
-  }
-
-  // Final attempt with longer wait
-  await new Promise(r => setTimeout(r, 3000));
-  const finalHtml = await oneNoteTextFetch(`/pages/${pageId}/content`);
-  if (finalHtml && finalHtml.includes(url)) return null;
-
-  const readError = !finalHtml
-    ? 'Could not read page content after write — token may lack Notes.ReadWrite.All scope or the page may be in a shared notebook'
-    : 'OneNote accepted the write but the entry did not appear after 12 seconds. The token may not have write permission to this page.';
-  console.error('[OneNote] Verification failed:', readError);
-  return { error: readError };
-}
-
 async function saveLink({ url }) {
   const platform = detectPlatform(url);
   if (!platform) return { error: 'URL is not from YouTube, Facebook, or Instagram.' };
 
   const cfg = PLATFORM_CONFIG[platform];
-  console.log(`[OneNote] Saving ${platform} link:`, url);
+  console.log(`[OneNote] Saving ${platform} link via page-per-link approach:`, url);
 
   // Fetch title
   let title = platform === 'youtube'
@@ -433,54 +394,46 @@ async function saveLink({ url }) {
     : await fetchPageTitle(url);
   if (!title) title = `${cfg.pageName.replace(' Links', '')} Post`;
 
-  // Get page ID (hardcoded → cached → search → auto-create)
-  let pageId = await getPageId(platform);
+  // Determine next number — list pages in the cached section if we have its ID
+  const sectionIdKey = `${cfg.pageIdKey}_sectionId`;
+  let sectionId = getConfig().integrations?.m365?.[sectionIdKey];
+  let nextNumber = 1;
 
-  // Auto-create the page if it doesn't exist yet
-  if (!pageId) {
-    console.log(`[OneNote] "${cfg.pageName}" not found — creating it automatically`);
-    const created = await oneNoteFetch('/pages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/xhtml+xml' },
-      body: `<?xml version="1.0" encoding="utf-8"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>${cfg.pageName}</title></head><body><p>Links saved by Claudia</p></body></html>`
-    });
-    if (created?.error) {
-      return { error: `Could not create "${cfg.pageName}" page in OneNote: ${created.error}` };
-    }
-    // The create response includes the page id
-    if (created?.id) {
-      pageId = created.id;
-      const m365 = getConfig().integrations?.m365 || {};
-      updateConfig({ integrations: { m365: { ...m365, [cfg.pageIdKey]: pageId } } });
-      console.log(`[OneNote] Created and cached "${cfg.pageName}" page: ${pageId}`);
-      // Give OneNote a moment to index the new page
-      await new Promise(r => setTimeout(r, 2000));
-    } else {
-      return { error: `Could not find or create "${cfg.pageName}" page in OneNote.` };
+  if (sectionId) {
+    const pagesData = await oneNoteFetch(`/sections/${sectionId}/pages?$select=id,title&$top=100`);
+    if (!pagesData.error) {
+      nextNumber = (pagesData.value || []).length + 1;
     }
   }
 
-  // Count existing entries
-  let html = await graphFetchText(`/users/${USER_PRINCIPAL}/onenote/pages/${pageId}/content`);
+  // POST a new page into the named section — sectionName auto-creates the section if missing
+  const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const safeUrl = url.replace(/&/g, '&amp;');
+  const pageTitle = `#${nextNumber}: ${safeTitle}`;
+  const pageHtml = `<!DOCTYPE html><html><head><title>${pageTitle}</title></head><body><p><a href="${safeUrl}">${safeTitle}</a></p></body></html>`;
 
-  // If the cached ID is stale (page moved/deleted), re-search and try once more
-  if (html === null) {
-    console.log(`[OneNote] Page ${pageId} returned no content — re-searching for "${cfg.pageName}"`);
-    const freshPage = await findOneNotePageByTitle(cfg.pageName);
-    if (freshPage) {
-      pageId = freshPage.id;
-      const m365 = getConfig().integrations?.m365 || {};
-      updateConfig({ integrations: { m365: { ...m365, [cfg.pageIdKey]: freshPage.id } } });
-      console.log(`[OneNote] Re-cached ${cfg.pageIdKey} = ${freshPage.id}`);
-      html = await graphFetchText(`/users/${USER_PRINCIPAL}/onenote/pages/${pageId}/content`);
-    }
+  const result = await oneNoteFetch(`/pages?sectionName=${encodeURIComponent(cfg.pageName)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/html' },
+    body: pageHtml
+  });
+
+  if (result?.error) {
+    console.error('[OneNote] Page create failed:', result.error);
+    return result;
   }
 
-  const numbers = html ? [...html.matchAll(/>\s*(\d+)\.\s/g)].map(m => parseInt(m[1])) : [];
-  const nextNumber = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+  // Cache the section ID from the POST response for fast counting next time
+  const newSectionId = result?.parentSection?.id;
+  if (newSectionId && newSectionId !== sectionId) {
+    const m365 = getConfig().integrations?.m365 || {};
+    updateConfig({ integrations: { m365: { ...m365, [sectionIdKey]: newSectionId } } });
+    console.log(`[OneNote] Cached section "${cfg.pageName}" id: ${newSectionId}`);
+  }
 
-  const err = await appendToOneNotePage(pageId, nextNumber, title, url);
-  if (err) return err;
+  console.log(`[OneNote] Created page "${pageTitle}" in section "${cfg.pageName}"`);
+  return { success: true, number: nextNumber, title, url, platform, page: cfg.pageName };
+}
 
   console.log(`[OneNote] Saved ${platform} entry #${nextNumber}`);
   return { success: true, number: nextNumber, title, url, platform, page: cfg.pageName };
