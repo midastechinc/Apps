@@ -239,7 +239,7 @@ async function findSectionId(sectionName) {
   //    a single-resource lookup, safe under 10008). Try section name first, then common
   //    fallback words so any page in the section can surface the section ID.
   const searchAndVerify = async (query) => {
-    const data = await oneNoteFetch(`/pages?search=${encodeURIComponent(query)}&$top=50`);
+    const data = await oneNoteFetch(`/pages?search=${encodeURIComponent(query)}`);
     if (data.error) { console.log(`[OneNote] Page search "${query}" error: ${data.error}`); return null; }
 
     // Fast path: displayName already in response
@@ -313,9 +313,9 @@ function detectPlatform(url) {
 }
 
 const PLATFORM_CONFIG = {
-  youtube:   { pageName: 'YouTube Links',   pageIdKey: 'youtubeLinksPageId',   hardcodedId: '1-a9da38968f2a4e05826e53d9b8c8f5e4!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e' },
-  facebook:  { pageName: 'Facebook Links',  pageIdKey: 'facebookLinksPageId',  hardcodedId: null },
-  instagram: { pageName: 'Instagram Links', pageIdKey: 'instagramLinksPageId', hardcodedId: null }
+  youtube:   { pageName: 'YouTube Links',   pageIdKey: 'youtubeLinksPageId',   hardcodedPageId: '1-a9da38968f2a4e05826e53d9b8c8f5e4!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e', hardcodedSectionId: null },
+  facebook:  { pageName: 'Facebook Links',  pageIdKey: 'facebookLinksPageId',  hardcodedPageId: '25D5BE02-15EF-D243-98BA-BB6118988EC9', hardcodedSectionId: '6F3CF071-9B5A-A44B-86A5-D9489CB5122F' },
+  instagram: { pageName: 'Instagram Links', pageIdKey: 'instagramLinksPageId', hardcodedPageId: null, hardcodedSectionId: null }
 };
 
 async function findOneNotePageByTitle(titleToFind) {
@@ -323,7 +323,7 @@ async function findOneNotePageByTitle(titleToFind) {
 
   // Use OneNote full-text search (`search=`, NOT OData `$search`) — served by the search
   // index, so it keeps working even when bulk enumeration fails with Error 10008.
-  const searchData = await oneNoteFetch(`/pages?search=${encodeURIComponent(titleToFind)}&$top=20`);
+  const searchData = await oneNoteFetch(`/pages?search=${encodeURIComponent(titleToFind)}`);
   if (!searchData.error) {
     const found = (searchData.value || []).find(p => p.title?.toLowerCase() === lower);
     if (found) {
@@ -394,22 +394,23 @@ async function saveLink({ url }) {
     : await fetchPageTitle(url);
   if (!title) title = `${cfg.pageName.replace(' Links', '')} Post`;
 
-  // Get section ID: cached in oneNoteSections → search (bypasses 10008) → setup error
-  let sectionId = getConfig().integrations?.m365?.oneNoteSections?.[cfg.pageName.toLowerCase()];
+  // Resolve section ID: hardcoded → cached (compound) → search (bypasses 10008)
+  let sectionId = cfg.hardcodedSectionId
+    || getConfig().integrations?.m365?.oneNoteSections?.[cfg.pageName.toLowerCase()];
 
   if (!sectionId) {
-    console.log(`[OneNote] No cached section for "${cfg.pageName}" — searching...`);
+    console.log(`[OneNote] No section ID for "${cfg.pageName}" — searching...`);
     sectionId = await findSectionId(cfg.pageName);
   }
 
   if (!sectionId) {
     return {
-      error: `OneNote Error 10008: Your account has too many items and Microsoft blocked automatic section creation. One-time setup:\n1. Open OneNote → create a section named "${cfg.pageName}"\n2. Add any page inside it\n3. Long-press the page → Copy Link to Page\n4. Send me: set onenote section ${cfg.pageName} [paste link]\nAfter that I can save all ${cfg.pageName.replace(' Links', '')} links automatically.`
+      error: `OneNote Error 10008: Cannot auto-create the "${cfg.pageName}" section. One-time setup:\n1. Open OneNote → create a section named "${cfg.pageName}"\n2. Add any page inside it\n3. Long-press the page → Copy Link to Page\n4. Send me: set onenote section ${cfg.pageName} [paste link]\nAfter that I can save all links automatically.`
     };
   }
 
   // Count pages already in this section for sequential numbering
-  const pagesData = await oneNoteFetch(`/sections/${sectionId}/pages?$select=id,title&$top=100`);
+  const pagesData = await oneNoteFetch(`/sections/${sectionId}/pages?$select=id,title`);
   const nextNumber = !pagesData.error ? (pagesData.value || []).length + 1 : 1;
 
   // POST directly to the compound section ID — this bypasses Error 10008
