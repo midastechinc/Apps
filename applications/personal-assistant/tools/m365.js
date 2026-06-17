@@ -797,22 +797,23 @@ async function searchOneNote({ query }) {
 }
 
 async function listOneNoteStructure() {
-  // Use OneNote API directly — Drive .onetoc2 search is unreliable on some accounts
-  const nbData = await oneNoteFetch(`/notebooks?$select=id,displayName&$top=20`);
-  if (nbData.error) return { error: nbData.error };
+  // Fetch all sections in one call with parent notebook expanded — avoids per-notebook enumeration failures
+  const secData = await oneNoteFetch(
+    `/sections?$select=id,displayName&$expand=parentNotebook($select=id,displayName)&$top=100`
+  );
+  if (secData.error) return { error: secData.error };
 
-  const notebooks = nbData.value || [];
-  if (notebooks.length === 0) return { structure: [], note: 'No OneNote notebooks found.' };
-
-  const result = [];
-  for (const nb of notebooks) {
-    const secData = await oneNoteFetch(`/notebooks/${nb.id}/sections?$select=id,displayName&$top=100`);
-    result.push({
-      notebook: nb.displayName,
-      sections: secData.error ? [] : (secData.value || []).map(s => ({ id: s.id, name: s.displayName }))
-    });
+  // Group sections by notebook name
+  const map = {};
+  for (const s of (secData.value || [])) {
+    const nb = s.parentNotebook?.displayName || 'Unknown Notebook';
+    if (!map[nb]) map[nb] = [];
+    map[nb].push({ id: s.id, name: s.displayName });
   }
-  return { structure: result };
+
+  const structure = Object.entries(map).map(([notebook, sections]) => ({ notebook, sections }));
+  if (structure.length === 0) return { structure: [], note: 'No sections found.' };
+  return { structure };
 }
 
 async function getPageIdsForLinkPages() {
