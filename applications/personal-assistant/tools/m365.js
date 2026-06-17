@@ -181,6 +181,22 @@ function cacheOneNoteSectionId(sectionName, sectionId) {
   console.log(`[OneNote] Cached section "${sectionName}" = ${sectionId}`);
 }
 
+// Cache a resolved compound PAGE id for a link-collection page (youtube/facebook/instagram)
+function cacheLinkPageId(platform, pageId) {
+  const cur = getConfig().integrations?.m365 || {};
+  const pageIds = { ...(cur.pageIds || {}), [platform]: pageId };
+  updateConfig({ integrations: { m365: { ...cur, pageIds } } });
+  console.log(`[OneNote] Cached ${platform} link-page id = ${pageId}`);
+}
+
+// Valid OneNote (Graph) compound IDs always contain "!", e.g. 1-{hex}!{n}-{guid}.
+// A bare GUID (a SharePoint file id) is NOT usable for Graph page/section operations.
+function isCompoundOneNoteId(id) {
+  return typeof id === 'string' && id.includes('!');
+}
+
+const norm = s => (s || '').toLowerCase().replace(/[-_\s]+/g, '');
+
 async function findSectionId(sectionName) {
   const key = sectionName.toLowerCase();
 
@@ -310,8 +326,9 @@ const PLATFORM_CONFIG = {
 async function findOneNotePageByTitle(titleToFind) {
   const lower = titleToFind.toLowerCase();
 
-  // Use pages search API — scoped to user, avoids cross-library enumeration (Error 10008)
-  const searchData = await oneNoteFetch(`/pages?$search="${titleToFind}"&$select=id,title&$top=20`);
+  // Use OneNote full-text search (`search=`, index-based — works under Error 10008).
+  // Do NOT add $top or $select here: those trigger Error 20108 on the search endpoint.
+  const searchData = await oneNoteFetch(`/pages?search=${encodeURIComponent(titleToFind)}`);
   if (!searchData.error) {
     const found = (searchData.value || []).find(p => p.title?.toLowerCase() === lower);
     if (found) {
@@ -348,25 +365,63 @@ async function findOneNotePageByTitle(titleToFind) {
   return null;
 }
 
-async function getPageId(platform) {
+// Resolve the compound PAGE id of a link-collection page ("YouTube Links", "Facebook Links",
+// "Instagram Links"). These are PAGES inside the "Quick Notes" section — NOT sections.
+// Chain: hardcoded compound id → cached compound id → full-text search → notebook navigation.
+async function findLinkPageId(platform) {
   const cfg = PLATFORM_CONFIG[platform];
   if (!cfg) return null;
-  if (cfg.hardcodedId) return cfg.hardcodedId;
+  const wanted = norm(cfg.pageName);
+  const cur = getConfig().integrations?.m365 || {};
 
-  // Check config cache
-  const config = getConfig();
-  const cached = config.integrations?.m365?.[cfg.pageIdKey];
-  if (cached) return cached;
+  // 1. Hardcoded compound id (YouTube anchor)
+  if (cfg.hardcodedId && isCompoundOneNoteId(cfg.hardcodedId)) {
+    return { id: cfg.hardcodedId };
+  }
 
-  // Search notebooks
-  const page = await findOneNotePageByTitle(cfg.pageName);
-  if (!page) return null;
+  // 2. Previously cached compound id
+  const cached = cur.pageIds?.[platform] || cur[cfg.pageIdKey];
+  if (cached && isCompoundOneNoteId(cached)) {
+    return { id: cached };
+  }
 
-  // Cache for next time
-  const m365 = config.integrations?.m365 || {};
-  updateConfig({ integrations: { m365: { ...m365, [cfg.pageIdKey]: page.id } } });
-  console.log(`[OneNote] Cached ${cfg.pageIdKey} = ${page.id}`);
-  return page.id;
+  // 3. Full-text search — index-based, works under Error 10008. NO $top (causes 20108).
+  const searchData = await oneNoteFetch(`/pages?search=${encodeURIComponent(cfg.pageName)}`);
+  if (!searchData.error) {
+    const hit = (searchData.value || []).find(p => norm(p.title) === wanted && isCompoundOneNoteId(p.id));
+    if (hit) {
+      console.log(`[OneNote] Resolved "${cfg.pageName}" page via search → ${hit.id}`);
+      cacheLinkPageId(platform, hit.id);
+      return { id: hit.id, sectionId: hit.parentSection?.id };
+    }
+    console.log(`[OneNote] Search for "${cfg.pageName}" returned ${(searchData.value || []).length} pages, no exact title match`);
+  } else {
+    console.log(`[OneNote] findLinkPageId search error: ${searchData.error}`);
+  }
+
+  // 4. Navigate from YouTube anchor page → notebook → every section → pages → exact title match
+  const ANCHOR = '1-a9da38968f2a4e05826e53d9b8c8f5e4!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e';
+  const anchor = await oneNoteFetch(
+    `/pages/${ANCHOR}?$expand=parentSection($select=id;$expand=parentNotebook($select=id))`
+  );
+  const nbId = anchor?.parentSection?.parentNotebook?.id;
+  if (nbId) {
+    const sectionsData = await oneNoteFetch(`/notebooks/${nbId}/sections?$select=id,displayName`);
+    for (const sec of (sectionsData.value || []).slice(0, 25)) {
+      const pagesData = await oneNoteFetch(`/sections/${sec.id}/pages?$select=id,title`);
+      if (pagesData.error) continue;
+      const hit = (pagesData.value || []).find(p => norm(p.title) === wanted && isCompoundOneNoteId(p.id));
+      if (hit) {
+        console.log(`[OneNote] Resolved "${cfg.pageName}" page via notebook nav (section "${sec.displayName}") → ${hit.id}`);
+        cacheLinkPageId(platform, hit.id);
+        return { id: hit.id, sectionId: sec.id };
+      }
+    }
+  } else {
+    console.log(`[OneNote] findLinkPageId: anchor navigation failed (err: ${anchor?.error || 'no notebook'})`);
+  }
+
+  return null;
 }
 
 async function saveLink({ url }) {
@@ -382,32 +437,47 @@ async function saveLink({ url }) {
     : await fetchPageTitle(url);
   if (!title) title = `${cfg.pageName.replace(' Links', '')} Post`;
 
-  // Resolve compound section ID via findSectionId (cache → notebook navigation → Drive .onetoc2)
-  const sectionId = await findSectionId(cfg.pageName);
-  if (!sectionId) {
-    return { error: `Could not find "${cfg.pageName}" section in OneNote. Please create a "${cfg.pageName}" section in your Quick Notes notebook first.` };
+  // Resolve the compound PAGE id (Facebook/YouTube/Instagram Links are PAGES, not sections)
+  const page = await findLinkPageId(platform);
+  if (!page?.id) {
+    return { error: `Couldn't locate the "${cfg.pageName}" page in OneNote. Open OneNote, go to the page titled exactly "${cfg.pageName}", use "Copy Link to Page", and send me that link.` };
   }
+  const pageId = page.id;
 
-  // Count pages already in this section for sequential numbering
-  const pagesData = await oneNoteFetch(`/sections/${sectionId}/pages?$select=id,title`);
-  const nextNumber = !pagesData.error ? (pagesData.value || []).length + 1 : 1;
+  // Determine next list number from the page's existing numbered entries ("1. ", "2) " ...)
+  const existingHtml = await oneNoteTextFetch(`/pages/${pageId}/content`);
+  const nums = existingHtml ? [...existingHtml.matchAll(/>\s*(\d+)[.)]\s/g)].map(m => parseInt(m[1], 10)) : [];
+  const nextNumber = nums.length ? Math.max(...nums) + 1 : 1;
 
-  // POST a new page to the section (direct write, bypasses Error 10008; PATCH was unreliable)
   const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const safeUrl = url.replace(/&/g, '&amp;');
-  const pageTitle = `#${nextNumber}: ${safeTitle}`;
-  const result = await oneNoteFetch(`/sections/${sectionId}/pages`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/html' },
-    body: `<!DOCTYPE html><html><head><title>${pageTitle}</title></head><body><p><a href="${safeUrl}">${safeTitle}</a></p></body></html>`
-  });
+  const safeUrl = url.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 
-  if (result?.error) {
-    console.error(`[OneNote] Page create failed (sectionId=${sectionId}):`, result.error);
-    return result;
+  // Append a numbered entry to the page body
+  const patch = await oneNoteFetch(`/pages/${pageId}/content`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify([{
+      target: 'body',
+      action: 'append',
+      content: `<p>${nextNumber}. <a href="${safeUrl}">${safeTitle}</a></p>`
+    }])
+  });
+  if (patch?.error) {
+    console.error(`[OneNote] Append PATCH failed (pageId=${pageId}):`, patch.error);
+    return { error: `Couldn't save to "${cfg.pageName}": ${patch.error}` };
   }
 
-  console.log(`[OneNote] Created "${pageTitle}" in "${cfg.pageName}" (${sectionId})`);
+  // Verify the append actually persisted (tolerant: match the title's alphanumeric signature).
+  // Only treat as failure when we can clearly read the page back and the entry is absent —
+  // this avoids the old false-negative that reported errors on successful saves.
+  await new Promise(r => setTimeout(r, 1300));
+  const verify = await oneNoteTextFetch(`/pages/${pageId}/content`);
+  const sig = norm(title).slice(0, 24);
+  if (verify && verify.length > 60 && sig && !norm(verify).includes(sig)) {
+    return { error: `OneNote accepted the update to "${cfg.pageName}" but the entry didn't appear on re-read. Reconnect OneNote (Integrations tab) so the token has Notes.ReadWrite.All scope.` };
+  }
+
+  console.log(`[OneNote] Appended #${nextNumber} to "${cfg.pageName}" (${pageId})`);
   return { success: true, number: nextNumber, title, url, platform, page: cfg.pageName };
 }
 
