@@ -340,7 +340,12 @@ async function fetchPageTitle(url) {
     const html = await resp.text();
     const ogMatch = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
                  || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i);
-    if (ogMatch) return ogMatch[1].trim();
+    if (ogMatch) {
+      const t = ogMatch[1].trim();
+      // Instagram bot-detection: returns a category/tag list joined by " · " (3+ bullets = garbage, not a post title)
+      if (/instagram/i.test(url) && (t.match(/·/g) || []).length >= 3) return null;
+      return t;
+    }
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
     if (titleMatch) return titleMatch[1].replace(/ [|\-–•] Facebook$/, '').replace(/ [|\-–•] Instagram$/, '').trim();
     return null;
@@ -520,7 +525,8 @@ async function saveLink({ url }) {
     if (!patch?.error) {
       // Diagnostic confirmed PATCH writes successfully (204) — trust the response
       console.log(`[OneNote] PATCH OK — #${nextNumber} appended to "${cfg.pageName}"`);
-      return { success: true, number: nextNumber, title, url, platform, page: cfg.pageName };
+      const displayTitle = title.length > 80 ? title.slice(0, 77) + '...' : title;
+      return { success: true, number: nextNumber, title: displayTitle, url, platform, page: cfg.pageName };
     }
 
     // PATCH errored — clear cached ID (might be stale) and fall to POST
@@ -560,8 +566,9 @@ async function saveLink({ url }) {
     return { error: `Couldn't save link to OneNote: ${data.error}` };
   }
 
+  const displayTitle = title.length > 80 ? title.slice(0, 77) + '...' : title;
   console.log(`[OneNote] POST new page "${title}" in Quick Notes`);
-  return { success: true, title, url, platform, page: cfg.pageName };
+  return { success: true, title: displayTitle, url, platform, page: cfg.pageName };
 }
 
 
