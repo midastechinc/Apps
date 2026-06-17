@@ -356,12 +356,14 @@ function detectPlatform(url) {
   return null;
 }
 
-// Page GUIDs from SharePoint URLs. Section GUID (wdsectionfileid): 07f6fff2-e3b3-4a32-ad6f-3835ead68a3e
-// Compound ID format: 1-{pageGuid_noDashes}!55-{sectionGuid}
+// Quick Notes section ID (from diagnostic: parentSection.id of YouTube anchor page).
+// Section IDs use format "1-{guid}" — no "!" — unlike page compound IDs.
+const QUICK_NOTES_SECTION_ID = '1-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e';
+
 const PLATFORM_CONFIG = {
-  youtube:   { pageName: 'YouTube Links',   pageIdKey: 'youtubeLinksPageId',   hardcodedPageId: '1-a9da38968f2a4e05826e53d9b8c8f5e4!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e',   hardcodedSectionId: null },
-  facebook:  { pageName: 'Facebook Links',  pageIdKey: 'facebookLinksPageId',  hardcodedPageId: '1-25d5be0215efd24398babb6118988ec9!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e', hardcodedSectionId: null },
-  instagram: { pageName: 'Instagram Links', pageIdKey: 'instagramLinksPageId', hardcodedPageId: null, hardcodedSectionId: null }
+  youtube:   { pageName: 'YouTube Links',   pageIdKey: 'youtubeLinksPageId',   hardcodedPageId: '1-a9da38968f2a4e05826e53d9b8c8f5e4!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e' },
+  facebook:  { pageName: 'Facebook Links',  pageIdKey: 'facebookLinksPageId',  hardcodedPageId: null },
+  instagram: { pageName: 'Instagram Links', pageIdKey: 'instagramLinksPageId', hardcodedPageId: null }
 };
 
 async function findOneNotePageByTitle(titleToFind) {
@@ -427,23 +429,14 @@ async function getPageId(platform) {
   return page.id;
 }
 
-// Get the Quick Notes section ID (the section that contains the link-collection pages).
-// Navigates from the YouTube anchor page using $expand (not $select) to get parentSection.id.
+// Get the Quick Notes section ID (confirmed via diagnostic: 1-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e).
+// Section IDs use "1-{guid}" format — no "!" — unlike page compound IDs.
 async function getQuickNotesSectionId() {
+  // Check config cache first (user can override if section ID changes)
   const cur = getConfig().integrations?.m365 || {};
-  if (cur.quickNotesSectionId && isCompoundOneNoteId(cur.quickNotesSectionId)) {
-    return cur.quickNotesSectionId;
-  }
-  const ANCHOR = '1-a9da38968f2a4e05826e53d9b8c8f5e4!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e';
-  const detail = await oneNoteFetch(`/pages/${ANCHOR}?$expand=parentSection($select=id,displayName)`);
-  const sectionId = detail?.parentSection?.id;
-  if (sectionId && isCompoundOneNoteId(sectionId)) {
-    console.log(`[OneNote] Quick Notes section ID: ${sectionId} ("${detail.parentSection?.displayName}")`);
-    updateConfig({ integrations: { m365: { ...cur, quickNotesSectionId: sectionId } } });
-    return sectionId;
-  }
-  console.log(`[OneNote] getQuickNotesSectionId failed: ${detail?.error || 'no parentSection'}`);
-  return null;
+  if (cur.quickNotesSectionId) return cur.quickNotesSectionId;
+  // Use the hardcoded constant confirmed by debug diagnostics
+  return QUICK_NOTES_SECTION_ID;
 }
 
 async function saveLink({ url }) {
