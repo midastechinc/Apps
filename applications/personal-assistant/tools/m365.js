@@ -369,33 +369,6 @@ async function getPageId(platform) {
   return page.id;
 }
 
-async function appendToOneNotePage(pageId, nextNumber, title, url) {
-  const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const patchBody = JSON.stringify([{
-    target: 'body',
-    action: 'append',
-    content: `<p>${nextNumber}. <a href="${url}">${safeTitle}</a></p>`
-  }]);
-
-  const result = await oneNoteFetch(`/pages/${pageId}/content`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: patchBody
-  });
-  if (result?.error) {
-    console.error('[OneNote] PATCH failed:', result.error);
-    return result;
-  }
-
-  // Verify the write actually committed
-  await new Promise(r => setTimeout(r, 1500));
-  const verifyHtml = await oneNoteTextFetch(`/pages/${pageId}/content`);
-  if (verifyHtml && !verifyHtml.includes(url)) {
-    return { error: 'OneNote accepted the request but the entry did not appear. Token may need Notes.ReadWrite.All scope.' };
-  }
-  return null;
-}
-
 async function saveLink({ url }) {
   const platform = detectPlatform(url);
   if (!platform) return { error: 'URL is not from YouTube, Facebook, or Instagram.' };
@@ -409,21 +382,32 @@ async function saveLink({ url }) {
     : await fetchPageTitle(url);
   if (!title) title = `${cfg.pageName.replace(' Links', '')} Post`;
 
-  // Get page ID
-  const pageId = await getPageId(platform);
-  if (!pageId) {
-    return { error: `Could not find "${cfg.pageName}" page in OneNote. Please create it first.` };
+  // Resolve compound section ID via findSectionId (cache → notebook navigation → Drive .onetoc2)
+  const sectionId = await findSectionId(cfg.pageName);
+  if (!sectionId) {
+    return { error: `Could not find "${cfg.pageName}" section in OneNote. Please create a "${cfg.pageName}" section in your Quick Notes notebook first.` };
   }
 
-  // Count existing entries
-  const html = await graphFetchText(`/users/ali@midastech.ca/onenote/pages/${pageId}/content`);
-  const numbers = html ? [...html.matchAll(/>\s*(\d+)\.\s/g)].map(m => parseInt(m[1])) : [];
-  const nextNumber = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+  // Count pages already in this section for sequential numbering
+  const pagesData = await oneNoteFetch(`/sections/${sectionId}/pages?$select=id,title`);
+  const nextNumber = !pagesData.error ? (pagesData.value || []).length + 1 : 1;
 
-  const err = await appendToOneNotePage(pageId, nextNumber, title, url);
-  if (err) return err;
+  // POST a new page to the section (direct write, bypasses Error 10008; PATCH was unreliable)
+  const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const safeUrl = url.replace(/&/g, '&amp;');
+  const pageTitle = `#${nextNumber}: ${safeTitle}`;
+  const result = await oneNoteFetch(`/sections/${sectionId}/pages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/html' },
+    body: `<!DOCTYPE html><html><head><title>${pageTitle}</title></head><body><p><a href="${safeUrl}">${safeTitle}</a></p></body></html>`
+  });
 
-  console.log(`[OneNote] Saved ${platform} entry #${nextNumber}`);
+  if (result?.error) {
+    console.error(`[OneNote] Page create failed (sectionId=${sectionId}):`, result.error);
+    return result;
+  }
+
+  console.log(`[OneNote] Created "${pageTitle}" in "${cfg.pageName}" (${sectionId})`);
   return { success: true, number: nextNumber, title, url, platform, page: cfg.pageName };
 }
 

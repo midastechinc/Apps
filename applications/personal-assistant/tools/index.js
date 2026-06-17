@@ -637,6 +637,7 @@ const AGENT_TOOLS = {
     'google_list_events', 'google_create_event', 'google_list_calendars',
     'family_save_memory', 'family_recall_memory', 'family_list_memory',
     'm365_list_todos', 'm365_create_todo',
+    'm365_save_link', 'm365_set_onenote_section',
     'web_search', 'fetch_webpage'
   ]
 };
