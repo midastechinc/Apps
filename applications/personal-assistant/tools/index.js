@@ -3,9 +3,83 @@ const googleCalendar = require('./google-calendar');
 const googleTasks = require('./google-tasks');
 const m365 = require('./m365');
 const familyMemory = require('./family-memory');
+const sbMemory = require('./supabase-memory');
 const web = require('./web');
 
 const DEFINITIONS = {
+  memory_save: {
+    type: 'function',
+    function: {
+      name: 'memory_save',
+      description: 'Save a fact, preference, or piece of information to persistent memory. Use categories: "family", "client", "business", "personal". Call this immediately whenever you learn something worth remembering.',
+      parameters: {
+        type: 'object',
+        properties: {
+          key:      { type: 'string', description: 'Short identifier, e.g. "rogers contract end" or "hassan birthday"' },
+          value:    { type: 'string', description: 'The information to remember' },
+          category: { type: 'string', description: 'Category: family, client, business, or personal' }
+        },
+        required: ['key', 'value']
+      }
+    }
+  },
+  memory_recall: {
+    type: 'function',
+    function: {
+      name: 'memory_recall',
+      description: 'Look up a previously saved memory by key. Supports partial matching.',
+      parameters: {
+        type: 'object',
+        properties: {
+          key: { type: 'string', description: 'The key or partial key to look up' }
+        },
+        required: ['key']
+      }
+    }
+  },
+  memory_search: {
+    type: 'function',
+    function: {
+      name: 'memory_search',
+      description: 'Search all memories by keyword — searches both keys and values. Optionally filter by category.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query:    { type: 'string', description: 'Keyword to search for' },
+          category: { type: 'string', description: 'Optional: filter by category (family, client, business, personal)' }
+        },
+        required: ['query']
+      }
+    }
+  },
+  memory_list: {
+    type: 'function',
+    function: {
+      name: 'memory_list',
+      description: 'List all saved memories, optionally filtered by category.',
+      parameters: {
+        type: 'object',
+        properties: {
+          category: { type: 'string', description: 'Optional: filter by category (family, client, business, personal)' }
+        },
+        required: []
+      }
+    }
+  },
+  memory_delete: {
+    type: 'function',
+    function: {
+      name: 'memory_delete',
+      description: 'Delete a saved memory by key.',
+      parameters: {
+        type: 'object',
+        properties: {
+          key: { type: 'string', description: 'The exact key to delete' }
+        },
+        required: ['key']
+      }
+    }
+  },
   family_save_memory: {
     type: 'function',
     function: {
@@ -678,6 +752,7 @@ const AGENT_TOOLS = {
     'm365_search_onenote', 'm365_save_link', 'm365_list_onenote_structure', 'm365_set_onenote_section', 'm365_create_onenote_page', 'm365_read_onenote_page',
     'onedrive_search', 'onedrive_list_folder', 'onedrive_get_link',
     'sharepoint_list_sites', 'sharepoint_search', 'sharepoint_list_files',
+    'memory_save', 'memory_recall', 'memory_search', 'memory_list', 'memory_delete',
     'web_search', 'fetch_webpage'
   ],
   family: [
@@ -685,6 +760,7 @@ const AGENT_TOOLS = {
     'google_list_events', 'google_create_event', 'google_list_calendars',
     'google_list_tasks', 'google_create_task', 'google_complete_task',
     'family_save_memory', 'family_recall_memory', 'family_list_memory',
+    'memory_save', 'memory_recall', 'memory_search', 'memory_list', 'memory_delete',
     'm365_list_todos', 'm365_create_todo',
     'm365_save_link', 'm365_set_onenote_section',
     'web_search', 'fetch_webpage'
@@ -732,6 +808,11 @@ async function executeTool(toolName, args, agentType = 'business') {
       case 'family_save_memory':          return familyMemory.saveMemory(args);
       case 'family_recall_memory':        return familyMemory.recallMemory(args);
       case 'family_list_memory':          return familyMemory.listMemory();
+      case 'memory_save':                 return await sbMemory.saveMemory(args);
+      case 'memory_recall':               return await sbMemory.recallMemory(args);
+      case 'memory_search':               return await sbMemory.searchMemory(args);
+      case 'memory_list':                 return await sbMemory.listMemory(args);
+      case 'memory_delete':               return await sbMemory.deleteMemory(args);
       case 'get_current_time':            return datetime.get_current_time();
       case 'get_current_date':            return datetime.get_current_date();
       case 'google_list_events':          return await googleCalendar.listEvents(args);

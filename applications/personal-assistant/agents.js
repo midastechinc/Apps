@@ -1,6 +1,7 @@
 const { getConfig } = require('./config-manager');
 const { getToolDefinitions, executeTool } = require('./tools');
 const { getMemory } = require('./tools/family-memory');
+const sbMemory = require('./tools/supabase-memory');
 
 const conversationHistory = {};
 const MAX_HISTORY_PAIRS = 10;
@@ -144,6 +145,16 @@ If the user says a link was NOT saved or NOT in OneNote: call m365_save_link aga
   *Business*
   - Projects
   NEVER say "Done." for this — always show the actual list.
+
+## Memory — Supabase
+You have a persistent memory store (Supabase). Use it proactively.
+- Learned something new about a client, preference, or fact? Call memory_save immediately. Don't wait to be asked.
+- Categories: "client" for client info, "business" for general business facts, "personal" for Ali's preferences.
+- When asked about a client or topic: call memory_search first before saying you don't know.
+- "remember X" or "save that" → memory_save immediately, confirm: "Got it — saved."
+- "what do you know about X?" → memory_search(query=X), show results.
+- "forget X" → memory_delete(key=X).
+- NEVER say "I don't have that stored" without first calling memory_search.
 
 ## Group Chats
 - Respond when mentioned or asked a direct question
@@ -425,11 +436,26 @@ function buildSystemPrompt(agent, config, agentType, senderNumber) {
   }
 
   if (agentType === 'family') {
-    const memory = getMemory();
-    const entries = Object.entries(memory);
+    // Prefer Supabase memory (category=family); fall back to file-based memory
+    const sbFacts = sbMemory.isConfigured()
+      ? sbMemory.getMemorySync('family')
+      : getMemory();
+    const entries = Object.entries(sbFacts);
     if (entries.length > 0) {
       const lines = entries.map(([k, v]) => `- ${k}: ${v}`).join('\n');
       prompt += `\n\n## What I Already Know (Saved Family Facts)\n${lines}\nUse these facts to answer questions directly without calling any tools.`;
+    }
+  }
+
+  if (agentType === 'business') {
+    // Inject client and business memories into the system prompt
+    const clientFacts = sbMemory.isConfigured()
+      ? { ...sbMemory.getMemorySync('client'), ...sbMemory.getMemorySync('business'), ...sbMemory.getMemorySync('personal') }
+      : {};
+    const entries = Object.entries(clientFacts);
+    if (entries.length > 0) {
+      const lines = entries.map(([k, v]) => `- ${k}: ${v}`).join('\n');
+      prompt += `\n\n## What I Already Know (Saved Facts)\n${lines}`;
     }
   }
 
