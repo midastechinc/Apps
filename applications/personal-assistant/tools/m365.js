@@ -367,8 +367,8 @@ const QUICK_NOTES_SECTION_ID = '1-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e';
 
 const PLATFORM_CONFIG = {
   youtube:   { pageName: 'YouTube Links',   pageIdKey: 'youtubeLinksPageId',   hardcodedPageId: '1-a9da38968f2a4e05826e53d9b8c8f5e4!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e' },
-  facebook:  { pageName: 'Facebook Links',  pageIdKey: 'facebookLinksPageId',  hardcodedPageId: null },
-  instagram: { pageName: 'Instagram Links', pageIdKey: 'instagramLinksPageId', hardcodedPageId: null }
+  facebook:  { pageName: 'Facebook Links',  pageIdKey: 'facebookLinksPageId',  hardcodedPageId: '1-230c71a69ff63e0f325df22affa896a6!1-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e' },
+  instagram: { pageName: 'Instagram Links', pageIdKey: 'instagramLinksPageId', hardcodedPageId: '1-56581b7aaa7b900f1492af9447019e27!1-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e' }
 };
 
 async function findOneNotePageByTitle(titleToFind) {
