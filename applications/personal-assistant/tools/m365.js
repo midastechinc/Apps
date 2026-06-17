@@ -272,6 +272,50 @@ async function findSectionId(sectionName) {
   return null;
 }
 
+// Navigate from the YouTube Links compound page ID (known-good) to discover any section's
+// compound ID. Avoids bulk enumeration (Error 10008) by using direct targeted IDs at each step.
+async function discoverSectionIdViaNotebook(sectionName) {
+  // YouTube Links compound page ID — known-good, used as navigation anchor
+  const YT_PAGE_ID = '1-a9da38968f2a4e05826e53d9b8c8f5e4!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e';
+  if (!isCompoundOneNoteId(YT_PAGE_ID)) return null;
+
+  // Step 1: page → parent section compound ID
+  const pageData = await oneNoteFetch(`/pages/${YT_PAGE_ID}?$select=id,parentSection`);
+  if (pageData.error || !isCompoundOneNoteId(pageData.parentSection?.id)) {
+    console.log('[OneNote] discoverSectionId: YouTube page lookup failed:', pageData.error || JSON.stringify(pageData).slice(0, 120));
+    return null;
+  }
+  const ytSectionId = pageData.parentSection.id;
+  console.log(`[OneNote] discoverSectionId: YouTube section ID: ${ytSectionId}`);
+
+  // Step 2: section → parent notebook compound ID
+  const secData = await oneNoteFetch(`/sections/${ytSectionId}?$select=id,parentNotebook`);
+  if (secData.error || !secData.parentNotebook?.id) {
+    console.log('[OneNote] discoverSectionId: section lookup failed:', secData.error);
+    return null;
+  }
+  const notebookId = secData.parentNotebook.id;
+  console.log(`[OneNote] discoverSectionId: notebook ID: ${notebookId}`);
+
+  // Step 3: list all sections of this notebook (targeted, safe from Error 10008)
+  const sectionsData = await oneNoteFetch(`/notebooks/${notebookId}/sections?$select=id,displayName`);
+  if (sectionsData.error) {
+    console.log('[OneNote] discoverSectionId: notebook sections list failed:', sectionsData.error);
+    return null;
+  }
+
+  const allNames = (sectionsData.value || []).map(s => s.displayName).join(', ');
+  console.log(`[OneNote] discoverSectionId: sections in notebook: ${allNames}`);
+
+  const target = (sectionsData.value || []).find(s => norm(s.displayName) === norm(sectionName));
+  if (target && isCompoundOneNoteId(target.id)) {
+    console.log(`[OneNote] discoverSectionId: found "${sectionName}" → ${target.id}`);
+    return target.id;
+  }
+  console.log(`[OneNote] discoverSectionId: "${sectionName}" not found among: ${allNames}`);
+  return null;
+}
+
 async function fetchYouTubeTitle(url) {
   try {
     const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
@@ -394,34 +438,54 @@ async function saveLink({ url }) {
     : await fetchPageTitle(url);
   if (!title) title = `${cfg.pageName.replace(' Links', '')} Post`;
 
-  // Resolve compound section ID: cached → page-ID lookup → search
-  // NOTE: bare GUIDs (from OneNote protocol links) don't work with Graph API.
-  //       We need the compound format (contains '!'). Discover it once and cache.
+  // Resolve compound section ID (chain: cache → compound page lookup → notebook discovery → search → bare GUID)
   let sectionId = getConfig().integrations?.m365?.oneNoteSections?.[cfg.pageName.toLowerCase()];
 
-  if (!sectionId || !isCompoundOneNoteId(sectionId)) {
-    // Try getting compound section ID via a known page ID (direct access, bypasses 10008)
-    if (cfg.hardcodedPageId) {
-      console.log(`[OneNote] Resolving compound section ID via page ${cfg.hardcodedPageId}...`);
-      const pageData = await oneNoteFetch(`/pages/${cfg.hardcodedPageId}?$select=id,parentSection`);
-      if (!pageData.error && isCompoundOneNoteId(pageData.parentSection?.id)) {
-        sectionId = pageData.parentSection.id;
-        cacheOneNoteSectionId(cfg.pageName, sectionId);
-        console.log(`[OneNote] Resolved compound section ID: ${sectionId}`);
-      } else {
-        console.log(`[OneNote] Page lookup result:`, JSON.stringify(pageData).slice(0, 200));
-      }
+  // 1. Cache hit: only trust compound IDs (bare GUIDs from OneNote links don't work with Graph)
+  if (sectionId && !isCompoundOneNoteId(sectionId)) {
+    console.log(`[OneNote] Purging non-compound cached section ID for "${cfg.pageName}": ${sectionId}`);
+    const cur = getConfig().integrations?.m365 || {};
+    const sections = { ...(cur.oneNoteSections || {}) };
+    delete sections[cfg.pageName.toLowerCase()];
+    updateConfig({ integrations: { m365: { ...cur, oneNoteSections: sections } } });
+    sectionId = null;
+  }
+
+  // 2. If page ID is compound, GET it to extract parent section compound ID
+  if (!sectionId && cfg.hardcodedPageId && isCompoundOneNoteId(cfg.hardcodedPageId)) {
+    console.log(`[OneNote] Resolving section ID via compound page ${cfg.hardcodedPageId}...`);
+    const pageData = await oneNoteFetch(`/pages/${cfg.hardcodedPageId}?$select=id,parentSection`);
+    if (!pageData.error && isCompoundOneNoteId(pageData.parentSection?.id)) {
+      sectionId = pageData.parentSection.id;
+      cacheOneNoteSectionId(cfg.pageName, sectionId);
+      console.log(`[OneNote] Resolved via page lookup: ${sectionId}`);
+    } else {
+      console.log(`[OneNote] Page lookup result:`, JSON.stringify(pageData).slice(0, 200));
     }
   }
 
-  if (!sectionId || !isCompoundOneNoteId(sectionId)) {
-    console.log(`[OneNote] No compound section ID — trying search for "${cfg.pageName}"...`);
+  // 3. Navigate from YouTube compound page → notebook → sections list (avoids Error 10008)
+  if (!sectionId) {
+    console.log(`[OneNote] Trying notebook discovery for "${cfg.pageName}"...`);
+    sectionId = await discoverSectionIdViaNotebook(cfg.pageName);
+    if (sectionId) cacheOneNoteSectionId(cfg.pageName, sectionId);
+  }
+
+  // 4. Full-text search fallback (works when section has existing pages)
+  if (!sectionId) {
+    console.log(`[OneNote] Trying search for "${cfg.pageName}"...`);
     sectionId = await findSectionId(cfg.pageName);
+  }
+
+  // 5. Bare section GUID last resort (may work for writes even without compound format)
+  if (!sectionId && cfg.hardcodedSectionId) {
+    console.log(`[OneNote] Trying bare section GUID as last resort: ${cfg.hardcodedSectionId}`);
+    sectionId = cfg.hardcodedSectionId;
   }
 
   if (!sectionId) {
     return {
-      error: `Cannot find compound section ID for "${cfg.pageName}". One-time setup:\n1. Open OneNote → go to the "${cfg.pageName}" section\n2. Long-press any page → Copy Link to Page\n3. Send me: set onenote section ${cfg.pageName} [paste link]`
+      error: `Cannot find section ID for "${cfg.pageName}". One-time setup:\n1. Open OneNote → go to the "${cfg.pageName}" section\n2. Long-press any page → Copy Link to Page\n3. Send me: set onenote section ${cfg.pageName} [paste link]`
     };
   }
 
@@ -1250,10 +1314,17 @@ async function setOneNoteSection({ section_name, section_id_or_url }) {
   }
   lastError = lastError || nameErr;
 
+  // Last resort: navigate from YouTube compound page → notebook → sections (avoids Error 10008)
+  const discovered = await discoverSectionIdViaNotebook(section_name);
+  if (discovered) {
+    cacheOneNoteSectionId(section_name, discovered);
+    return { success: true, section_name, section_id: discovered, message: `Done — "${section_name}" is now configured via notebook discovery. I can save notes there now.` };
+  }
+
   if (lastError) {
     return { error: `Couldn't search OneNote: ${lastError}` };
   }
-  return { error: `I couldn't locate that page in OneNote search. You can also just send me the title of any page inside "${section_name}" (e.g. "set onenote section ${section_name} DALLAS-2026"). Or open a PAGE inside "${section_name}" in OneNote, use "Copy Link to Page", and send me that link. ${titleCandidates.length ? `(I looked for: ${titleCandidates.join(', ')}.)` : ''}`.trim() };
+  return { error: `I couldn't locate the "${section_name}" section in OneNote. ${titleCandidates.length ? `(I looked for: ${titleCandidates.join(', ')}.)` : ''}`.trim() };
 }
 
 function isConfigured() {

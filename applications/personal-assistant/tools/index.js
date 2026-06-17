@@ -686,6 +686,7 @@ const AGENT_TOOLS = {
     'google_list_tasks', 'google_create_task', 'google_complete_task',
     'family_save_memory', 'family_recall_memory', 'family_list_memory',
     'm365_list_todos', 'm365_create_todo',
+    'm365_save_link', 'm365_set_onenote_section',
     'web_search', 'fetch_webpage'
   ]
 };
