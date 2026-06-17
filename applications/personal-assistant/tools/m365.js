@@ -452,32 +452,71 @@ async function saveLink({ url }) {
   const cfg = PLATFORM_CONFIG[platform];
   console.log(`[OneNote] saveLink ${platform}: ${url.slice(0, 80)}`);
 
-  // Fetch title
   let title = platform === 'youtube'
     ? await fetchYouTubeTitle(url)
     : await fetchPageTitle(url);
   if (!title) title = `${cfg.pageName.replace(' Links', '')} Post`;
   console.log(`[OneNote] title: "${title}"`);
 
-  // Get the Quick Notes section ID (where YouTube/Facebook/Instagram Links pages live).
-  // We use POST to create a new page per link — more reliable than PATCH append which
-  // silently fails on SharePoint-hosted notebooks under certain token conditions.
-  const sectionId = await getQuickNotesSectionId();
-  if (!sectionId) {
-    return { error: `Couldn't find the Quick Notes section in OneNote. Reply with the section URL from OneNote (right-click section tab → Copy Link to Section).` };
-  }
-  console.log(`[OneNote] Posting to section ${sectionId.slice(-16)}`);
-
   const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const safeUrl = url.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  // Use a URL-derived signature for verification (title can false-positive if page already contains that word)
+  const urlSig = url.replace(/https?:\/\//i, '').replace(/[^a-z0-9]/gi, '').slice(0, 25).toLowerCase();
+
+  // ── APPROACH 1: PATCH-append to the specific link-collection page ────────────
+  // This is the preferred approach — keeps all links for a platform on one page.
+  // YouTube has a hardcoded compound ID (known working); Facebook now has one too.
+  const page = await findLinkPageId(platform);
+  if (page?.id) {
+    const pageId = page.id;
+    console.log(`[OneNote] PATCH-append to "${cfg.pageName}" page ${pageId.slice(-16)}`);
+
+    const existingHtml = await oneNoteTextFetch(`/pages/${pageId}/content`);
+    const nums = existingHtml
+      ? [...existingHtml.matchAll(/>\s*(\d+)[.)]\s/g)].map(m => parseInt(m[1], 10))
+      : [];
+    const nextNumber = nums.length ? Math.max(...nums) + 1 : 1;
+
+    const patch = await oneNoteFetch(`/pages/${pageId}/content`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify([{
+        target: 'body',
+        action: 'append',
+        content: `<p>${nextNumber}. <a href="${safeUrl}">${safeTitle}</a></p>`
+      }])
+    });
+
+    if (!patch?.error) {
+      // Verify using URL signature — avoid title false-positives
+      await new Promise(r => setTimeout(r, 1500));
+      const verify = await oneNoteTextFetch(`/pages/${pageId}/content`);
+      const patchOk = !verify || verify.length < 60 || urlSig.length < 8 || norm(verify).includes(urlSig.slice(0, 20));
+      if (patchOk) {
+        console.log(`[OneNote] PATCH OK — #${nextNumber} in "${cfg.pageName}" (${pageId.slice(-12)})`);
+        return { success: true, number: nextNumber, title, url, platform, page: cfg.pageName };
+      }
+      console.warn(`[OneNote] PATCH verify failed for "${cfg.pageName}" (urlSig="${urlSig.slice(0,20)}") — falling back to POST`);
+    } else {
+      console.warn(`[OneNote] PATCH error for "${cfg.pageName}": ${patch.error} — trying POST fallback`);
+    }
+  } else {
+    console.log(`[OneNote] findLinkPageId returned null for ${platform} — trying POST`);
+  }
+
+  // ── APPROACH 2: POST a new page to Quick Notes section ──────────────────────
+  // Fallback when PATCH verify fails. Creates a page per link in the section.
+  const sectionId = await getQuickNotesSectionId();
+  if (!sectionId) {
+    return { error: `Couldn't save link to OneNote — PATCH failed and Quick Notes section not found. Reconnect OneNote in Integrations.` };
+  }
+
   const now = new Date().toLocaleString('en-CA', {
     timeZone: 'America/Toronto',
     dateStyle: 'medium',
     timeStyle: 'short'
   });
-  const platformLabel = cfg.pageName.replace(' Links', '');
-
-  const html = `<!DOCTYPE html><html><head><title>${safeTitle}</title></head><body><h1>${safeTitle}</h1><p><a href="${safeUrl}">${safeUrl}</a></p><p style="color:#888;font-size:0.85em;">${platformLabel} — ${now}</p></body></html>`;
+  const html = `<!DOCTYPE html><html><head><title>${safeTitle}</title></head><body><h1>${safeTitle}</h1><p><a href="${safeUrl}">${safeUrl}</a></p><p style="color:#888;font-size:0.85em;">${cfg.pageName.replace(' Links', '')} — ${now}</p></body></html>`;
 
   const data = await oneNoteFetch(`/sections/${sectionId}/pages`, {
     method: 'POST',
@@ -486,19 +525,12 @@ async function saveLink({ url }) {
   });
 
   if (data.error) {
-    console.error(`[OneNote] POST to section ${sectionId.slice(-12)} failed: ${data.error}`);
+    console.error(`[OneNote] POST fallback also failed (section ${sectionId.slice(-12)}): ${data.error}`);
     return { error: `Couldn't save link to OneNote: ${data.error}` };
   }
 
-  console.log(`[OneNote] Created page "${title}" in ${platformLabel} section (${(data.id || '').slice(-12)})`);
-  return {
-    success: true,
-    title,
-    url,
-    platform,
-    page: cfg.pageName,
-    page_url: data.links?.oneNoteWebUrl?.href || null
-  };
+  console.log(`[OneNote] POST new page "${title}" in Quick Notes (PATCH fallback worked)`);
+  return { success: true, title, url, platform, page: cfg.pageName };
 }
 
 async function listCalendarEvents({ days_ahead = 7, top = 10 } = {}) {
