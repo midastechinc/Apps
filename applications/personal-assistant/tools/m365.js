@@ -181,9 +181,17 @@ function cacheOneNoteSectionId(sectionName, sectionId) {
   console.log(`[OneNote] Cached section "${sectionName}" = ${sectionId}`);
 }
 
-// Valid OneNote (Graph) compound IDs always contain "!", e.g. 1-{hex}!{n}-{guid}.
-// A bare GUID (like a SharePoint wdsectionfileid) is NOT usable for page operations
-// and is the source of error 20112. Use this to reject/purge bad cached values.
+// Valid OneNote ID — accepts both formats:
+//   • Section ID:          1-{guid}           e.g. 1-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e
+//   • Page compound ID:    1-{hex}!{n}-{guid} e.g. 1-abc...!55-07f6fff2...
+// Rejects bare SharePoint GUIDs (no "1-" prefix) that cause error 20112.
+function isValidOneNoteId(id) {
+  if (typeof id !== 'string') return false;
+  if (id.includes('!') && id.startsWith('1-')) return true; // page compound ID
+  return /^1-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id); // section ID
+}
+
+// Keep the strict page-only check for contexts where we specifically need a page compound ID.
 function isCompoundOneNoteId(id) {
   return typeof id === 'string' && id.includes('!');
 }
@@ -217,15 +225,22 @@ function extractOneNoteTitles(raw) {
 async function findSectionId(sectionName) {
   const key = sectionName.toLowerCase();
 
-  // 1. Config cache — fastest path. Only trust real compound IDs; purge legacy bad GUIDs.
+  // 0. Built-in known section IDs (confirmed via diagnostic) — bypass all discovery
+  const KNOWN = { [norm('Quick Notes')]: QUICK_NOTES_SECTION_ID };
+  if (KNOWN[norm(sectionName)]) {
+    console.log(`[OneNote] Using built-in section ID for "${sectionName}"`);
+    return KNOWN[norm(sectionName)];
+  }
+
+  // 1. Config cache — accept both section IDs (1-{guid}) and page compound IDs (has "!")
   const cur = getConfig().integrations?.m365;
   const cached = cur?.oneNoteSections?.[key];
   if (cached) {
-    if (isCompoundOneNoteId(cached)) {
+    if (isValidOneNoteId(cached)) {
       console.log(`[OneNote] Using cached section ID for "${sectionName}"`);
       return cached;
     }
-    console.log(`[OneNote] Purging bad cached section ID for "${sectionName}" (not a compound ID): ${cached}`);
+    console.log(`[OneNote] Purging bad cached section ID for "${sectionName}": ${cached}`);
     const sections = { ...(cur.oneNoteSections || {}) };
     delete sections[key];
     updateConfig({ integrations: { m365: { ...cur, oneNoteSections: sections } } });
@@ -244,13 +259,13 @@ async function findSectionId(sectionName) {
 
     // Fast path: displayName already in response
     const direct = (data.value || []).find(p =>
-      isCompoundOneNoteId(p.parentSection?.id) && norm(sectionDisplayName(p)) === norm(sectionName)
+      isValidOneNoteId(p.parentSection?.id) && norm(sectionDisplayName(p)) === norm(sectionName)
     );
     if (direct) return direct.parentSection.id;
 
-    // Slow path: verify each unique compound section ID with a direct section fetch
+    // Slow path: verify each unique section ID with a direct section fetch
     const candidateIds = [...new Set(
-      (data.value || []).map(p => p.parentSection?.id).filter(id => isCompoundOneNoteId(id))
+      (data.value || []).map(p => p.parentSection?.id).filter(id => isValidOneNoteId(id))
     )].slice(0, 5); // cap at 5 candidates
     for (const secId of candidateIds) {
       const sec = await oneNoteFetch(`/sections/${secId}?$select=id,displayName`);
@@ -308,7 +323,7 @@ async function discoverSectionIdViaNotebook(sectionName) {
   console.log(`[OneNote] discoverSectionId: sections in notebook: ${allNames}`);
 
   const target = (sectionsData.value || []).find(s => norm(s.displayName) === norm(sectionName));
-  if (target && isCompoundOneNoteId(target.id)) {
+  if (target && isValidOneNoteId(target.id)) {
     console.log(`[OneNote] discoverSectionId: found "${sectionName}" → ${target.id}`);
     return target.id;
   }
@@ -1401,8 +1416,8 @@ async function setOneNoteSection({ section_name, section_id_or_url }) {
   if (!section_name || !section_id_or_url) return { error: 'section_name and section_id_or_url are required' };
   const decoded = decodeURIComponent(section_id_or_url);
 
-  // Case 1: user pasted a real Graph compound section ID directly (contains "!").
-  if (isCompoundOneNoteId(decoded.trim()) && !/\s/.test(decoded.trim())) {
+  // Case 1: user pasted a valid OneNote ID directly (section 1-{guid} or page compound 1-{hex}!...).
+  if (isValidOneNoteId(decoded.trim()) && !/\s/.test(decoded.trim())) {
     cacheOneNoteSectionId(section_name, decoded.trim());
     return { success: true, section_name, section_id: decoded.trim(), message: `Saved section ID for "${section_name}".` };
   }
