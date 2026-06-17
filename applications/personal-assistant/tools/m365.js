@@ -668,13 +668,8 @@ async function createTodo({ title, list_name = '', due_date = null, notes = null
 }
 
 async function searchOneNote({ query }) {
-  const params = new URLSearchParams({
-    search: query,
-    $top: '5',
-    $select: 'id,title,createdDateTime,lastModifiedDateTime,links'
-  });
-
-  const data = await oneNoteFetch(`/pages?${params}`);
+  // NOTE: $top and $select cannot be combined with search= (triggers Error 20108)
+  const data = await oneNoteFetch(`/pages?search=${encodeURIComponent(query)}`);
   if (data.error) return data;
 
   return {
@@ -690,30 +685,43 @@ async function searchOneNote({ query }) {
 }
 
 async function listOneNoteStructure() {
-  // Use Drive .onetoc2 search to discover notebooks without triggering Error 10008
+  // Primary: OneNote notebooks API (delegated token, works for SharePoint-hosted notebooks)
+  const nbData = await oneNoteFetch(`/notebooks?$select=id,displayName&$top=50`);
+  if (!nbData.error && nbData.value?.length > 0) {
+    const result = [];
+    for (const nb of nbData.value) {
+      const sectionsData = await oneNoteFetch(`/notebooks/${nb.id}/sections?$select=id,displayName`);
+      result.push({
+        notebook: nb.displayName,
+        id: nb.id,
+        sections: sectionsData.error
+          ? [`(error loading sections: ${sectionsData.error})`]
+          : (sectionsData.value || []).map(s => ({ id: s.id, name: s.displayName }))
+      });
+    }
+    return { structure: result };
+  }
+  console.log('[OneNote] listOneNoteStructure: /notebooks returned error or empty:', nbData.error || '0 results');
+
+  // Fallback: Drive .onetoc2 discovery (for OneDrive-hosted notebooks)
   const tocSearch = await graphFetch(
     `/users/${USER_PRINCIPAL}/drive/search(q='.onetoc2')?$select=id,name,parentReference&$top=30`
   );
-  if (tocSearch.error) return { error: tocSearch.error };
+  if (tocSearch.error) return { error: `Could not list OneNote structure: ${tocSearch.error}` };
 
   const folderIds = [...new Set(
     (tocSearch.value || []).map(f => f.parentReference?.id).filter(Boolean)
   )];
-
-  if (folderIds.length === 0) return { structure: [], note: 'No OneNote notebooks found in Drive.' };
+  if (folderIds.length === 0) return { structure: [], note: 'No OneNote notebooks found.' };
 
   const result = [];
   for (const folderId of folderIds) {
-    const folderData = await graphFetch(
-      `/users/${USER_PRINCIPAL}/drive/items/${folderId}?$select=name`
-    );
+    const folderData = await graphFetch(`/users/${USER_PRINCIPAL}/drive/items/${folderId}?$select=name`);
     const notebookName = folderData.name || folderId;
-
     const sectionsData = await graphFetch(
       `/users/${USER_PRINCIPAL}/drive/items/${folderId}/onenote/sections?$select=id,displayName&$top=100`
     );
     if (sectionsData.error) continue;
-
     result.push({
       notebook: notebookName,
       sections: (sectionsData.value || []).map(s => ({ id: s.id, name: s.displayName }))
