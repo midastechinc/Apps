@@ -280,6 +280,23 @@ function routeMessage(senderJid, text) {
 async function processMessage(senderJid, text, imageInfo = null) {
   const preview = text ? `"${text.slice(0, 60)}"` : '[image only]';
   console.log(`[MSG] received: ${preview} from ${senderJid}${imageInfo ? ' +image' : ''}`);
+
+  // Raw diagnostic — bypasses the LLM so we see the ACTUAL OneNote API responses.
+  // Only Ali's main number can run it. Trigger: "debug onenote".
+  if (text && /^\s*debug\s+onenote\s*$/i.test(text)) {
+    const cfg = getConfig();
+    const senderNum = jidToNumber(senderJid);
+    if (normalizeNumber(cfg.mainNumber) === senderNum) {
+      try {
+        const m365 = require('./tools/m365');
+        const report = await m365.diagnoseOneNote();
+        return `🔎 OneNote diagnostic:\n${report}`;
+      } catch (err) {
+        return `Diagnostic failed: ${err.message}`;
+      }
+    }
+  }
+
   const routed = routeMessage(senderJid, text || '');
   if (!routed) return null;
 

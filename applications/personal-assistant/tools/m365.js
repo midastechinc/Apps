@@ -741,6 +741,63 @@ async function getPageIdsForLinkPages() {
   return result;
 }
 
+// Raw, LLM-bypassing OneNote diagnostic. Returns a compact text report of the
+// ACTUAL Graph API responses so we can see ground truth instead of guessing.
+async function diagnoseOneNote() {
+  const lines = [];
+  const short = id => (id || '').length > 40 ? id.slice(0, 24) + '…' + id.slice(-8) : id;
+
+  // 1. Token
+  const token = await getOneNoteAccessToken();
+  lines.push(`1) OneNote token: ${token ? 'OK' : 'MISSING — reconnect OneNote'}`);
+  if (!token) return lines.join('\n');
+
+  // 2. Notebooks
+  const nb = await oneNoteFetch(`/notebooks?$select=id,displayName&$top=50`);
+  if (nb.error) {
+    lines.push(`2) /notebooks ERROR: ${String(nb.error).slice(0, 160)}`);
+  } else {
+    const names = (nb.value || []).map(n => n.displayName);
+    lines.push(`2) Notebooks (${names.length}): ${names.join(', ') || 'none'}`);
+    // 3. Sections of each notebook
+    for (const n of (nb.value || []).slice(0, 5)) {
+      const sec = await oneNoteFetch(`/notebooks/${n.id}/sections?$select=id,displayName`);
+      if (sec.error) { lines.push(`   • "${n.displayName}" sections ERROR: ${String(sec.error).slice(0, 100)}`); continue; }
+      const sNames = (sec.value || []).map(s => s.displayName);
+      lines.push(`   • "${n.displayName}": ${sNames.join(', ') || '(no sections)'}`);
+    }
+  }
+
+  // 4. YouTube anchor page resolution
+  const ANCHOR = '1-a9da38968f2a4e05826e53d9b8c8f5e4!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e';
+  const anchor = await oneNoteFetch(`/pages/${ANCHOR}?$expand=parentSection($select=id,displayName;$expand=parentNotebook($select=id,displayName))`);
+  if (anchor.error) {
+    lines.push(`4) YouTube anchor page ERROR: ${String(anchor.error).slice(0, 160)}`);
+  } else {
+    lines.push(`4) YouTube anchor → section "${anchor.parentSection?.displayName}" in notebook "${anchor.parentSection?.parentNotebook?.displayName}"`);
+  }
+
+  // 5. Find the three link pages by search
+  for (const name of ['YouTube Links', 'Facebook Links', 'Instagram Links']) {
+    const data = await oneNoteFetch(`/pages?search=${encodeURIComponent(name)}`);
+    if (data.error) { lines.push(`5) search "${name}" ERROR: ${String(data.error).slice(0, 100)}`); continue; }
+    const exact = (data.value || []).filter(p => norm(p.title) === norm(name));
+    if (exact.length) {
+      lines.push(`5) "${name}": FOUND ${exact.length} — ids: ${exact.map(p => short(p.id)).join(', ')}`);
+    } else {
+      const titles = (data.value || []).slice(0, 3).map(p => p.title);
+      lines.push(`5) "${name}": no exact match (${(data.value || []).length} hits${titles.length ? ': ' + titles.join(' | ') : ''})`);
+    }
+  }
+
+  // 6. Cached config
+  const cur = getConfig().integrations?.m365 || {};
+  lines.push(`6) Cached pageIds: ${JSON.stringify(cur.pageIds || {})}`);
+  lines.push(`   Cached sections: ${JSON.stringify(cur.oneNoteSections || {})}`);
+
+  return lines.join('\n');
+}
+
 // ─── Email — send & reply ─────────────────────────────────────────────────────
 
 async function sendEmail({ to, subject, body, cc = null }) {
@@ -1267,7 +1324,7 @@ module.exports = {
   listEmails, searchEmails, readEmail, sendEmail, replyToEmail, createEmailDraft, sendDraft,
   listTodos, createTodo, completeTodo, updateTodo,
   listContacts, createContact,
-  searchOneNote, saveLink, listOneNoteStructure, getPageIdsForLinkPages,
+  searchOneNote, saveLink, listOneNoteStructure, getPageIdsForLinkPages, diagnoseOneNote,
   createOneNotePage, readOneNotePage, setOneNoteSection,
   searchOneDrive, listOneDriveFolder, getOneDriveShareLink,
   listSharePointSites, searchSharePoint, listSharePointFiles,
