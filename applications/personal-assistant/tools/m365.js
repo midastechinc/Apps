@@ -752,6 +752,12 @@ async function diagnoseOneNote() {
   lines.push(`1) OneNote token: ${token ? 'OK' : 'MISSING — reconnect OneNote'}`);
   if (!token) return lines.join('\n');
 
+  // 1b. Compare /me/onenote vs /users/{id}/onenote (delegated tokens can differ per MS docs)
+  const meNb = await graphFetch(`/me/onenote/notebooks?$select=id,displayName&$top=50`);
+  const usersNb = await graphFetch(`/users/${USER_PRINCIPAL}/onenote/notebooks?$select=id,displayName&$top=50`);
+  const summ = r => r.error ? `ERR ${String(r.error).slice(0, 60)}` : `${(r.value || []).length} nbs`;
+  lines.push(`1b) /me/onenote: ${summ(meNb)} | /users/{id}/onenote: ${summ(usersNb)}`);
+
   // 2. Notebooks
   const nb = await oneNoteFetch(`/notebooks?$select=id,displayName&$top=50`);
   if (nb.error) {
