@@ -489,12 +489,14 @@ async function saveLink({ url }) {
     if (!patch?.error) {
       await new Promise(r => setTimeout(r, 1500));
       const verify = await oneNoteTextFetch(`/pages/${pageId}/content`);
-      const patchOk = !verify || verify.length < 60 || urlSig.length < 8 || norm(verify).includes(urlSig.slice(0, 20));
+      // Only claim success if we can actually confirm the URL is in the page.
+      // If verify returns null (read failed), skip to POST — don't assume PATCH worked.
+      const patchOk = verify && verify.length > 60 && urlSig.length >= 8 && norm(verify).includes(urlSig.slice(0, 20));
       if (patchOk) {
-        console.log(`[OneNote] PATCH OK — #${nextNumber} in "${cfg.pageName}" (${pageId.slice(-12)})`);
+        console.log(`[OneNote] PATCH verified — #${nextNumber} in "${cfg.pageName}" (${pageId.slice(-12)})`);
         return { success: true, number: nextNumber, title, url, platform, page: cfg.pageName };
       }
-      console.warn(`[OneNote] PATCH verify failed for "${cfg.pageName}" — falling back to POST`);
+      console.warn(`[OneNote] PATCH verify failed for "${cfg.pageName}" (verify=${verify ? verify.length + 'b' : 'null'}, urlSig="${urlSig.slice(0,16)}") — POST fallback`);
     } else {
       console.warn(`[OneNote] PATCH error for "${cfg.pageName}": ${patch.error} — trying POST fallback`);
     }
@@ -772,7 +774,6 @@ async function listOneNoteStructure() {
 }
 
 async function getPageIdsForLinkPages() {
-  // Diagnostic: find the IDs of YouTube Links, Facebook Links, Instagram Links pages
   const targets = ['YouTube Links', 'Facebook Links', 'Instagram Links'];
   const result = {};
   for (const title of targets) {
@@ -780,6 +781,77 @@ async function getPageIdsForLinkPages() {
     result[title] = page ? page.id : 'NOT FOUND';
   }
   return result;
+}
+
+// Raw diagnostic — bypasses LLM to show actual Graph API responses.
+async function diagnoseOneNote() {
+  const lines = [];
+  const short = id => (id || '').length > 40 ? id.slice(0, 24) + '…' + id.slice(-8) : (id || 'null');
+
+  const token = await getOneNoteAccessToken();
+  lines.push(`1) Token: ${token ? 'OK' : 'MISSING — reconnect OneNote'}`);
+  if (!token) return lines.join('\n');
+
+  // Compare /me/onenote vs /users/{id}/onenote
+  const meNb = await graphFetch(`/me/onenote/notebooks?$select=id,displayName&$top=10`);
+  const usersNb = await graphFetch(`/users/${USER_PRINCIPAL}/onenote/notebooks?$select=id,displayName&$top=10`);
+  const summ = r => r.error ? `ERR: ${String(r.error).slice(0, 60)}` : `${(r.value || []).length} notebooks`;
+  lines.push(`2) /me: ${summ(meNb)} | /users/{id}: ${summ(usersNb)}`);
+
+  // Notebooks + sections
+  const nb = await oneNoteFetch(`/notebooks?$select=id,displayName&$top=20`);
+  if (nb.error) {
+    lines.push(`3) /notebooks ERROR: ${String(nb.error).slice(0, 160)}`);
+  } else {
+    lines.push(`3) Notebooks: ${(nb.value || []).map(n => n.displayName).join(', ') || 'none'}`);
+    for (const n of (nb.value || []).slice(0, 3)) {
+      const sec = await oneNoteFetch(`/notebooks/${n.id}/sections?$select=id,displayName`);
+      if (!sec.error) lines.push(`   • "${n.displayName}": ${(sec.value || []).map(s => s.displayName).join(', ')}`);
+    }
+  }
+
+  // YouTube anchor — test page read + section navigation
+  const ANCHOR = '1-a9da38968f2a4e05826e53d9b8c8f5e4!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e';
+  const anchor = await oneNoteFetch(`/pages/${ANCHOR}?$expand=parentSection($select=id,displayName)`);
+  if (anchor.error) {
+    lines.push(`4) YouTube anchor ERROR: ${String(anchor.error).slice(0, 160)}`);
+  } else {
+    const secId = anchor.parentSection?.id || 'none';
+    lines.push(`4) YouTube anchor → section "${anchor.parentSection?.displayName}" (${short(secId)})`);
+
+    // Test PATCH write to YouTube anchor page
+    const testPatch = await oneNoteFetch(`/pages/${ANCHOR}/content`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify([{ target: 'body', action: 'append', content: '<p>DIAG TEST — can delete</p>' }])
+    });
+    lines.push(`4b) PATCH write test: ${testPatch.error ? 'FAILED: ' + String(testPatch.error).slice(0, 80) : 'OK (204)'}`);
+
+    // Test POST to section
+    if (anchor.parentSection?.id) {
+      const testPost = await oneNoteFetch(`/sections/${anchor.parentSection.id}/pages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/xhtml+xml' },
+        body: `<!DOCTYPE html><html><head><title>Diag Test</title></head><body><p>DIAG TEST — can delete</p></body></html>`
+      });
+      lines.push(`4c) POST write test: ${testPost.error ? 'FAILED: ' + String(testPost.error).slice(0, 80) : 'OK → ' + short(testPost.id)}`);
+    }
+  }
+
+  // Search for Facebook Links page
+  const fbSearch = await oneNoteFetch(`/pages?search=${encodeURIComponent('Facebook Links')}`);
+  const fbExact = (fbSearch.value || []).filter(p => norm(p.title) === norm('Facebook Links'));
+  lines.push(`5) "Facebook Links" search: ${fbSearch.error ? 'ERR: ' + String(fbSearch.error).slice(0,60) : fbExact.length + ' exact match(es)' + (fbExact.length ? ' → ' + short(fbExact[0].id) : '')}`);
+
+  // Hardcoded Facebook compound ID — read test
+  const FB_ID = '1-25d5be0215efd24398babb6118988ec9!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e';
+  const fbPage = await oneNoteFetch(`/pages/${FB_ID}?$select=id,title`);
+  lines.push(`6) FB hardcoded ID read: ${fbPage.error ? 'FAILED: ' + String(fbPage.error).slice(0, 80) : 'OK title="' + fbPage.title + '"'}`);
+
+  const cur = getConfig().integrations?.m365 || {};
+  lines.push(`7) Cached: quickNotesSectionId=${cur.quickNotesSectionId || 'none'}`);
+
+  return lines.join('\n');
 }
 
 // ─── Email — send & reply ─────────────────────────────────────────────────────
@@ -1356,7 +1428,7 @@ module.exports = {
   listEmails, searchEmails, readEmail, sendEmail, replyToEmail, createEmailDraft, sendDraft,
   listTodos, createTodo, completeTodo, updateTodo,
   listContacts, createContact,
-  searchOneNote, saveLink, listOneNoteStructure, getPageIdsForLinkPages,
+  searchOneNote, saveLink, listOneNoteStructure, getPageIdsForLinkPages, diagnoseOneNote,
   createOneNotePage, readOneNotePage, setOneNoteSection,
   searchOneDrive, listOneDriveFolder, getOneDriveShareLink,
   listSharePointSites, searchSharePoint, listSharePointFiles,
