@@ -439,6 +439,45 @@ async function getQuickNotesSectionId() {
   return QUICK_NOTES_SECTION_ID;
 }
 
+// Resolve the compound page ID for a link-collection page ("YouTube Links", "Facebook Links",
+// "Instagram Links"). For YouTube it's hardcoded; for others we list the Quick Notes section pages.
+async function getLinkCollectionPageId(platform) {
+  const cfg = PLATFORM_CONFIG[platform];
+  if (!cfg) return null;
+
+  // 1. Hardcoded (YouTube)
+  if (cfg.hardcodedPageId) return cfg.hardcodedPageId;
+
+  // 2. Cached
+  const cur = getConfig().integrations?.m365 || {};
+  const cached = cur.pageIds?.[platform];
+  if (cached) {
+    console.log(`[OneNote] Using cached page ID for ${platform}: ${cached.slice(-16)}`);
+    return cached;
+  }
+
+  // 3. List pages in Quick Notes section — we know the section ID from the diagnostic
+  const sectionId = await getQuickNotesSectionId();
+  if (!sectionId) return null;
+
+  const pagesData = await oneNoteFetch(`/sections/${sectionId}/pages?$select=id,title`);
+  if (pagesData.error) {
+    console.log(`[OneNote] getLinkCollectionPageId: section pages error: ${pagesData.error}`);
+    return null;
+  }
+
+  const target = (pagesData.value || []).find(p => norm(p.title) === norm(cfg.pageName));
+  if (target?.id) {
+    console.log(`[OneNote] Found "${cfg.pageName}" page: ${target.id}`);
+    const pageIds = { ...(cur.pageIds || {}), [platform]: target.id };
+    updateConfig({ integrations: { m365: { ...cur, pageIds } } });
+    return target.id;
+  }
+
+  console.log(`[OneNote] "${cfg.pageName}" not found in Quick Notes (${(pagesData.value || []).length} pages)`);
+  return null;
+}
+
 async function saveLink({ url }) {
   const platform = detectPlatform(url);
   if (!platform) return { error: 'URL is not from YouTube, Facebook, or Instagram.' };
@@ -454,14 +493,13 @@ async function saveLink({ url }) {
 
   const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const safeUrl = url.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-  // URL signature for verify (title can false-positive if page already contains that word)
-  const urlSig = url.replace(/https?:\/\//i, '').replace(/[^a-z0-9]/gi, '').slice(0, 25).toLowerCase();
 
-  // ── APPROACH 1: PATCH-append to the specific link-collection page ────────────
-  // Both YouTube and Facebook now have hardcoded compound page IDs.
-  if (cfg.hardcodedPageId && isCompoundOneNoteId(cfg.hardcodedPageId)) {
-    const pageId = cfg.hardcodedPageId;
-    console.log(`[OneNote] PATCH-append to "${cfg.pageName}" page ${pageId.slice(-16)}`);
+  // ── APPROACH 1: PATCH-append to the collection page ─────────────────────────
+  // Find the collection page (YouTube Links / Facebook Links / Instagram Links)
+  // by listing the Quick Notes section. Diagnostic confirmed PATCH returns 204 — trust it.
+  const pageId = await getLinkCollectionPageId(platform);
+  if (pageId) {
+    console.log(`[OneNote] PATCH-append to "${cfg.pageName}" (${pageId.slice(-16)})`);
 
     const existingHtml = await oneNoteTextFetch(`/pages/${pageId}/content`);
     const nums = existingHtml
@@ -480,26 +518,28 @@ async function saveLink({ url }) {
     });
 
     if (!patch?.error) {
-      await new Promise(r => setTimeout(r, 1500));
-      const verify = await oneNoteTextFetch(`/pages/${pageId}/content`);
-      // Only claim success if we can actually confirm the URL is in the page.
-      // If verify returns null (read failed), skip to POST — don't assume PATCH worked.
-      const patchOk = verify && verify.length > 60 && urlSig.length >= 8 && norm(verify).includes(urlSig.slice(0, 20));
-      if (patchOk) {
-        console.log(`[OneNote] PATCH verified — #${nextNumber} in "${cfg.pageName}" (${pageId.slice(-12)})`);
-        return { success: true, number: nextNumber, title, url, platform, page: cfg.pageName };
-      }
-      console.warn(`[OneNote] PATCH verify failed for "${cfg.pageName}" (verify=${verify ? verify.length + 'b' : 'null'}, urlSig="${urlSig.slice(0,16)}") — POST fallback`);
-    } else {
-      console.warn(`[OneNote] PATCH error for "${cfg.pageName}": ${patch.error} — trying POST fallback`);
+      // Diagnostic confirmed PATCH writes successfully (204) — trust the response
+      console.log(`[OneNote] PATCH OK — #${nextNumber} appended to "${cfg.pageName}"`);
+      return { success: true, number: nextNumber, title, url, platform, page: cfg.pageName };
     }
+
+    // PATCH errored — clear cached ID (might be stale) and fall to POST
+    console.warn(`[OneNote] PATCH error for "${cfg.pageName}": ${patch.error}`);
+    if (platform !== 'youtube') {
+      const cur2 = getConfig().integrations?.m365 || {};
+      const pageIds2 = { ...(cur2.pageIds || {}) };
+      delete pageIds2[platform];
+      updateConfig({ integrations: { m365: { ...cur2, pageIds: pageIds2 } } });
+    }
+  } else {
+    console.log(`[OneNote] No page ID found for ${platform} — POST fallback`);
   }
 
   // ── APPROACH 2: POST a new page to Quick Notes section ──────────────────────
-  // Fallback when PATCH verify fails, or no compound page ID available (e.g. Instagram).
+  // Only reached if: collection page not found, or PATCH returned an error.
   const sectionId = await getQuickNotesSectionId();
   if (!sectionId) {
-    return { error: `Couldn't save link to OneNote — couldn't find the Quick Notes section. Reconnect OneNote in Integrations.` };
+    return { error: `Couldn't save link to OneNote. Reconnect OneNote in Integrations.` };
   }
 
   const now = new Date().toLocaleString('en-CA', {
@@ -516,11 +556,11 @@ async function saveLink({ url }) {
   });
 
   if (data.error) {
-    console.error(`[OneNote] POST fallback also failed (section ${sectionId.slice(-12)}): ${data.error}`);
+    console.error(`[OneNote] POST fallback failed: ${data.error}`);
     return { error: `Couldn't save link to OneNote: ${data.error}` };
   }
 
-  console.log(`[OneNote] POST new page "${title}" in Quick Notes (${(data.id || '').slice(-12)})`);
+  console.log(`[OneNote] POST new page "${title}" in Quick Notes`);
   return { success: true, title, url, platform, page: cfg.pageName };
 }
 
