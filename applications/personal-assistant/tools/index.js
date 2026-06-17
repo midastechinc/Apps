@@ -290,7 +290,7 @@ const DEFINITIONS = {
     type: 'function',
     function: {
       name: 'm365_list_onenote_structure',
-      description: 'List all OneNote notebooks, sections, and page titles. Use this to diagnose why a page cannot be found.',
+      description: 'List all OneNote notebooks and their sections. Call this when the user asks to see their notebooks, sections, or OneNote structure. Always show the full list to the user.',
       parameters: { type: 'object', properties: {}, required: [] }
     }
   },
