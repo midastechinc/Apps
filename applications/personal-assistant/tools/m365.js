@@ -479,7 +479,23 @@ async function getLinkCollectionPageId(platform) {
     return target.id;
   }
 
-  console.log(`[OneNote] "${cfg.pageName}" not found in Quick Notes (${(pagesData.value || []).length} pages)`);
+  console.log(`[OneNote] "${cfg.pageName}" not found in Quick Notes (${(pagesData.value || []).length} pages): ${(pagesData.value || []).map(p => p.title).join(', ')}`);
+
+  // 4. Fallback: title search across all notebooks (no $select/$top — avoids error 20108)
+  const searchData = await oneNoteFetch(`/pages?search=${encodeURIComponent(cfg.pageName)}`);
+  if (!searchData.error) {
+    const found = (searchData.value || []).find(p => norm(p.title) === norm(cfg.pageName));
+    if (found?.id) {
+      console.log(`[OneNote] Found "${cfg.pageName}" via title search: ${found.id}`);
+      const pageIds2 = { ...(getConfig().integrations?.m365?.pageIds || {}), [platform]: found.id };
+      updateConfig({ integrations: { m365: { ...(getConfig().integrations?.m365 || {}), pageIds: pageIds2 } } });
+      return found.id;
+    }
+    console.log(`[OneNote] Title search also missed "${cfg.pageName}" (${(searchData.value || []).length} results)`);
+  } else {
+    console.log(`[OneNote] Title search error for "${cfg.pageName}": ${searchData.error}`);
+  }
+
   return null;
 }
 
@@ -878,18 +894,29 @@ async function diagnoseOneNote() {
     }
   }
 
-  // Search for Facebook Links page
-  const fbSearch = await oneNoteFetch(`/pages?search=${encodeURIComponent('Facebook Links')}`);
-  const fbExact = (fbSearch.value || []).filter(p => norm(p.title) === norm('Facebook Links'));
-  lines.push(`5) "Facebook Links" search: ${fbSearch.error ? 'ERR: ' + String(fbSearch.error).slice(0,60) : fbExact.length + ' exact match(es)' + (fbExact.length ? ' → ' + short(fbExact[0].id) : '')}`);
+  // List all pages in Quick Notes section — key diagnostic for Facebook/Instagram
+  const secPages = await oneNoteFetch(`/sections/${QUICK_NOTES_SECTION_ID}/pages?$select=id,title`);
+  if (secPages.error) {
+    lines.push(`5) Quick Notes pages: ERR: ${String(secPages.error).slice(0, 120)}`);
+  } else {
+    const pageList = (secPages.value || []).map(p => `"${p.title}"`).join(', ');
+    lines.push(`5) Quick Notes pages (${(secPages.value || []).length}): ${pageList || 'none'}`);
+  }
 
-  // Hardcoded Facebook compound ID — read test
-  const FB_ID = '1-25d5be0215efd24398babb6118988ec9!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e';
-  const fbPage = await oneNoteFetch(`/pages/${FB_ID}?$select=id,title`);
-  lines.push(`6) FB hardcoded ID read: ${fbPage.error ? 'FAILED: ' + String(fbPage.error).slice(0, 80) : 'OK title="' + fbPage.title + '"'}`);
-
+  // Test getLinkCollectionPageId for FB and IG (clears cache first to force fresh lookup)
   const cur = getConfig().integrations?.m365 || {};
-  lines.push(`7) Cached: quickNotesSectionId=${cur.quickNotesSectionId || 'none'}`);
+  const savedPageIds = { ...(cur.pageIds || {}) };
+  for (const platform of ['facebook', 'instagram']) {
+    const pageIds2 = { ...(getConfig().integrations?.m365?.pageIds || {}) };
+    delete pageIds2[platform];
+    updateConfig({ integrations: { m365: { ...(getConfig().integrations?.m365 || {}), pageIds: pageIds2 } } });
+    const pid = await getLinkCollectionPageId(platform);
+    lines.push(`6${platform[0]}) ${platform} page lookup: ${pid ? short(pid) : 'NOT FOUND'}`);
+  }
+  // Restore original cached IDs
+  updateConfig({ integrations: { m365: { ...(getConfig().integrations?.m365 || {}), pageIds: savedPageIds } } });
+
+  lines.push(`7) Cached pageIds: ${JSON.stringify(cur.pageIds || {})}`);
 
   return lines.join('\n');
 }
