@@ -317,11 +317,32 @@ function detectPlatform(url) {
   return null;
 }
 
+// Page GUIDs from SharePoint URLs: wdsectionfileid = 07f6fff2-e3b3-4a32-ad6f-3835ead68a3e (Quick Notes section)
+// Compound ID format: 1-{pageGuid_noDashes}!55-{sectionGuid}
 const PLATFORM_CONFIG = {
   youtube:   { pageName: 'YouTube Links',   pageIdKey: 'youtubeLinksPageId',   hardcodedId: '1-a9da38968f2a4e05826e53d9b8c8f5e4!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e' },
-  facebook:  { pageName: 'Facebook Links',  pageIdKey: 'facebookLinksPageId',  hardcodedId: null },
+  facebook:  { pageName: 'Facebook Links',  pageIdKey: 'facebookLinksPageId',  hardcodedId: '1-25d5be0215efd24398babb6118988ec9!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e' },
   instagram: { pageName: 'Instagram Links', pageIdKey: 'instagramLinksPageId', hardcodedId: null }
 };
+
+// Resolve and cache the Graph API compound section ID for the "Quick Notes" section.
+// Navigates from the YouTube anchor page whose section is known.
+async function getQuickNotesSectionId() {
+  const cur = getConfig().integrations?.m365 || {};
+  if (cur.quickNotesSectionId && isCompoundOneNoteId(cur.quickNotesSectionId)) {
+    return cur.quickNotesSectionId;
+  }
+  const ANCHOR = '1-a9da38968f2a4e05826e53d9b8c8f5e4!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e';
+  const detail = await oneNoteFetch(`/pages/${ANCHOR}?$expand=parentSection($select=id,displayName)`);
+  const sectionId = detail?.parentSection?.id;
+  if (sectionId && isCompoundOneNoteId(sectionId)) {
+    console.log(`[OneNote] Quick Notes section ID: ${sectionId} ("${detail.parentSection?.displayName}")`);
+    updateConfig({ integrations: { m365: { ...cur, quickNotesSectionId: sectionId } } });
+    return sectionId;
+  }
+  console.log(`[OneNote] getQuickNotesSectionId anchor navigation failed: ${detail?.error || 'no parentSection'}`);
+  return await findSectionId('Quick Notes');
+}
 
 async function findOneNotePageByTitle(titleToFind) {
   const lower = titleToFind.toLowerCase();
@@ -429,56 +450,55 @@ async function saveLink({ url }) {
   if (!platform) return { error: 'URL is not from YouTube, Facebook, or Instagram.' };
 
   const cfg = PLATFORM_CONFIG[platform];
-  console.log(`[OneNote] Saving ${platform} link:`, url);
+  console.log(`[OneNote] saveLink ${platform}: ${url.slice(0, 80)}`);
 
   // Fetch title
   let title = platform === 'youtube'
     ? await fetchYouTubeTitle(url)
     : await fetchPageTitle(url);
   if (!title) title = `${cfg.pageName.replace(' Links', '')} Post`;
+  console.log(`[OneNote] title: "${title}"`);
 
-  // Resolve the compound PAGE id (Facebook/YouTube/Instagram Links are PAGES, not sections)
-  const page = await findLinkPageId(platform);
-  if (!page?.id) {
-    return { error: `Couldn't locate the "${cfg.pageName}" page in OneNote. Open OneNote, go to the page titled exactly "${cfg.pageName}", use "Copy Link to Page", and send me that link.` };
+  // Get the Quick Notes section ID (where YouTube/Facebook/Instagram Links pages live).
+  // We use POST to create a new page per link — more reliable than PATCH append which
+  // silently fails on SharePoint-hosted notebooks under certain token conditions.
+  const sectionId = await getQuickNotesSectionId();
+  if (!sectionId) {
+    return { error: `Couldn't find the Quick Notes section in OneNote. Reply with the section URL from OneNote (right-click section tab → Copy Link to Section).` };
   }
-  const pageId = page.id;
-
-  // Determine next list number from the page's existing numbered entries ("1. ", "2) " ...)
-  const existingHtml = await oneNoteTextFetch(`/pages/${pageId}/content`);
-  const nums = existingHtml ? [...existingHtml.matchAll(/>\s*(\d+)[.)]\s/g)].map(m => parseInt(m[1], 10)) : [];
-  const nextNumber = nums.length ? Math.max(...nums) + 1 : 1;
+  console.log(`[OneNote] Posting to section ${sectionId.slice(-16)}`);
 
   const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const safeUrl = url.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-
-  // Append a numbered entry to the page body
-  const patch = await oneNoteFetch(`/pages/${pageId}/content`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify([{
-      target: 'body',
-      action: 'append',
-      content: `<p>${nextNumber}. <a href="${safeUrl}">${safeTitle}</a></p>`
-    }])
+  const now = new Date().toLocaleString('en-CA', {
+    timeZone: 'America/Toronto',
+    dateStyle: 'medium',
+    timeStyle: 'short'
   });
-  if (patch?.error) {
-    console.error(`[OneNote] Append PATCH failed (pageId=${pageId}):`, patch.error);
-    return { error: `Couldn't save to "${cfg.pageName}": ${patch.error}` };
+  const platformLabel = cfg.pageName.replace(' Links', '');
+
+  const html = `<!DOCTYPE html><html><head><title>${safeTitle}</title></head><body><h1>${safeTitle}</h1><p><a href="${safeUrl}">${safeUrl}</a></p><p style="color:#888;font-size:0.85em;">${platformLabel} — ${now}</p></body></html>`;
+
+  const data = await oneNoteFetch(`/sections/${sectionId}/pages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/xhtml+xml' },
+    body: html
+  });
+
+  if (data.error) {
+    console.error(`[OneNote] POST to section ${sectionId.slice(-12)} failed: ${data.error}`);
+    return { error: `Couldn't save link to OneNote: ${data.error}` };
   }
 
-  // Verify the append actually persisted (tolerant: match the title's alphanumeric signature).
-  // Only treat as failure when we can clearly read the page back and the entry is absent —
-  // this avoids the old false-negative that reported errors on successful saves.
-  await new Promise(r => setTimeout(r, 1300));
-  const verify = await oneNoteTextFetch(`/pages/${pageId}/content`);
-  const sig = norm(title).slice(0, 24);
-  if (verify && verify.length > 60 && sig && !norm(verify).includes(sig)) {
-    return { error: `OneNote accepted the update to "${cfg.pageName}" but the entry didn't appear on re-read. Reconnect OneNote (Integrations tab) so the token has Notes.ReadWrite.All scope.` };
-  }
-
-  console.log(`[OneNote] Appended #${nextNumber} to "${cfg.pageName}" (${pageId})`);
-  return { success: true, number: nextNumber, title, url, platform, page: cfg.pageName };
+  console.log(`[OneNote] Created page "${title}" in ${platformLabel} section (${(data.id || '').slice(-12)})`);
+  return {
+    success: true,
+    title,
+    url,
+    platform,
+    page: cfg.pageName,
+    page_url: data.links?.oneNoteWebUrl?.href || null
+  };
 }
 
 async function listCalendarEvents({ days_ahead = 7, top = 10 } = {}) {
@@ -774,13 +794,28 @@ async function diagnoseOneNote() {
     }
   }
 
-  // 4. YouTube anchor page resolution
+  // 4. YouTube anchor page resolution + section ID
   const ANCHOR = '1-a9da38968f2a4e05826e53d9b8c8f5e4!55-07f6fff2-e3b3-4a32-ad6f-3835ead68a3e';
   const anchor = await oneNoteFetch(`/pages/${ANCHOR}?$expand=parentSection($select=id,displayName;$expand=parentNotebook($select=id,displayName))`);
   if (anchor.error) {
     lines.push(`4) YouTube anchor page ERROR: ${String(anchor.error).slice(0, 160)}`);
   } else {
-    lines.push(`4) YouTube anchor → section "${anchor.parentSection?.displayName}" in notebook "${anchor.parentSection?.parentNotebook?.displayName}"`);
+    const secId = anchor.parentSection?.id || 'none';
+    lines.push(`4) YouTube anchor → section "${anchor.parentSection?.displayName}" (${short(secId)}) in nb "${anchor.parentSection?.parentNotebook?.displayName}"`);
+    // 4b. Test POST a page to that section (dry-run write test)
+    if (anchor.parentSection?.id) {
+      const testHtml = `<!DOCTYPE html><html><head><title>Claudia Write Test</title></head><body><p>Write test — can be deleted</p></body></html>`;
+      const testPost = await oneNoteFetch(`/sections/${anchor.parentSection.id}/pages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/xhtml+xml' },
+        body: testHtml
+      });
+      if (testPost.error) {
+        lines.push(`4b) POST write test FAILED: ${String(testPost.error).slice(0, 120)}`);
+      } else {
+        lines.push(`4b) POST write test OK → page id ${short(testPost.id || '')}`);
+      }
+    }
   }
 
   // 5. Find the three link pages by search
@@ -800,6 +835,7 @@ async function diagnoseOneNote() {
   const cur = getConfig().integrations?.m365 || {};
   lines.push(`6) Cached pageIds: ${JSON.stringify(cur.pageIds || {})}`);
   lines.push(`   Cached sections: ${JSON.stringify(cur.oneNoteSections || {})}`);
+  lines.push(`   quickNotesSectionId: ${cur.quickNotesSectionId || '(not cached)'}`);
 
   return lines.join('\n');
 }
