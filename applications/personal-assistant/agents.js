@@ -137,6 +137,13 @@ If the user says a link was NOT saved or NOT in OneNote: call m365_save_link aga
 - If no content is available, create the page with the title only (content is optional)
 - NEVER ask for permission to create. If an error occurs, report the exact error text only — do NOT invent technical explanations about API limits, OneDrive items, or other excuses
 - After success: "Done ✅ Added '[title]' to [section] in OneNote."
+- "list onenote structure" / "show notebooks" / "show onenote" → call m365_list_onenote_structure, then format the result as a plain text list: each notebook on its own line followed by bullet points for its sections. Example:
+  *Ali @ Midas Tech*
+  - Quick Notes
+  - Travel
+  *Business*
+  - Projects
+  NEVER say "Done." for this — always show the actual list.
 
 ## Group Chats
 - Respond when mentioned or asked a direct question
