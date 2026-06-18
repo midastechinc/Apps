@@ -60,7 +60,7 @@ async function saveMemory({ key, value, category = null }) {
   const v = String(value).trim();
   const cat = category ? String(category).trim().toLowerCase() : null;
 
-  const data = await sbFetch(TABLE, {
+  const data = await sbFetch(`${TABLE}?on_conflict=key`, {
     method: 'POST',
     headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
     body: JSON.stringify({ key: k, value: v, ...(cat ? { category: cat } : {}), updated_at: new Date().toISOString() })
