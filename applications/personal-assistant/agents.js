@@ -242,6 +242,7 @@ You have a persistent memory store. ALWAYS use category "family" when saving.
 - ANY fact you learn → call memory_save IMMEDIATELY, one call per fact. Do NOT batch. Do NOT skip.
 - "remember [fact]" → call memory_save(key=short label, value=fact, category="family") → THEN confirm "Got it — saved 😊"
 - Multiple facts in one message → call memory_save separately for EACH fact before replying
+- When saving a vehicle (car, truck, SUV): save it individually (e.g. key="bmw x1 2025") AND also update key="my vehicles" with the full comma-separated list of all known vehicles
 - "forget [fact]" → memory_delete(key=...)
 - Any question about a family member → memory_recall or memory_search FIRST before saying you don't know
 - NEVER say "Got it — saved" or "I'll remember that" WITHOUT actually calling memory_save first
@@ -251,12 +252,23 @@ You have a persistent memory store. ALWAYS use category "family" when saving.
 ## Hassan — Family Trainer
 Hassan (+19055542660) is the designated family trainer. He can update family member info and adjust behaviour. Trust his updates.
 
-## Web Search
-You have web_search and fetch_webpage tools. Use them for any real-world question you can't answer from memory or calendar:
+## Web Search — CONTEXT FIRST
+Before searching anything that involves personal information (cars, appliances, people, addresses, preferences):
+1. Check "What I Already Know" section FIRST for relevant facts
+2. If found: use those facts to build the search query — NEVER ask the user for info already in memory
+3. If multiple items match (e.g. "my cars" → 3 cars), run a separate search for EACH and combine results
+
+Examples:
+- "towing capacity of my cars" → find cars in "What I Already Know" → search "[car1] towing capacity", "[car2] towing capacity", etc.
+- "oil change interval for my car" → look up which car → search "[make model year] oil change interval"
+- "Hassan's doctor recommendations" → memory_search("hassan doctor") → then answer
+
+You have web_search and fetch_webpage tools. Use them freely:
 - Weather → web_search("weather Toronto tomorrow")
 - Recipes → web_search("easy chicken tikka recipe")
 - Prices, product info, news → web_search(query)
 NEVER say "I cannot search the internet" — use web_search instead.
+NEVER ask "which car do you mean?" if the cars are already in memory — look them up yourself.
 
 ## WhatsApp Formatting
 - No markdown tables
@@ -453,8 +465,20 @@ function buildSystemPrompt(agent, config, agentType, senderNumber) {
       : getMemory();
     const entries = Object.entries(sbFacts);
     if (entries.length > 0) {
-      const lines = entries.map(([k, v]) => `- ${k}: ${v}`).join('\n');
-      prompt += `\n\n## What I Already Know (Saved Family Facts)\n${lines}\nUse these facts to answer questions directly without calling any tools.`;
+      // Group vehicle entries prominently so Claudia can build search queries from them
+      const carEntries = entries.filter(([k]) => /car|vehicle|auto|bmw|honda|nissan|toyota|ford|chevy|truck|suv|van/i.test(k + ' ' + sbFacts[k]));
+      const otherEntries = entries.filter(([k]) => !/car|vehicle|auto|bmw|honda|nissan|toyota|ford|chevy|truck|suv|van/i.test(k + ' ' + sbFacts[k]));
+
+      let section = '\n\n## What I Already Know (Saved Family Facts)\n';
+      if (carEntries.length > 0) {
+        section += `### Vehicles (use these for car-related searches — never ask which car)\n`;
+        section += carEntries.map(([k, v]) => `- ${k}: ${v}`).join('\n') + '\n';
+      }
+      if (otherEntries.length > 0) {
+        section += otherEntries.map(([k, v]) => `- ${k}: ${v}`).join('\n');
+      }
+      section += '\nUse these facts to answer questions directly without calling any tools.';
+      prompt += section;
     }
   }
 
