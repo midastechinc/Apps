@@ -805,9 +805,19 @@ async function executeTool(toolName, args, agentType = 'business') {
   console.log(`[TOOL] ${resolvedName}(${JSON.stringify(args)})`);
   try {
     switch (resolvedName) {
-      case 'family_save_memory':          return familyMemory.saveMemory(args);
-      case 'family_recall_memory':        return familyMemory.recallMemory(args);
-      case 'family_list_memory':          return familyMemory.listMemory();
+      // Redirect old family memory tools to Supabase (category=family) when configured
+      case 'family_save_memory':
+        return sbMemory.isConfigured()
+          ? await sbMemory.saveMemory({ ...args, category: 'family' })
+          : familyMemory.saveMemory(args);
+      case 'family_recall_memory':
+        return sbMemory.isConfigured()
+          ? await sbMemory.recallMemory(args)
+          : familyMemory.recallMemory(args);
+      case 'family_list_memory':
+        return sbMemory.isConfigured()
+          ? await sbMemory.listMemory({ category: 'family' })
+          : familyMemory.listMemory();
       case 'memory_save':                 return await sbMemory.saveMemory(args);
       case 'memory_recall':               return await sbMemory.recallMemory(args);
       case 'memory_search':               return await sbMemory.searchMemory(args);
