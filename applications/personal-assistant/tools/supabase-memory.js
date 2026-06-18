@@ -122,4 +122,18 @@ async function deleteMemory({ key }) {
   return { success: true, key: k };
 }
 
-module.exports = { saveMemory, recallMemory, searchMemory, listMemory, deleteMemory, getMemorySync, isConfigured, loadCache };
+async function memoryStatus() {
+  if (!isConfigured()) return { configured: false, error: 'SUPABASE_URL or SUPABASE_SERVICE_KEY not set in env vars' };
+  const testKey = '__status_check__';
+  const writeResult = await sbFetch(`${TABLE}?on_conflict=key`, {
+    method: 'POST',
+    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ key: testKey, value: 'ok', category: 'system', updated_at: new Date().toISOString() })
+  });
+  if (writeResult?.error) return { configured: true, writable: false, error: writeResult.error };
+  const readResult = await sbFetch(`${TABLE}?key=eq.${encodeURIComponent(testKey)}&select=key,value`);
+  const readable = Array.isArray(readResult) && readResult.length > 0;
+  return { configured: true, writable: true, readable, cacheSize: Object.keys(_cache).length };
+}
+
+module.exports = { saveMemory, recallMemory, searchMemory, listMemory, deleteMemory, getMemorySync, isConfigured, loadCache, memoryStatus };

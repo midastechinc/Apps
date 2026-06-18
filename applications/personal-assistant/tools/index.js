@@ -80,6 +80,14 @@ const DEFINITIONS = {
       }
     }
   },
+  memory_status: {
+    type: 'function',
+    function: {
+      name: 'memory_status',
+      description: 'Check whether persistent memory (Supabase) is connected and working. Use this to diagnose memory issues.',
+      parameters: { type: 'object', properties: {}, required: [] }
+    }
+  },
   family_save_memory: {
     type: 'function',
     function: {
@@ -752,7 +760,7 @@ const AGENT_TOOLS = {
     'm365_search_onenote', 'm365_save_link', 'm365_list_onenote_structure', 'm365_set_onenote_section', 'm365_create_onenote_page', 'm365_read_onenote_page',
     'onedrive_search', 'onedrive_list_folder', 'onedrive_get_link',
     'sharepoint_list_sites', 'sharepoint_search', 'sharepoint_list_files',
-    'memory_save', 'memory_recall', 'memory_search', 'memory_list', 'memory_delete',
+    'memory_save', 'memory_recall', 'memory_search', 'memory_list', 'memory_delete', 'memory_status',
     'web_search', 'fetch_webpage'
   ],
   family: [
@@ -760,7 +768,7 @@ const AGENT_TOOLS = {
     'google_list_events', 'google_create_event', 'google_list_calendars',
     'google_list_tasks', 'google_create_task', 'google_complete_task',
     'family_save_memory', 'family_recall_memory', 'family_list_memory',
-    'memory_save', 'memory_recall', 'memory_search', 'memory_list', 'memory_delete',
+    'memory_save', 'memory_recall', 'memory_search', 'memory_list', 'memory_delete', 'memory_status',
     'm365_list_todos', 'm365_create_todo',
     'm365_save_link', 'm365_set_onenote_section',
     'web_search', 'fetch_webpage'
@@ -823,6 +831,7 @@ async function executeTool(toolName, args, agentType = 'business') {
       case 'memory_search':               return await sbMemory.searchMemory(args);
       case 'memory_list':                 return await sbMemory.listMemory(args);
       case 'memory_delete':               return await sbMemory.deleteMemory(args);
+      case 'memory_status':               return await sbMemory.memoryStatus();
       case 'get_current_time':            return datetime.get_current_time();
       case 'get_current_date':            return datetime.get_current_date();
       case 'google_list_events':          return await googleCalendar.listEvents(args);
