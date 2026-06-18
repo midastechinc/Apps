@@ -28,6 +28,7 @@ async function sbFetch(path, options = {}) {
     if (resp.status === 204) return { success: true };
     const body = await resp.text();
     if (!resp.ok) return { error: `Supabase ${resp.status}: ${body.slice(0, 200)}` };
+    if (!body) return { success: true };
     return JSON.parse(body);
   } catch (err) {
     return { error: err.message };
