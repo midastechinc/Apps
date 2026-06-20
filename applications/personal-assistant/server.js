@@ -227,7 +227,7 @@ app.get('/api/auth/google', (req, res) => {
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: 'code',
-    scope: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/tasks',
+    scope: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive.file',
     access_type: 'offline',
     prompt: 'consent'   // force refresh_token to be returned even if previously granted
   });
