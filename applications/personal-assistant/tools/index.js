@@ -6,6 +6,7 @@ const familyMemory = require('./family-memory');
 const sbMemory = require('./supabase-memory');
 const web = require('./web');
 const whatsapp = require('../whatsapp');
+const geocode = require('./geocode');
 
 const DEFINITIONS = {
   memory_save: {
@@ -101,6 +102,23 @@ const DEFINITIONS = {
           message:   { type: 'string', description: 'The message text to send' }
         },
         required: ['to_number', 'message']
+      }
+    }
+  },
+  geocode_location: {
+    type: 'function',
+    function: {
+      name: 'geocode_location',
+      description: 'Convert GPS coordinates to an accurate street address (reverse geocoding) and optionally find nearby places. Use this whenever a location pin is shared — much more accurate than web search for addresses and nearby places.',
+      parameters: {
+        type: 'object',
+        properties: {
+          lat:    { type: 'number', description: 'Latitude from the shared location' },
+          lng:    { type: 'number', description: 'Longitude from the shared location' },
+          nearby: { type: 'string', description: 'Optional: type of place to find nearby, e.g. "cafe", "gas station", "pharmacy", "restaurant", "grocery", "atm"' },
+          radius: { type: 'number', description: 'Search radius in metres (default 500, max 2000)' }
+        },
+        required: ['lat', 'lng']
       }
     }
   },
@@ -777,6 +795,7 @@ const AGENT_TOOLS = {
     'onedrive_search', 'onedrive_list_folder', 'onedrive_get_link',
     'sharepoint_list_sites', 'sharepoint_search', 'sharepoint_list_files',
     'memory_save', 'memory_recall', 'memory_search', 'memory_list', 'memory_delete', 'memory_status',
+    'geocode_location',
     'web_search', 'fetch_webpage'
   ],
   family: [
@@ -785,7 +804,7 @@ const AGENT_TOOLS = {
     'google_list_tasks', 'google_create_task', 'google_complete_task',
     'family_save_memory', 'family_recall_memory', 'family_list_memory',
     'memory_save', 'memory_recall', 'memory_search', 'memory_list', 'memory_delete', 'memory_status',
-    'send_whatsapp_message',
+    'send_whatsapp_message', 'geocode_location',
     'm365_list_todos', 'm365_create_todo',
     'm365_save_link', 'm365_set_onenote_section',
     'web_search', 'fetch_webpage'
@@ -849,6 +868,7 @@ async function executeTool(toolName, args, agentType = 'business') {
       case 'memory_list':                 return await sbMemory.listMemory(args);
       case 'memory_delete':               return await sbMemory.deleteMemory(args);
       case 'memory_status':               return await sbMemory.memoryStatus();
+      case 'geocode_location':            return await geocode.geocodeLocation(args);
       case 'send_whatsapp_message': {
         const { to_number, message: msgText } = args;
         if (!to_number || !msgText) return { error: 'to_number and message are required' };
