@@ -249,6 +249,21 @@ async function connect() {
         }
       }
 
+      // Handle location messages (static pin or live location)
+      const locMsg = msg.message?.locationMessage || msg.message?.liveLocationMessage;
+      if (locMsg && !text && !imageInfo) {
+        const lat = locMsg.degreesLatitude?.toFixed(6);
+        const lng = locMsg.degreesLongitude?.toFixed(6);
+        const name = locMsg.name || '';
+        const address = locMsg.address || '';
+        const isLive = !!msg.message?.liveLocationMessage;
+        const parts = [`[${isLive ? 'Live ' : ''}Location shared: ${lat}, ${lng}`];
+        if (name) parts.push(`Place: ${name}`);
+        if (address) parts.push(`Address: ${address}`);
+        text = parts.join(' | ') + ']';
+        console.log(`[WA] Location received: ${text}`);
+      }
+
       // Handle document messages (PDFs, Word docs, etc.)
       const docMsg =
         msg.message?.documentMessage ||
