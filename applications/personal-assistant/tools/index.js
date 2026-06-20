@@ -7,6 +7,7 @@ const sbMemory = require('./supabase-memory');
 const web = require('./web');
 const whatsapp = require('../whatsapp');
 const geocode = require('./geocode');
+const googleDocs = require('./google-docs');
 
 const DEFINITIONS = {
   memory_save: {
@@ -261,6 +262,36 @@ const DEFINITIONS = {
           list_name: { type: 'string', description: 'Task list name (default: "My Tasks")' }
         },
         required: ['task_id']
+      }
+    }
+  },
+  google_create_doc: {
+    type: 'function',
+    function: {
+      name: 'google_create_doc',
+      description: 'Create a new Google Doc with a title and optional content. Returns the document URL. Use for meeting notes, drafts, proposals, reports, or any document the user asks to create.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title:   { type: 'string', description: 'The document title' },
+          content: { type: 'string', description: 'Optional initial content/body of the document (plain text)' }
+        },
+        required: ['title']
+      }
+    }
+  },
+  google_append_doc: {
+    type: 'function',
+    function: {
+      name: 'google_append_doc',
+      description: 'Append text to an existing Google Doc by its document ID.',
+      parameters: {
+        type: 'object',
+        properties: {
+          documentId: { type: 'string', description: 'The Google Doc document ID (from a previous google_create_doc call)' },
+          content:    { type: 'string', description: 'Text to append to the document' }
+        },
+        required: ['documentId', 'content']
       }
     }
   },
@@ -796,12 +827,14 @@ const AGENT_TOOLS = {
     'sharepoint_list_sites', 'sharepoint_search', 'sharepoint_list_files',
     'memory_save', 'memory_recall', 'memory_search', 'memory_list', 'memory_delete', 'memory_status',
     'geocode_location',
+    'google_create_doc', 'google_append_doc',
     'web_search', 'fetch_webpage'
   ],
   family: [
     'get_current_time', 'get_current_date',
     'google_list_events', 'google_create_event', 'google_list_calendars',
     'google_list_tasks', 'google_create_task', 'google_complete_task',
+    'google_create_doc', 'google_append_doc',
     'family_save_memory', 'family_recall_memory', 'family_list_memory',
     'memory_save', 'memory_recall', 'memory_search', 'memory_list', 'memory_delete', 'memory_status',
     'send_whatsapp_message', 'geocode_location',
@@ -887,6 +920,8 @@ async function executeTool(toolName, args, agentType = 'business') {
       case 'google_list_tasks':           return await googleTasks.listTasks(args);
       case 'google_create_task':          return await googleTasks.createTask(args);
       case 'google_complete_task':        return await googleTasks.completeTask(args);
+      case 'google_create_doc':           return await googleDocs.createDoc(args);
+      case 'google_append_doc':           return await googleDocs.appendToDoc(args);
       case 'm365_list_calendar_events':   return await m365.listCalendarEvents(args);
       case 'm365_create_calendar_event':  return await m365.createCalendarEvent(args);
       case 'm365_update_calendar_event':  return await m365.updateCalendarEvent(args);
