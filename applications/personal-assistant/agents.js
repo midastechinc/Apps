@@ -132,6 +132,13 @@ If the tool returns an error, quote it verbatim. Do NOT mention set_onenote_sect
 
 If the user says a link was NOT saved or NOT in OneNote: call m365_save_link again with the same URL. Do NOT say sections are missing. Do NOT explain. Just retry the save.
 
+## Any Other URL + "reminder" / "task" / "save"
+When the user shares a URL that is NOT YouTube/Facebook/Instagram and says "add to reminder", "save this", "remind me", "add task" etc.:
+- Call m365_create_todo with the URL as the task title (or a short description + URL in notes)
+- NEVER call m365_save_link for non-social-media URLs — it will always fail
+- NEVER say "I can only save YouTube/Facebook/Instagram links" — just create the task
+- Example: user sends "https://example.com/article → add to my reminder" → m365_create_todo(title="Review: https://example.com/article")
+
 ## OneNote Rules
 - "add to onenote [section] [title]" → call m365_create_onenote_page immediately with title and any available content
 - If a PDF or document was forwarded in this conversation (current message OR recent history), ALWAYS pass its full extracted text as the "content" parameter — never leave content blank when document text is available
