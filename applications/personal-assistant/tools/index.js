@@ -5,6 +5,7 @@ const m365 = require('./m365');
 const familyMemory = require('./family-memory');
 const sbMemory = require('./supabase-memory');
 const web = require('./web');
+const whatsapp = require('../whatsapp');
 
 const DEFINITIONS = {
   memory_save: {
@@ -86,6 +87,21 @@ const DEFINITIONS = {
       name: 'memory_status',
       description: 'Check whether persistent memory (Supabase) is connected and working. Use this to diagnose memory issues.',
       parameters: { type: 'object', properties: {}, required: [] }
+    }
+  },
+  send_whatsapp_message: {
+    type: 'function',
+    function: {
+      name: 'send_whatsapp_message',
+      description: 'Send a WhatsApp message to a family member on behalf of Ali. Use this when Ali asks you to message someone (e.g. "tell Hassan to come downstairs", "message Insiya about dinner").',
+      parameters: {
+        type: 'object',
+        properties: {
+          to_number: { type: 'string', description: 'The recipient phone number with country code, no + or spaces (e.g. "19055542660" for Hassan)' },
+          message:   { type: 'string', description: 'The message text to send' }
+        },
+        required: ['to_number', 'message']
+      }
     }
   },
   family_save_memory: {
@@ -769,6 +785,7 @@ const AGENT_TOOLS = {
     'google_list_tasks', 'google_create_task', 'google_complete_task',
     'family_save_memory', 'family_recall_memory', 'family_list_memory',
     'memory_save', 'memory_recall', 'memory_search', 'memory_list', 'memory_delete', 'memory_status',
+    'send_whatsapp_message',
     'm365_list_todos', 'm365_create_todo',
     'm365_save_link', 'm365_set_onenote_section',
     'web_search', 'fetch_webpage'
@@ -832,6 +849,16 @@ async function executeTool(toolName, args, agentType = 'business') {
       case 'memory_list':                 return await sbMemory.listMemory(args);
       case 'memory_delete':               return await sbMemory.deleteMemory(args);
       case 'memory_status':               return await sbMemory.memoryStatus();
+      case 'send_whatsapp_message': {
+        const { to_number, message: msgText } = args;
+        if (!to_number || !msgText) return { error: 'to_number and message are required' };
+        try {
+          await whatsapp.sendProactiveMessage(to_number, msgText);
+          return { success: true, to: to_number, message: msgText };
+        } catch (err) {
+          return { error: err.message };
+        }
+      }
       case 'get_current_time':            return datetime.get_current_time();
       case 'get_current_date':            return datetime.get_current_date();
       case 'google_list_events':          return await googleCalendar.listEvents(args);
