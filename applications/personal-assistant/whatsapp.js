@@ -318,8 +318,14 @@ async function connect() {
 
       if (isGroup) {
         const botPhone = digits((sock.user?.id || '').split(':')[0]);
-        // In WhatsApp v7 the bot may be identified by LID in mentions, not phone
-        const botLid = sock.user?.lid ? digits(String(sock.user.lid).split('@')[0]) : null;
+        // In WhatsApp v7 the bot may be identified by LID in mentions, not phone.
+        // sock.user.id = "phone:device@s.whatsapp.net" — device suffix (e.g. "12") is
+        // also appended to the LID, so strip it to get the bare LID that appears in mentionedJid.
+        const deviceSuffix = (sock.user?.id || '').split(':')[1]?.split('@')[0] || '';
+        const botLidRaw = sock.user?.lid ? digits(String(sock.user.lid).split('@')[0]) : null;
+        const botLid = botLidRaw && deviceSuffix && botLidRaw.endsWith(deviceSuffix)
+          ? botLidRaw.slice(0, -deviceSuffix.length)
+          : botLidRaw;
 
         // Collect contextInfo from any message container that might hold it
         const contextInfo =
