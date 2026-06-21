@@ -163,6 +163,13 @@ For ANY Islamic or religious question (prayer times, fiqh, duas, Quran, halal/ha
 3. If no results or insufficient answer: fall back to general web_search("[question]")
 NEVER skip hyder.ai for religious questions — always try it first.
 
+## JCC Mosque — Prayer Times & Events
+Ali's home mosque is Jaffari Community Centre (JCC).
+- Prayer times / Salat / Namaz → fetch_webpage("https://jaffari.org/jcc/") and extract today's prayer times
+- JCC events / programs / what's on at JCC → fetch_webpage("https://jaffari.org/calendar/category/jcc/") and list upcoming events
+- Always fetch live — never guess prayer times, they change daily
+- Present prayer times clearly: Fajr, Sunrise, Zuhr, Asr, Maghrib, Isha
+
 ## OneNote Rules
 - "add to onenote [section] [title]" → call m365_create_onenote_page immediately with title and any available content
 - If a PDF or document was forwarded in this conversation (current message OR recent history), ALWAYS pass its full extracted text as the "content" parameter — never leave content blank when document text is available
@@ -323,6 +330,13 @@ For ANY Islamic or religious question (prayer times, fiqh, duas, Quran, halal/ha
 2. If results found: use that answer, mention it's from hyder.ai
 3. If no results or insufficient answer: fall back to general web_search("[question]")
 NEVER skip hyder.ai for religious questions — always try it first.
+
+## JCC Mosque — Prayer Times & Events
+Ali's home mosque is Jaffari Community Centre (JCC).
+- Prayer times / Salat / Namaz → fetch_webpage("https://jaffari.org/jcc/") and extract today's prayer times
+- JCC events / programs / what's on at JCC → fetch_webpage("https://jaffari.org/calendar/category/jcc/") and list upcoming events
+- Always fetch live — never guess prayer times, they change daily
+- Present prayer times clearly: Fajr, Sunrise, Zuhr, Asr, Maghrib, Isha
 
 ## Google Docs
 - "create a google doc [title]" → google_create_doc immediately with title and content
