@@ -159,16 +159,32 @@ function parseDocId(input) {
 }
 
 async function readDoc({ documentId }) {
-  const id = parseDocId(documentId);
-  if (!id) return { error: 'documentId or Google Docs URL required' };
+  if (!documentId) return { error: 'documentId, URL, or document name required' };
   const raw = loadCreds();
   if (!raw) return { error: 'Google credentials not configured.' };
 
   let creds;
   try { creds = await ensureFreshToken(raw); } catch (err) { return { error: err.message }; }
 
+  // Try to parse as URL or ID first
+  let id = parseDocId(documentId);
+
+  // If it doesn't look like a real ID (too short or has spaces), search by name
+  if (!id || id.includes(' ') || id.length < 20) {
+    const searchResult = await searchDrive({ query: documentId });
+    if (searchResult.error) return searchResult;
+    if (!searchResult.files || searchResult.files.length === 0) {
+      return { error: `No Google Doc found with name matching "${documentId}"` };
+    }
+    id = searchResult.files[0].id || searchResult.files[0].documentId;
+    console.log(`[GDOCS] Resolved name "${documentId}" → ID ${id}`);
+  }
+
   const doc = await authedFetch(`${DOCS_API}/${id}`, { method: 'GET' }, creds);
-  if (doc.error) return doc;
+  if (doc.error) {
+    console.error(`[GDOCS] readDoc failed for id=${id}:`, doc.error);
+    return doc;
+  }
 
   const text = extractText(doc.body?.content || []);
   return {
