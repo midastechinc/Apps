@@ -700,6 +700,12 @@ async function callLLM(senderJid, userText, agent, llmConfig, agentType = 'busin
 
   const hKey = historyKey || senderJid;
   const config = getConfig();
+
+  // Refresh memory cache so system prompt includes facts saved in other sessions
+  if (agentType === 'family') {
+    await sbMemory.refreshIfStale().catch(() => {});
+  }
+
   const tools = getToolDefinitions(agentType);
   const messages = buildMessagesPayload(senderJid, hKey, userText, agent, config, agentType, imageInfo);
 

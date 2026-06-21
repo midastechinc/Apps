@@ -1003,7 +1003,12 @@ async function executeTool(toolName, args, agentType = 'business') {
         return sbMemory.isConfigured()
           ? await sbMemory.listMemory({ category: 'family' })
           : familyMemory.listMemory();
-      case 'memory_save':                 return await sbMemory.saveMemory(args);
+      case 'memory_save':
+        // Family agent: always force category='family' so facts appear in the system prompt
+        if (agentType === 'family') {
+          return await sbMemory.saveMemory({ ...args, category: 'family' });
+        }
+        return await sbMemory.saveMemory(args);
       case 'memory_recall':               return await sbMemory.recallMemory(args);
       case 'memory_search':               return await sbMemory.searchMemory(args);
       case 'memory_list':                 return await sbMemory.listMemory(args);

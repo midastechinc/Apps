@@ -4,6 +4,7 @@ const TABLE = 'claudia_memory';
 
 // In-memory cache — populated on module load so buildSystemPrompt stays synchronous
 let _cache = {};
+let _cacheLoadedAt = 0; // epoch ms of last successful load
 
 function isConfigured() {
   return !!(SUPABASE_URL && SUPABASE_KEY);
@@ -37,11 +38,20 @@ async function sbFetch(path, options = {}) {
 
 async function loadCache() {
   if (!isConfigured()) return;
-  const data = await sbFetch(`${TABLE}?select=key,value,category&order=updated_at.desc&limit=200`);
+  const data = await sbFetch(`${TABLE}?select=key,value,category&order=updated_at.desc&limit=500`);
   if (!Array.isArray(data)) { console.error('[MEMORY] Cache load failed:', data?.error); return; }
   _cache = {};
   for (const row of data) _cache[row.key] = { value: row.value, category: row.category || null };
+  _cacheLoadedAt = Date.now();
   console.log(`[MEMORY] Cache loaded — ${data.length} entries`);
+}
+
+// Refresh if cache is older than 3 minutes (catches facts saved by other sessions or external tools)
+async function refreshIfStale(maxAgeMs = 3 * 60 * 1000) {
+  if (!isConfigured()) return;
+  if (Date.now() - _cacheLoadedAt > maxAgeMs) {
+    await loadCache().catch(err => console.warn('[MEMORY] Stale refresh failed:', err.message));
+  }
 }
 
 // Load cache immediately when module is first required
@@ -136,4 +146,4 @@ async function memoryStatus() {
   return { configured: true, writable: true, readable, cacheSize: Object.keys(_cache).length };
 }
 
-module.exports = { saveMemory, recallMemory, searchMemory, listMemory, deleteMemory, getMemorySync, isConfigured, loadCache, memoryStatus };
+module.exports = { saveMemory, recallMemory, searchMemory, listMemory, deleteMemory, getMemorySync, isConfigured, loadCache, refreshIfStale, memoryStatus };
