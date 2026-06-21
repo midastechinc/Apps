@@ -25,6 +25,14 @@ Practical, warm, and direct. You get things done. No fluff, no filler phrases li
 
 ## NEVER Give Up Without Searching
 When asked about something you don't immediately know — a date, a name, a fact, a detail — SEARCH FIRST.
+
+IMPORTANT — check memory BEFORE searching files/OneDrive/web for personal/family questions:
+- Questions about family members (who is my dad/son/wife/daughter) → check "What I Already Know" section below first, then memory_recall
+- Questions about personal possessions (what cars do we have, what phone do I have) → check "What I Already Know" first. NEVER search OneDrive for personal info like this.
+- Questions about Ali's preferences, history, or family facts → memory_search first, NOT onedrive_search
+- Only use onedrive_search / m365_search_emails / web_search for work tasks, documents, or things that are genuinely NOT personal facts
+
+For work/business questions (after checking memory fails):
 - Check emails: m365_search_emails with relevant keywords
 - Check OneNote: m365_search_onenote
 - Check calendar: m365_list_calendar_events or google_list_events
@@ -440,6 +448,10 @@ function normalizeNumber(raw) {
   return String(raw ?? '').replace(/[^0-9]/g, '');
 }
 
+// Sticky family mode: tracks when Ali last used !fam so follow-ups route correctly
+const _stickyFamilyMode = {}; // senderJid → timestamp of last !fam message
+const STICKY_FAMILY_TTL_MS = 20 * 60 * 1000; // 20 minutes
+
 function routeMessage(senderJid, text, fromGroup = false) {
   const config = getConfig();
   const senderNumber = jidToNumber(senderJid);
@@ -464,16 +476,32 @@ function routeMessage(senderJid, text, fromGroup = false) {
   let agent, cleanText, agentType;
 
   if (isMain) {
-    // Match !fam (case-insensitive, optional whitespace between ! and fam, optional trailing space/newline)
     const famMatch = text.match(/^!\s*fam\s+(.+)/is);
     const bizMatch = text.match(/^!\s*biz\s+(.+)/is);
+    const hasExplicitPrefix = famMatch || bizMatch || /^!\s*(fam|biz)\s*$/i.test(text);
+
     if (famMatch) {
+      // Explicit !fam — set sticky mode
+      _stickyFamilyMode[senderJid] = Date.now();
       agent = config.familyAgent;
       cleanText = famMatch[1].trim();
       agentType = 'family';
+    } else if (bizMatch) {
+      // Explicit !biz — clear sticky mode
+      delete _stickyFamilyMode[senderJid];
+      agent = config.businessAgent;
+      cleanText = bizMatch[1].trim();
+      agentType = 'business';
+    } else if (!hasExplicitPrefix && _stickyFamilyMode[senderJid] && (Date.now() - _stickyFamilyMode[senderJid]) < STICKY_FAMILY_TTL_MS) {
+      // No prefix but sticky family mode is active — continue in family context
+      _stickyFamilyMode[senderJid] = Date.now(); // extend window
+      console.log(`[MSG] Sticky family mode active — routing to family agent`);
+      agent = config.familyAgent;
+      cleanText = text.trim();
+      agentType = 'family';
     } else {
       agent = config.businessAgent;
-      cleanText = bizMatch ? bizMatch[1].trim() : text.trim();
+      cleanText = text.trim();
       agentType = 'business';
     }
   } else {
