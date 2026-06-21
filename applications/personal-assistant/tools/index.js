@@ -313,14 +313,14 @@ const DEFINITIONS = {
     type: 'function',
     function: {
       name: 'google_search_drive',
-      description: 'Search Google Drive for documents by name. Use this when the user refers to a doc by name (e.g. "the recipes doc", "my grocery list doc") and you need to find its ID.',
+      description: 'Search Google Drive for documents by name, or list ALL documents if no query given. Use when the user asks to find a doc by name OR says "list all my google docs / show all files in google drive".',
       parameters: {
         type: 'object',
         properties: {
-          query: { type: 'string', description: 'Search term — part of the file name to look for' },
+          query: { type: 'string', description: 'Search term — part of the file name to look for. Leave empty or omit to list ALL docs.' },
           type:  { type: 'string', description: 'File type: "document" (default) or "spreadsheet"' }
         },
-        required: ['query']
+        required: []
       }
     }
   },

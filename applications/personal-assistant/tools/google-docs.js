@@ -267,8 +267,7 @@ async function readDoc({ documentId }) {
   };
 }
 
-async function searchDrive({ query, type = 'document' }) {
-  if (!query) return { error: 'query required' };
+async function searchDrive({ query = '', type = 'document' } = {}) {
   const raw = loadCreds();
   if (!raw) return { error: 'Google credentials not configured.' };
 
@@ -279,8 +278,14 @@ async function searchDrive({ query, type = 'document' }) {
     ? 'application/vnd.google-apps.spreadsheet'
     : 'application/vnd.google-apps.document';
 
-  const q = encodeURIComponent(`name contains '${query}' and mimeType='${mimeType}' and trashed=false`);
-  const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime,webViewLink)&orderBy=modifiedTime desc&pageSize=10`;
+  // If no query, list all docs; otherwise filter by name
+  const filter = query.trim()
+    ? `name contains '${query.trim()}' and mimeType='${mimeType}' and trashed=false`
+    : `mimeType='${mimeType}' and trashed=false`;
+
+  const q = encodeURIComponent(filter);
+  const pageSize = query.trim() ? 10 : 30;
+  const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime,webViewLink)&orderBy=modifiedTime desc&pageSize=${pageSize}`;
 
   const result = await authedFetch(url, { method: 'GET' }, creds);
   if (result.error) return result;
@@ -292,7 +297,7 @@ async function searchDrive({ query, type = 'document' }) {
     modified: f.modifiedTime
   }));
 
-  return { query, count: files.length, files };
+  return { query: query || '(all)', count: files.length, files };
 }
 
 module.exports = { createDoc, appendToDoc, updateDoc, readDoc, searchDrive, isConfigured };
