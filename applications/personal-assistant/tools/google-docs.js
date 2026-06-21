@@ -127,4 +127,85 @@ function isConfigured() {
   return !!(creds?.refresh_token && creds?.client_id);
 }
 
-module.exports = { createDoc, appendToDoc, isConfigured };
+// Extract plain text from Google Docs body content structure
+function extractText(content = [], maxChars = 6000) {
+  const lines = [];
+  for (const el of content) {
+    if (el.paragraph) {
+      const line = (el.paragraph.elements || [])
+        .map(e => e.textRun?.content || '')
+        .join('');
+      if (line.trim()) lines.push(line.trimEnd());
+    } else if (el.table) {
+      for (const row of el.table.tableRows || []) {
+        for (const cell of row.tableCells || []) {
+          lines.push(...(cell.content || [])
+            .filter(c => c.paragraph)
+            .map(c => (c.paragraph.elements || []).map(e => e.textRun?.content || '').join('').trimEnd())
+            .filter(Boolean));
+        }
+      }
+    }
+  }
+  const full = lines.join('\n');
+  return full.length > maxChars ? full.slice(0, maxChars) + '\n...(truncated)' : full;
+}
+
+// Extract document ID from a URL or return as-is if already an ID
+function parseDocId(input) {
+  if (!input) return null;
+  const match = input.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : input.trim();
+}
+
+async function readDoc({ documentId }) {
+  const id = parseDocId(documentId);
+  if (!id) return { error: 'documentId or Google Docs URL required' };
+  const raw = loadCreds();
+  if (!raw) return { error: 'Google credentials not configured.' };
+
+  let creds;
+  try { creds = await ensureFreshToken(raw); } catch (err) { return { error: err.message }; }
+
+  const doc = await authedFetch(`${DOCS_API}/${id}`, { method: 'GET' }, creds);
+  if (doc.error) return doc;
+
+  const text = extractText(doc.body?.content || []);
+  return {
+    documentId: id,
+    title: doc.title,
+    url: `https://docs.google.com/document/d/${id}/edit`,
+    content: text,
+    charCount: text.length
+  };
+}
+
+async function searchDrive({ query, type = 'document' }) {
+  if (!query) return { error: 'query required' };
+  const raw = loadCreds();
+  if (!raw) return { error: 'Google credentials not configured.' };
+
+  let creds;
+  try { creds = await ensureFreshToken(raw); } catch (err) { return { error: err.message }; }
+
+  const mimeType = type === 'spreadsheet'
+    ? 'application/vnd.google-apps.spreadsheet'
+    : 'application/vnd.google-apps.document';
+
+  const q = encodeURIComponent(`name contains '${query}' and mimeType='${mimeType}' and trashed=false`);
+  const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime,webViewLink)&orderBy=modifiedTime desc&pageSize=10`;
+
+  const result = await authedFetch(url, { method: 'GET' }, creds);
+  if (result.error) return result;
+
+  const files = (result.files || []).map(f => ({
+    documentId: f.id,
+    name: f.name,
+    url: f.webViewLink,
+    modified: f.modifiedTime
+  }));
+
+  return { query, count: files.length, files };
+}
+
+module.exports = { createDoc, appendToDoc, readDoc, searchDrive, isConfigured };

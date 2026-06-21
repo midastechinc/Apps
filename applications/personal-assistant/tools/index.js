@@ -295,6 +295,35 @@ const DEFINITIONS = {
       }
     }
   },
+  google_read_doc: {
+    type: 'function',
+    function: {
+      name: 'google_read_doc',
+      description: 'Read the full text content of a Google Doc by its document ID or URL. Use this to answer questions about what is in a Google Doc.',
+      parameters: {
+        type: 'object',
+        properties: {
+          documentId: { type: 'string', description: 'Google Doc document ID or full URL (e.g. https://docs.google.com/document/d/...)' }
+        },
+        required: ['documentId']
+      }
+    }
+  },
+  google_search_drive: {
+    type: 'function',
+    function: {
+      name: 'google_search_drive',
+      description: 'Search Google Drive for documents by name. Use this when the user refers to a doc by name (e.g. "the recipes doc", "my grocery list doc") and you need to find its ID.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Search term — part of the file name to look for' },
+          type:  { type: 'string', description: 'File type: "document" (default) or "spreadsheet"' }
+        },
+        required: ['query']
+      }
+    }
+  },
   m365_list_calendar_events: {
     type: 'function',
     function: {
@@ -827,14 +856,14 @@ const AGENT_TOOLS = {
     'sharepoint_list_sites', 'sharepoint_search', 'sharepoint_list_files',
     'memory_save', 'memory_recall', 'memory_search', 'memory_list', 'memory_delete', 'memory_status',
     'geocode_location',
-    'google_create_doc', 'google_append_doc',
+    'google_create_doc', 'google_append_doc', 'google_read_doc', 'google_search_drive',
     'web_search', 'fetch_webpage'
   ],
   family: [
     'get_current_time', 'get_current_date',
     'google_list_events', 'google_create_event', 'google_list_calendars',
     'google_list_tasks', 'google_create_task', 'google_complete_task',
-    'google_create_doc', 'google_append_doc',
+    'google_create_doc', 'google_append_doc', 'google_read_doc', 'google_search_drive',
     'family_save_memory', 'family_recall_memory', 'family_list_memory',
     'memory_save', 'memory_recall', 'memory_search', 'memory_list', 'memory_delete', 'memory_status',
     'send_whatsapp_message', 'geocode_location',
@@ -922,6 +951,8 @@ async function executeTool(toolName, args, agentType = 'business') {
       case 'google_complete_task':        return await googleTasks.completeTask(args);
       case 'google_create_doc':           return await googleDocs.createDoc(args);
       case 'google_append_doc':           return await googleDocs.appendToDoc(args);
+      case 'google_read_doc':             return await googleDocs.readDoc(args);
+      case 'google_search_drive':         return await googleDocs.searchDrive(args);
       case 'm365_list_calendar_events':   return await m365.listCalendarEvents(args);
       case 'm365_create_calendar_event':  return await m365.createCalendarEvent(args);
       case 'm365_update_calendar_event':  return await m365.updateCalendarEvent(args);
