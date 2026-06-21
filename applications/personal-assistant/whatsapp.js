@@ -317,27 +317,36 @@ async function connect() {
       }
 
       if (isGroup) {
-        const { getConfig } = require('./config-manager');
-        const cfg = getConfig();
-        const senderPhone = digits(sender);
-        const knownNumbers = [cfg.mainNumber, ...(cfg.familyNumbers || [])].map(n => digits(n)).filter(Boolean);
-        const isKnownSender = knownNumbers.includes(senderPhone);
-
         const botPhone = digits((sock.user?.id || '').split(':')[0]);
-        const contextInfo = msg.message?.extendedTextMessage?.contextInfo || msg.message?.imageMessage?.contextInfo || {};
+        // In WhatsApp v7 the bot may be identified by LID in mentions, not phone
+        const botLid = sock.user?.lid ? digits(String(sock.user.lid).split('@')[0]) : null;
+
+        // Collect contextInfo from any message container that might hold it
+        const contextInfo =
+          msg.message?.extendedTextMessage?.contextInfo ||
+          msg.message?.imageMessage?.contextInfo ||
+          msg.message?.videoMessage?.contextInfo ||
+          msg.message?.audioMessage?.contextInfo ||
+          {};
+
         const mentionedJids = contextInfo?.mentionedJid || [];
-        const isMentionedByJid = mentionedJids.some(jid => digits(jid) === botPhone);
-        const isMentionedInText = !!(text && text.includes(`@${botPhone}`));
+
+        // Match bot by phone OR by LID (v7)
+        const isMentionedByJid = mentionedJids.some(jid => {
+          const d = digits(jid);
+          return d === botPhone || (botLid && d === botLid);
+        });
+
+        // Fallback: "claudia" at the start (case-insensitive) in case mention tag missing
         const isMentionedByName = !!(text && /^claudia[,\s!?]*/i.test(text.trim()));
-        const isMentioned = isMentionedByJid || isMentionedInText || isMentionedByName;
 
-        console.log(`[WA] Group ${rawJid} | sender=${senderPhone} known=${isKnownSender} mentioned=${isMentioned} | text="${(text || '').slice(0, 80)}"`);
+        const isMentioned = isMentionedByJid || isMentionedByName;
 
-        // Whitelisted senders: always respond (no @mention needed)
-        // Unknown senders: only respond if @mentioned
-        if (!isKnownSender && !isMentioned) continue;
+        console.log(`[WA] Group ${rawJid} | botPhone=${botPhone} botLid=${botLid} | mentionedJids=${JSON.stringify(mentionedJids)} | byJid=${isMentionedByJid} byName=${isMentionedByName} | text="${(text || '').slice(0, 80)}"`);
 
-        // Strip mention tag and "Claudia" prefix from text
+        if (!isMentioned) continue;
+
+        // Strip mention tag and "Claudia" prefix so LLM sees clean text
         if (text) text = text.replace(/@\d+/g, '').replace(/^claudia[,\s!?]*/i, '').trim();
       }
 
