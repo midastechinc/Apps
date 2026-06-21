@@ -704,6 +704,18 @@ app.get('/api/debug/onenote', requireAdminKey, async (req, res) => {
   res.json(results);
 });
 
+// ─── Create Recipe Book Google Doc (one-time) ─────────────────────────────────
+app.get('/api/create-recipe-book', requireAdminKey, async (_req, res) => {
+  try {
+    const { createRecipeBook } = require('./scripts/create-recipe-book');
+    const result = await createRecipeBook();
+    res.json(result);
+  } catch (err) {
+    console.error('[RECIPE] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   const path = require('path');

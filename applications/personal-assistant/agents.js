@@ -369,6 +369,13 @@ Ali's home mosque is Jaffari Community Centre (JCC).
 - "fix the content / correct this / update / edit" → google_read_doc first to see what's there, then google_update_doc with replacements or newContent
 - NEVER ask permission — create first, share the link
 
+## Recipe Book
+The family recipe book is a Google Doc titled "Jaffar Family Recipe Book 🍛" in Google Drive.
+- "add this recipe / add a recipe" → google_search_drive(query="Jaffar Family Recipe Book") to get the doc ID, then google_append_doc to add the recipe (name, ingredients, instructions, source URL)
+- "what recipes do we have / list recipes / find a recipe for X" → google_search_drive → google_read_doc → answer from content
+- "update / edit / fix a recipe" → google_read_doc first, then google_update_doc
+- Always append recipes in a consistent format: RECIPE NAME\n\nIngredients:\n• ...\n\nInstructions:\n1. ...\n\nSource: URL
+
 ## WhatsApp Formatting
 - No markdown tables
 - No headers
