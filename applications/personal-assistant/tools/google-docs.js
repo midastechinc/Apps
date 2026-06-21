@@ -98,6 +98,20 @@ async function createDoc({ title, content = '' }) {
   return { success: true, documentId: docId, url, title };
 }
 
+async function resolveDocId(raw, creds, input) {
+  let id = parseDocId(input);
+  if (!id || id.includes(' ') || id.length < 20) {
+    const searchResult = await searchDrive({ query: input });
+    if (searchResult.error) return { error: searchResult.error };
+    if (!searchResult.files || searchResult.files.length === 0) {
+      return { error: `No Google Doc found with name matching "${input}"` };
+    }
+    id = searchResult.files[0].id || searchResult.files[0].documentId;
+    console.log(`[GDOCS] Resolved name "${input}" → ID ${id}`);
+  }
+  return { id };
+}
+
 async function appendToDoc({ documentId, content }) {
   if (!documentId || !content) return { error: 'documentId and content are required' };
   const raw = loadCreds();
@@ -106,20 +120,77 @@ async function appendToDoc({ documentId, content }) {
   let creds;
   try { creds = await ensureFreshToken(raw); } catch (err) { return { error: err.message }; }
 
+  const resolved = await resolveDocId(raw, creds, documentId);
+  if (resolved.error) return resolved;
+  const id = resolved.id;
+
   // Get current doc to find end index
-  const doc = await authedFetch(`${DOCS_API}/${documentId}`, { method: 'GET' }, creds);
+  const doc = await authedFetch(`${DOCS_API}/${id}`, { method: 'GET' }, creds);
   if (doc.error) return doc;
 
   const endIndex = doc.body?.content?.slice(-1)[0]?.endIndex || 1;
   const insertIndex = Math.max(1, endIndex - 1);
 
-  const result = await authedFetch(`${DOCS_API}/${documentId}:batchUpdate`, {
+  const result = await authedFetch(`${DOCS_API}/${id}:batchUpdate`, {
     method: 'POST',
     body: JSON.stringify({ requests: [{ insertText: { location: { index: insertIndex }, text: '\n' + content } }] })
   }, creds);
 
   if (result.error) return result;
-  return { success: true, documentId, url: `https://docs.google.com/document/d/${documentId}/edit` };
+  return { success: true, documentId: id, url: `https://docs.google.com/document/d/${id}/edit` };
+}
+
+// Update doc: find-and-replace pairs OR full rewrite with newContent
+async function updateDoc({ documentId, replacements = [], newContent = null }) {
+  if (!documentId) return { error: 'documentId (or doc name) is required' };
+  if (!replacements.length && !newContent) return { error: 'provide replacements array or newContent to rewrite' };
+
+  const raw = loadCreds();
+  if (!raw) return { error: 'Google credentials not configured.' };
+
+  let creds;
+  try { creds = await ensureFreshToken(raw); } catch (err) { return { error: err.message }; }
+
+  const resolved = await resolveDocId(raw, creds, documentId);
+  if (resolved.error) return resolved;
+  const id = resolved.id;
+
+  let requests = [];
+
+  if (newContent !== null) {
+    // Full rewrite: delete all existing content then insert new
+    const doc = await authedFetch(`${DOCS_API}/${id}`, { method: 'GET' }, creds);
+    if (doc.error) return doc;
+    const endIndex = doc.body?.content?.slice(-1)[0]?.endIndex || 2;
+    if (endIndex > 2) {
+      requests.push({ deleteContentRange: { range: { startIndex: 1, endIndex: endIndex - 1 } } });
+    }
+    if (newContent.trim()) {
+      requests.push({ insertText: { location: { index: 1 }, text: newContent.trim() } });
+    }
+  } else {
+    // Find-and-replace
+    for (const { find, replace } of replacements) {
+      if (!find) continue;
+      requests.push({
+        replaceAllText: {
+          containsText: { text: find, matchCase: false },
+          replaceText: replace || ''
+        }
+      });
+    }
+  }
+
+  if (!requests.length) return { error: 'No valid operations to perform' };
+
+  const result = await authedFetch(`${DOCS_API}/${id}:batchUpdate`, {
+    method: 'POST',
+    body: JSON.stringify({ requests })
+  }, creds);
+
+  if (result.error) return result;
+  console.log(`[GDOCS] Updated doc ${id} (${newContent !== null ? 'rewrite' : replacements.length + ' replacements'})`);
+  return { success: true, documentId: id, url: `https://docs.google.com/document/d/${id}/edit` };
 }
 
 function isConfigured() {
@@ -224,4 +295,4 @@ async function searchDrive({ query, type = 'document' }) {
   return { query, count: files.length, files };
 }
 
-module.exports = { createDoc, appendToDoc, readDoc, searchDrive, isConfigured };
+module.exports = { createDoc, appendToDoc, updateDoc, readDoc, searchDrive, isConfigured };

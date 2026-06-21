@@ -324,6 +324,33 @@ const DEFINITIONS = {
       }
     }
   },
+  google_update_doc: {
+    type: 'function',
+    function: {
+      name: 'google_update_doc',
+      description: 'Edit or fix content in an existing Google Doc. Two modes: (1) find-and-replace: pass replacements=[{find, replace}] to fix specific text. (2) full rewrite: pass newContent to replace all content. Accepts doc name, ID, or URL.',
+      parameters: {
+        type: 'object',
+        properties: {
+          documentId:   { type: 'string', description: 'Google Doc name, ID, or full URL' },
+          replacements: {
+            type: 'array',
+            description: 'List of find-and-replace pairs. Use for targeted fixes.',
+            items: {
+              type: 'object',
+              properties: {
+                find:    { type: 'string', description: 'Text to find (case-insensitive)' },
+                replace: { type: 'string', description: 'Replacement text (empty string to delete)' }
+              },
+              required: ['find', 'replace']
+            }
+          },
+          newContent: { type: 'string', description: 'Full new content to replace the entire document body (use for complete rewrites or heavy edits)' }
+        },
+        required: ['documentId']
+      }
+    }
+  },
   m365_list_calendar_events: {
     type: 'function',
     function: {
@@ -856,14 +883,14 @@ const AGENT_TOOLS = {
     'sharepoint_list_sites', 'sharepoint_search', 'sharepoint_list_files',
     'memory_save', 'memory_recall', 'memory_search', 'memory_list', 'memory_delete', 'memory_status',
     'geocode_location',
-    'google_create_doc', 'google_append_doc', 'google_read_doc', 'google_search_drive',
+    'google_create_doc', 'google_append_doc', 'google_read_doc', 'google_search_drive', 'google_update_doc',
     'web_search', 'fetch_webpage'
   ],
   family: [
     'get_current_time', 'get_current_date',
     'google_list_events', 'google_create_event', 'google_list_calendars',
     'google_list_tasks', 'google_create_task', 'google_complete_task',
-    'google_create_doc', 'google_append_doc', 'google_read_doc', 'google_search_drive',
+    'google_create_doc', 'google_append_doc', 'google_read_doc', 'google_search_drive', 'google_update_doc',
     'family_save_memory', 'family_recall_memory', 'family_list_memory',
     'memory_save', 'memory_recall', 'memory_search', 'memory_list', 'memory_delete', 'memory_status',
     'send_whatsapp_message', 'geocode_location',
@@ -953,6 +980,7 @@ async function executeTool(toolName, args, agentType = 'business') {
       case 'google_append_doc':           return await googleDocs.appendToDoc(args);
       case 'google_read_doc':             return await googleDocs.readDoc(args);
       case 'google_search_drive':         return await googleDocs.searchDrive(args);
+      case 'google_update_doc':           return await googleDocs.updateDoc(args);
       case 'm365_list_calendar_events':   return await m365.listCalendarEvents(args);
       case 'm365_create_calendar_event':  return await m365.createCalendarEvent(args);
       case 'm365_update_calendar_event':  return await m365.updateCalendarEvent(args);
