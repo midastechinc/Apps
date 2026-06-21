@@ -10,7 +10,7 @@
 const fs   = require('fs');
 const path = require('path');
 const AdmZip = require('adm-zip');
-const { createDoc, appendToDoc } = require('../tools/google-docs');
+const { createDoc } = require('../tools/google-docs');
 
 const DOCX_PATH = path.join(__dirname, '..', 'data', 'recipe-book.docx');
 const DOC_TITLE = 'Jaffar Family Recipe Book 🍛';
@@ -195,50 +195,39 @@ async function createRecipeBook() {
   console.log('[RECIPE] Parsing docx...');
   const lines = extractDocxText(DOCX_PATH);
   const sections = parseRecipes(lines);
-  console.log(`[RECIPE] Found ${sections.length} sections, ${sections.reduce((t, s) => t + s.recipes.length, 0)} recipes`);
+  const totalRecipes = sections.reduce((t, s) => t + s.recipes.length, 0);
+  console.log(`[RECIPE] Found ${sections.length} sections, ${totalRecipes} recipes`);
 
-  // Build intro block
-  const header = `JAFFAR FAMILY RECIPE BOOK\nFlour & Spice Collection\n\nPersonal backup for family use. Recipes sourced from flourandspiceblog.com.\nNot for redistribution.\n\n`;
-  const toc = buildTOC(sections);
-
-  // Create the doc with header + TOC
-  console.log('[RECIPE] Creating Google Doc...');
-  const doc = await createDoc({ title: DOC_TITLE, content: header + toc });
-  if (doc.error) return doc;
-
-  console.log(`[RECIPE] Doc created: ${doc.url}`);
-
-  // Append each section (sorted by order)
+  // Sort and merge duplicate categories
   const ordered = [...sections].sort((a, b) => {
     const oa = (CATEGORY_MAP[a.category] || {}).order || 99;
     const ob = (CATEGORY_MAP[b.category] || {}).order || 99;
     return oa - ob;
   });
-
-  // Merge duplicate categories
   const merged = [];
-  const seen = new Map();
+  const seenMap = new Map();
   for (const sec of ordered) {
     const label = (CATEGORY_MAP[sec.category] || { label: sec.category }).label;
-    if (seen.has(label)) {
-      seen.get(label).recipes.push(...sec.recipes);
+    if (seenMap.has(label)) {
+      seenMap.get(label).recipes.push(...sec.recipes);
     } else {
       const copy = { category: sec.category, recipes: [...sec.recipes] };
-      seen.set(label, copy);
+      seenMap.set(label, copy);
       merged.push(copy);
     }
   }
 
-  for (const sec of merged) {
-    const content = formatSection(sec);
-    console.log(`[RECIPE] Appending section: ${sec.category} (${sec.recipes.length} recipes, ${content.length} chars)`);
-    const result = await appendToDoc({ documentId: doc.documentId, content });
-    if (result.error) {
-      console.error(`[RECIPE] Append failed for ${sec.category}:`, result.error);
-    }
-  }
+  // Build ALL content as one string — single API call, no timeout risk
+  const header = `JAFFAR FAMILY RECIPE BOOK\nFlour & Spice Collection\n\nPersonal backup for family use. Recipes sourced from flourandspiceblog.com.\nNot for redistribution.\n\n`;
+  const toc = buildTOC(merged);
+  const body = merged.map(formatSection).join('');
+  const fullContent = header + toc + body;
 
-  console.log('[RECIPE] Done!');
+  console.log(`[RECIPE] Total content: ${fullContent.length} chars. Creating Google Doc (single call)...`);
+  const doc = await createDoc({ title: DOC_TITLE, content: fullContent });
+  if (doc.error) return doc;
+
+  console.log(`[RECIPE] Done! ${doc.url}`);
   return {
     success: true,
     title: DOC_TITLE,
