@@ -22,7 +22,7 @@ function requireAdminKey(req, res, next) {
   if (!ADMIN_KEY) {
     return res.status(500).json({ error: 'ADMIN_KEY environment variable is not set.' });
   }
-  const provided = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+  const provided = (req.headers.authorization || req.query.key || '').replace(/^Bearer\s+/i, '').trim();
   if (provided !== ADMIN_KEY) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
