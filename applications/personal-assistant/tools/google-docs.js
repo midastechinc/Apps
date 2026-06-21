@@ -254,6 +254,9 @@ async function readDoc({ documentId }) {
   const doc = await authedFetch(`${DOCS_API}/${id}`, { method: 'GET' }, creds);
   if (doc.error) {
     console.error(`[GDOCS] readDoc failed for id=${id}:`, doc.error);
+    if (doc.error.includes('404')) {
+      return { error: `Document not found (404). The doc "${documentId}" may not exist yet or may have been deleted. If this is the recipe book, create it first via /api/create-recipe-book.` };
+    }
     return doc;
   }
 
