@@ -307,29 +307,6 @@ async function connect() {
 
       const isGroup = rawJid.endsWith('@g.us');
 
-      // For group messages: only respond when the bot is @mentioned
-      if (isGroup) {
-        const mentionedJids = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
-        // sock.user?.id is "phone:device@s.whatsapp.net" — strip device suffix before extracting digits
-        const botPhone = digits((sock.user?.id || '').split(':')[0]);
-
-        // Primary: check mentionedJids (may be phone or LID based in v7)
-        const isMentionedByJid = mentionedJids.some(jid => digits(jid) === botPhone);
-
-        // Fallback 1: bot phone number appears literally in the text (@1234567890)
-        const isMentionedInText = !!(text && text.includes(`@${botPhone}`));
-
-        // Fallback 2: text starts with "claudia" (in case mention tag wasn't captured)
-        const isMentionedByName = !!(text && text.trim().toLowerCase().startsWith('claudia'));
-
-        const isMentioned = isMentionedByJid || isMentionedInText || isMentionedByName;
-
-        console.log(`[WA] Group msg from ${rawJid} | botPhone=${botPhone} | mentionedJids=${JSON.stringify(mentionedJids)} | byJid=${isMentionedByJid} byText=${isMentionedInText} byName=${isMentionedByName} | text="${(text || '').slice(0, 80)}"`);
-        if (!isMentioned) continue; // Ignore group messages where bot isn't @mentioned
-        // Strip the @mention tag and "claudia" prefix so the LLM sees clean input
-        if (text) text = text.replace(/@\d+/g, '').replace(/^claudia[,\s]*/i, '').trim();
-      }
-
       // For group messages the actual sender is msg.key.participant, not the group JID
       const senderRaw = isGroup ? (msg.key.participant || rawJid) : rawJid;
 
@@ -337,6 +314,31 @@ async function connect() {
       const sender = await resolveSenderJid(senderRaw);
       if (sender !== senderRaw) {
         console.log(`[WA] Resolved sender: ${senderRaw} → ${sender}`);
+      }
+
+      if (isGroup) {
+        const { getConfig } = require('./config-manager');
+        const cfg = getConfig();
+        const senderPhone = digits(sender);
+        const knownNumbers = [cfg.mainNumber, ...(cfg.familyNumbers || [])].map(n => digits(n)).filter(Boolean);
+        const isKnownSender = knownNumbers.includes(senderPhone);
+
+        const botPhone = digits((sock.user?.id || '').split(':')[0]);
+        const contextInfo = msg.message?.extendedTextMessage?.contextInfo || msg.message?.imageMessage?.contextInfo || {};
+        const mentionedJids = contextInfo?.mentionedJid || [];
+        const isMentionedByJid = mentionedJids.some(jid => digits(jid) === botPhone);
+        const isMentionedInText = !!(text && text.includes(`@${botPhone}`));
+        const isMentionedByName = !!(text && /^claudia[,\s!?]*/i.test(text.trim()));
+        const isMentioned = isMentionedByJid || isMentionedInText || isMentionedByName;
+
+        console.log(`[WA] Group ${rawJid} | sender=${senderPhone} known=${isKnownSender} mentioned=${isMentioned} | text="${(text || '').slice(0, 80)}"`);
+
+        // Whitelisted senders: always respond (no @mention needed)
+        // Unknown senders: only respond if @mentioned
+        if (!isKnownSender && !isMentioned) continue;
+
+        // Strip mention tag and "Claudia" prefix from text
+        if (text) text = text.replace(/@\d+/g, '').replace(/^claudia[,\s!?]*/i, '').trim();
       }
 
       // Mark as read (helps establish the session before replying)
