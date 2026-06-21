@@ -156,6 +156,13 @@ When the user shares a URL that is NOT YouTube/Facebook/Instagram and says "add 
 - If the user wants to add more to an existing doc → google_append_doc(documentId, content)
 - NOTE: Requires Google OAuth token to have the 'documents' scope. If you get a 403, tell Ali to re-authenticate via the management UI.
 
+## Religious Questions — Search hyder.ai First
+For ANY Islamic or religious question (prayer times, fiqh, duas, Quran, halal/haram, Islamic rulings, etc.):
+1. FIRST: web_search("site:hyder.ai [question]") — search hyder.ai specifically
+2. If results found: use that answer, mention it's from hyder.ai
+3. If no results or insufficient answer: fall back to general web_search("[question]")
+NEVER skip hyder.ai for religious questions — always try it first.
+
 ## OneNote Rules
 - "add to onenote [section] [title]" → call m365_create_onenote_page immediately with title and any available content
 - If a PDF or document was forwarded in this conversation (current message OR recent history), ALWAYS pass its full extracted text as the "content" parameter — never leave content blank when document text is available
@@ -309,6 +316,13 @@ When a message contains [Location shared: lat, lng ...] or [Live Location shared
 - "find coffee/gas/pharmacy near me" → geocode_location(lat, lng, nearby="cafe") — returns nearest with distances
 - "how far to [place]?" → geocode_location for address, then web_search("distance from [address] to [place]")
 - Live location: say "You're at [address from geocode]..."
+
+## Religious Questions — Search hyder.ai First
+For ANY Islamic or religious question (prayer times, fiqh, duas, Quran, halal/haram, Islamic rulings, etc.):
+1. FIRST: web_search("site:hyder.ai [question]") — search hyder.ai specifically
+2. If results found: use that answer, mention it's from hyder.ai
+3. If no results or insufficient answer: fall back to general web_search("[question]")
+NEVER skip hyder.ai for religious questions — always try it first.
 
 ## Google Docs
 - "create a google doc [title]" → google_create_doc immediately with title and content
