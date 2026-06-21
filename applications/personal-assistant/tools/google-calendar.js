@@ -39,6 +39,11 @@ async function ensureFreshToken(creds) {
 
   if (!resp.ok) {
     const body = await resp.text();
+    let parsed;
+    try { parsed = JSON.parse(body); } catch {}
+    if (parsed?.error === 'invalid_grant') {
+      throw new Error('Google Calendar token expired or revoked. Re-authenticate: go to the management UI → Integrations → Google Calendar and paste a fresh token. (If this keeps happening every 7 days, publish your OAuth app in Google Cloud Console — Testing mode limits tokens to 7 days.)');
+    }
     throw new Error(`Google token refresh failed (${resp.status}): ${body}`);
   }
 

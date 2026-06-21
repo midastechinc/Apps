@@ -1,10 +1,129 @@
 const datetime = require('./datetime');
 const googleCalendar = require('./google-calendar');
+const googleTasks = require('./google-tasks');
 const m365 = require('./m365');
 const familyMemory = require('./family-memory');
+const sbMemory = require('./supabase-memory');
 const web = require('./web');
+const whatsapp = require('../whatsapp');
+const geocode = require('./geocode');
+const googleDocs = require('./google-docs');
+const socialMedia = require('./social-media');
 
 const DEFINITIONS = {
+  memory_save: {
+    type: 'function',
+    function: {
+      name: 'memory_save',
+      description: 'Save a fact, preference, or piece of information to persistent memory. Use categories: "family", "client", "business", "personal". Call this immediately whenever you learn something worth remembering.',
+      parameters: {
+        type: 'object',
+        properties: {
+          key:      { type: 'string', description: 'Short identifier, e.g. "rogers contract end" or "hassan birthday"' },
+          value:    { type: 'string', description: 'The information to remember' },
+          category: { type: 'string', description: 'Category: family, client, business, or personal' }
+        },
+        required: ['key', 'value']
+      }
+    }
+  },
+  memory_recall: {
+    type: 'function',
+    function: {
+      name: 'memory_recall',
+      description: 'Look up a previously saved memory by key. Supports partial matching.',
+      parameters: {
+        type: 'object',
+        properties: {
+          key: { type: 'string', description: 'The key or partial key to look up' }
+        },
+        required: ['key']
+      }
+    }
+  },
+  memory_search: {
+    type: 'function',
+    function: {
+      name: 'memory_search',
+      description: 'Search all memories by keyword — searches both keys and values. Optionally filter by category.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query:    { type: 'string', description: 'Keyword to search for' },
+          category: { type: 'string', description: 'Optional: filter by category (family, client, business, personal)' }
+        },
+        required: ['query']
+      }
+    }
+  },
+  memory_list: {
+    type: 'function',
+    function: {
+      name: 'memory_list',
+      description: 'List all saved memories, optionally filtered by category.',
+      parameters: {
+        type: 'object',
+        properties: {
+          category: { type: 'string', description: 'Optional: filter by category (family, client, business, personal)' }
+        },
+        required: []
+      }
+    }
+  },
+  memory_delete: {
+    type: 'function',
+    function: {
+      name: 'memory_delete',
+      description: 'Delete a saved memory by key.',
+      parameters: {
+        type: 'object',
+        properties: {
+          key: { type: 'string', description: 'The exact key to delete' }
+        },
+        required: ['key']
+      }
+    }
+  },
+  memory_status: {
+    type: 'function',
+    function: {
+      name: 'memory_status',
+      description: 'Check whether persistent memory (Supabase) is connected and working. Use this to diagnose memory issues.',
+      parameters: { type: 'object', properties: {}, required: [] }
+    }
+  },
+  send_whatsapp_message: {
+    type: 'function',
+    function: {
+      name: 'send_whatsapp_message',
+      description: 'Send a WhatsApp message to a family member on behalf of Ali. Use this when Ali asks you to message someone (e.g. "tell Hassan to come downstairs", "message Insiya about dinner").',
+      parameters: {
+        type: 'object',
+        properties: {
+          to_number: { type: 'string', description: 'The recipient phone number with country code, no + or spaces (e.g. "19055542660" for Hassan)' },
+          message:   { type: 'string', description: 'The message text to send' }
+        },
+        required: ['to_number', 'message']
+      }
+    }
+  },
+  geocode_location: {
+    type: 'function',
+    function: {
+      name: 'geocode_location',
+      description: 'Convert GPS coordinates to an accurate street address (reverse geocoding) and optionally find nearby places. Use this whenever a location pin is shared — much more accurate than web search for addresses and nearby places.',
+      parameters: {
+        type: 'object',
+        properties: {
+          lat:    { type: 'number', description: 'Latitude from the shared location' },
+          lng:    { type: 'number', description: 'Longitude from the shared location' },
+          nearby: { type: 'string', description: 'Optional: type of place to find nearby, e.g. "cafe", "gas station", "pharmacy", "restaurant", "grocery", "atm"' },
+          radius: { type: 'number', description: 'Search radius in metres (default 500, max 2000)' }
+        },
+        required: ['lat', 'lng']
+      }
+    }
+  },
   family_save_memory: {
     type: 'function',
     function: {
@@ -98,6 +217,139 @@ const DEFINITIONS = {
       name: 'google_list_calendars',
       description: 'List all available Google Calendars to find their IDs.',
       parameters: { type: 'object', properties: {}, required: [] }
+    }
+  },
+  google_list_tasks: {
+    type: 'function',
+    function: {
+      name: 'google_list_tasks',
+      description: 'List tasks from Google Tasks. Use for family to-do items, shopping lists, reminders.',
+      parameters: {
+        type: 'object',
+        properties: {
+          list_name: { type: 'string', description: 'Task list name (default: "My Tasks")' },
+          show_completed: { type: 'boolean', description: 'Include completed tasks (default: false)' }
+        },
+        required: []
+      }
+    }
+  },
+  google_create_task: {
+    type: 'function',
+    function: {
+      name: 'google_create_task',
+      description: 'Create a task in Google Tasks.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Task title' },
+          notes: { type: 'string', description: 'Optional notes or details' },
+          due: { type: 'string', description: 'Optional due date (ISO format or natural language)' },
+          list_name: { type: 'string', description: 'Task list name (default: "My Tasks")' }
+        },
+        required: ['title']
+      }
+    }
+  },
+  google_complete_task: {
+    type: 'function',
+    function: {
+      name: 'google_complete_task',
+      description: 'Mark a Google Task as completed.',
+      parameters: {
+        type: 'object',
+        properties: {
+          task_id: { type: 'string', description: 'Task ID from google_list_tasks' },
+          list_name: { type: 'string', description: 'Task list name (default: "My Tasks")' }
+        },
+        required: ['task_id']
+      }
+    }
+  },
+  google_create_doc: {
+    type: 'function',
+    function: {
+      name: 'google_create_doc',
+      description: 'Create a new Google Doc with a title and optional content. Returns the document URL. Use for meeting notes, drafts, proposals, reports, or any document the user asks to create.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title:   { type: 'string', description: 'The document title' },
+          content: { type: 'string', description: 'Optional initial content/body of the document (plain text)' }
+        },
+        required: ['title']
+      }
+    }
+  },
+  google_append_doc: {
+    type: 'function',
+    function: {
+      name: 'google_append_doc',
+      description: 'Append text to an existing Google Doc by its document ID.',
+      parameters: {
+        type: 'object',
+        properties: {
+          documentId: { type: 'string', description: 'The Google Doc document ID (from a previous google_create_doc call)' },
+          content:    { type: 'string', description: 'Text to append to the document' }
+        },
+        required: ['documentId', 'content']
+      }
+    }
+  },
+  google_read_doc: {
+    type: 'function',
+    function: {
+      name: 'google_read_doc',
+      description: 'Read the full text content of a Google Doc by its document ID or URL. Use this to answer questions about what is in a Google Doc.',
+      parameters: {
+        type: 'object',
+        properties: {
+          documentId: { type: 'string', description: 'Google Doc document ID or full URL (e.g. https://docs.google.com/document/d/...)' }
+        },
+        required: ['documentId']
+      }
+    }
+  },
+  google_search_drive: {
+    type: 'function',
+    function: {
+      name: 'google_search_drive',
+      description: 'Search Google Drive for documents by name, or list ALL documents if no query given. Use when the user asks to find a doc by name OR says "list all my google docs / show all files in google drive".',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Search term — part of the file name to look for. Leave empty or omit to list ALL docs.' },
+          type:  { type: 'string', description: 'File type: "document" (default) or "spreadsheet"' }
+        },
+        required: []
+      }
+    }
+  },
+  google_update_doc: {
+    type: 'function',
+    function: {
+      name: 'google_update_doc',
+      description: 'Edit or fix content in an existing Google Doc. Two modes: (1) find-and-replace: pass replacements=[{find, replace}] to fix specific text. (2) full rewrite: pass newContent to replace all content. Accepts doc name, ID, or URL.',
+      parameters: {
+        type: 'object',
+        properties: {
+          documentId:   { type: 'string', description: 'Google Doc name, ID, or full URL' },
+          replacements: {
+            type: 'array',
+            description: 'List of find-and-replace pairs. Use for targeted fixes.',
+            items: {
+              type: 'object',
+              properties: {
+                find:    { type: 'string', description: 'Text to find (case-insensitive)' },
+                replace: { type: 'string', description: 'Replacement text (empty string to delete)' }
+              },
+              required: ['find', 'replace']
+            }
+          },
+          newContent: { type: 'string', description: 'Full new content to replace the entire document body (use for complete rewrites or heavy edits)' }
+        },
+        required: ['documentId']
+      }
     }
   },
   m365_list_calendar_events: {
@@ -242,7 +494,7 @@ const DEFINITIONS = {
     type: 'function',
     function: {
       name: 'm365_list_onenote_structure',
-      description: 'List all OneNote notebooks, sections, and page titles. Use this to diagnose why a page cannot be found.',
+      description: 'List all OneNote notebooks and their sections. Call this when the user asks to see their notebooks, sections, or OneNote structure. Always show the full list to the user.',
       parameters: { type: 'object', properties: {}, required: [] }
     }
   },
@@ -615,6 +867,56 @@ const DEFINITIONS = {
         required: ['url']
       }
     }
+  },
+  social_save_post: {
+    type: 'function',
+    function: {
+      name: 'social_save_post',
+      description: 'Save a generated social media post to the LeadTracker Social Studio. The post will appear as a draft in the Saved Posts tab of the LeadTracker app. Call this after generating a LinkedIn, Instagram, or Google post when the user wants to save it.',
+      parameters: {
+        type: 'object',
+        properties: {
+          platform:     { type: 'string', description: 'Platform: "linkedin", "instagram", or "google"' },
+          headline:     { type: 'string', description: 'Short punchy headline (max 5 words) for the visual — e.g. "PATCH NOW OR PAY"' },
+          category:     { type: 'string', description: 'Post type label — e.g. "RANSOMWARE ALERT", "SECURITY TIP", "MSP UPDATE", "PHISHING WARNING"' },
+          caption:      { type: 'string', description: 'The full post caption/body text' },
+          hashtags:     { type: 'string', description: 'Hashtag string — e.g. "#CyberSecurity #MSP #Ontario #GTA"' },
+          cta:          { type: 'string', description: 'Call to action (max 40 chars) — e.g. "BOOK A FREE SECURITY AUDIT"' },
+          source_topic: { type: 'string', description: 'The topic or news story this post is based on' },
+          notes:        { type: 'string', description: 'Internal notes about this post (optional)' }
+        },
+        required: ['platform', 'caption']
+      }
+    }
+  },
+  social_list_posts: {
+    type: 'function',
+    function: {
+      name: 'social_list_posts',
+      description: 'List saved social media posts from the LeadTracker Social Studio. Use to review, search, or count previously saved posts.',
+      parameters: {
+        type: 'object',
+        properties: {
+          platform: { type: 'string', description: 'Filter by platform: "linkedin", "instagram", "google", or empty/omit for all' },
+          limit:    { type: 'integer', description: 'Max posts to return (default: 20)' }
+        },
+        required: []
+      }
+    }
+  },
+  social_delete_post: {
+    type: 'function',
+    function: {
+      name: 'social_delete_post',
+      description: 'Delete a saved social media post from the LeadTracker by its ID.',
+      parameters: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer', description: 'Post ID from social_list_posts' }
+        },
+        required: ['id']
+      }
+    }
   }
 };
 
@@ -630,12 +932,20 @@ const AGENT_TOOLS = {
     'm365_search_onenote', 'm365_save_link', 'm365_list_onenote_structure', 'm365_set_onenote_section', 'm365_create_onenote_page', 'm365_read_onenote_page',
     'onedrive_search', 'onedrive_list_folder', 'onedrive_get_link',
     'sharepoint_list_sites', 'sharepoint_search', 'sharepoint_list_files',
+    'memory_save', 'memory_recall', 'memory_search', 'memory_list', 'memory_delete', 'memory_status',
+    'geocode_location',
+    'google_create_doc', 'google_append_doc', 'google_read_doc', 'google_search_drive', 'google_update_doc',
+    'social_save_post', 'social_list_posts', 'social_delete_post',
     'web_search', 'fetch_webpage'
   ],
   family: [
     'get_current_time', 'get_current_date',
     'google_list_events', 'google_create_event', 'google_list_calendars',
+    'google_list_tasks', 'google_create_task', 'google_complete_task',
+    'google_create_doc', 'google_append_doc', 'google_read_doc', 'google_search_drive', 'google_update_doc',
     'family_save_memory', 'family_recall_memory', 'family_list_memory',
+    'memory_save', 'memory_recall', 'memory_search', 'memory_list', 'memory_delete', 'memory_status',
+    'send_whatsapp_message', 'geocode_location',
     'm365_list_todos', 'm365_create_todo',
     'm365_save_link', 'm365_set_onenote_section',
     'web_search', 'fetch_webpage'
@@ -658,22 +968,71 @@ function getToolDefinitions(agentType) {
 }
 
 async function executeTool(toolName, args, agentType = 'business') {
+  // Normalize alternative tool names the model sometimes uses
+  const ALIASES = {
+    'search':         'web_search',
+    'web_browse':     'fetch_webpage',
+    'browser':        'fetch_webpage',
+    'browse':         'fetch_webpage',
+    'lookup':         'web_search',
+    'internet_search':'web_search'
+  };
+  const resolvedName = ALIASES[toolName] || toolName;
+  if (resolvedName !== toolName) {
+    console.log(`[TOOL] alias "${toolName}" → "${resolvedName}"`);
+  }
+
   const allowed = AGENT_TOOLS[agentType] || AGENT_TOOLS.family;
-  if (!allowed.includes(toolName)) {
-    console.warn(`[TOOL] blocked: "${toolName}" not in ${agentType} toolset`);
+  if (!allowed.includes(resolvedName)) {
+    console.warn(`[TOOL] blocked: "${toolName}" (resolved: "${resolvedName}") not in ${agentType} toolset`);
     return { error: `Tool ${toolName} is not available in this context.` };
   }
-  console.log(`[TOOL] ${toolName}(${JSON.stringify(args)})`);
+  console.log(`[TOOL] ${resolvedName}(${JSON.stringify(args)})`);
   try {
-    switch (toolName) {
-      case 'family_save_memory':          return familyMemory.saveMemory(args);
-      case 'family_recall_memory':        return familyMemory.recallMemory(args);
-      case 'family_list_memory':          return familyMemory.listMemory();
+    switch (resolvedName) {
+      // Redirect old family memory tools to Supabase (category=family) when configured
+      case 'family_save_memory':
+        return sbMemory.isConfigured()
+          ? await sbMemory.saveMemory({ ...args, category: 'family' })
+          : familyMemory.saveMemory(args);
+      case 'family_recall_memory':
+        return sbMemory.isConfigured()
+          ? await sbMemory.recallMemory(args)
+          : familyMemory.recallMemory(args);
+      case 'family_list_memory':
+        return sbMemory.isConfigured()
+          ? await sbMemory.listMemory({ category: 'family' })
+          : familyMemory.listMemory();
+      case 'memory_save':                 return await sbMemory.saveMemory(args);
+      case 'memory_recall':               return await sbMemory.recallMemory(args);
+      case 'memory_search':               return await sbMemory.searchMemory(args);
+      case 'memory_list':                 return await sbMemory.listMemory(args);
+      case 'memory_delete':               return await sbMemory.deleteMemory(args);
+      case 'memory_status':               return await sbMemory.memoryStatus();
+      case 'geocode_location':            return await geocode.geocodeLocation(args);
+      case 'send_whatsapp_message': {
+        const { to_number, message: msgText } = args;
+        if (!to_number || !msgText) return { error: 'to_number and message are required' };
+        try {
+          await whatsapp.sendProactiveMessage(to_number, msgText);
+          return { success: true, to: to_number, message: msgText };
+        } catch (err) {
+          return { error: err.message };
+        }
+      }
       case 'get_current_time':            return datetime.get_current_time();
       case 'get_current_date':            return datetime.get_current_date();
       case 'google_list_events':          return await googleCalendar.listEvents(args);
       case 'google_create_event':         return await googleCalendar.createEvent(args);
       case 'google_list_calendars':       return await googleCalendar.listCalendars();
+      case 'google_list_tasks':           return await googleTasks.listTasks(args);
+      case 'google_create_task':          return await googleTasks.createTask(args);
+      case 'google_complete_task':        return await googleTasks.completeTask(args);
+      case 'google_create_doc':           return await googleDocs.createDoc(args);
+      case 'google_append_doc':           return await googleDocs.appendToDoc(args);
+      case 'google_read_doc':             return await googleDocs.readDoc(args);
+      case 'google_search_drive':         return await googleDocs.searchDrive(args);
+      case 'google_update_doc':           return await googleDocs.updateDoc(args);
       case 'm365_list_calendar_events':   return await m365.listCalendarEvents(args);
       case 'm365_create_calendar_event':  return await m365.createCalendarEvent(args);
       case 'm365_update_calendar_event':  return await m365.updateCalendarEvent(args);
@@ -707,6 +1066,9 @@ async function executeTool(toolName, args, agentType = 'business') {
       case 'sharepoint_list_sites':          return await m365.listSharePointSites(args);
       case 'sharepoint_search':              return await m365.searchSharePoint(args);
       case 'sharepoint_list_files':          return await m365.listSharePointFiles(args);
+      case 'social_save_post':               return await socialMedia.saveSocialPost(args);
+      case 'social_list_posts':              return await socialMedia.listSocialPosts(args);
+      case 'social_delete_post':             return await socialMedia.deleteSocialPost(args);
       case 'web_search':                     return await web.webSearch(args);
       case 'fetch_webpage':                  return await web.fetchWebpage(args);
       default:                               return { error: `Unknown tool: ${toolName}` };

@@ -249,6 +249,21 @@ async function connect() {
         }
       }
 
+      // Handle location messages (static pin or live location)
+      const locMsg = msg.message?.locationMessage || msg.message?.liveLocationMessage;
+      if (locMsg && !text && !imageInfo) {
+        const lat = locMsg.degreesLatitude?.toFixed(6);
+        const lng = locMsg.degreesLongitude?.toFixed(6);
+        const name = locMsg.name || '';
+        const address = locMsg.address || '';
+        const isLive = !!msg.message?.liveLocationMessage;
+        const parts = [`[${isLive ? 'Live ' : ''}Location shared: ${lat}, ${lng}`];
+        if (name) parts.push(`Place: ${name}`);
+        if (address) parts.push(`Address: ${address}`);
+        text = parts.join(' | ') + ']';
+        console.log(`[WA] Location received: ${text}`);
+      }
+
       // Handle document messages (PDFs, Word docs, etc.)
       const docMsg =
         msg.message?.documentMessage ||
@@ -290,10 +305,55 @@ async function connect() {
       const rawJid = msg.key.remoteJid;
       if (!rawJid) continue;
 
+      const isGroup = rawJid.endsWith('@g.us');
+
+      // For group messages the actual sender is msg.key.participant, not the group JID
+      const senderRaw = isGroup ? (msg.key.participant || rawJid) : rawJid;
+
       // Resolve LID → phone JID for routing (v7 native mapping)
-      const sender = await resolveSenderJid(rawJid);
-      if (sender !== rawJid) {
-        console.log(`[WA] Resolved sender: ${rawJid} → ${sender}`);
+      const sender = await resolveSenderJid(senderRaw);
+      if (sender !== senderRaw) {
+        console.log(`[WA] Resolved sender: ${senderRaw} → ${sender}`);
+      }
+
+      if (isGroup) {
+        const botPhone = digits((sock.user?.id || '').split(':')[0]);
+        // In WhatsApp v7 the bot may be identified by LID in mentions, not phone.
+        // sock.user.id = "phone:device@s.whatsapp.net" — device suffix (e.g. "12") is
+        // also appended to the LID, so strip it to get the bare LID that appears in mentionedJid.
+        const deviceSuffix = (sock.user?.id || '').split(':')[1]?.split('@')[0] || '';
+        const botLidRaw = sock.user?.lid ? digits(String(sock.user.lid).split('@')[0]) : null;
+        const botLid = botLidRaw && deviceSuffix && botLidRaw.endsWith(deviceSuffix)
+          ? botLidRaw.slice(0, -deviceSuffix.length)
+          : botLidRaw;
+
+        // Collect contextInfo from any message container that might hold it
+        const contextInfo =
+          msg.message?.extendedTextMessage?.contextInfo ||
+          msg.message?.imageMessage?.contextInfo ||
+          msg.message?.videoMessage?.contextInfo ||
+          msg.message?.audioMessage?.contextInfo ||
+          {};
+
+        const mentionedJids = contextInfo?.mentionedJid || [];
+
+        // Match bot by phone OR by LID (v7)
+        const isMentionedByJid = mentionedJids.some(jid => {
+          const d = digits(jid);
+          return d === botPhone || (botLid && d === botLid);
+        });
+
+        // Fallback: "claudia" at the start (case-insensitive) in case mention tag missing
+        const isMentionedByName = !!(text && /^claudia[,\s!?]*/i.test(text.trim()));
+
+        const isMentioned = isMentionedByJid || isMentionedByName;
+
+        console.log(`[WA] Group ${rawJid} | botPhone=${botPhone} botLid=${botLid} | mentionedJids=${JSON.stringify(mentionedJids)} | byJid=${isMentionedByJid} byName=${isMentionedByName} | text="${(text || '').slice(0, 80)}"`);
+
+        if (!isMentioned) continue;
+
+        // Strip mention tag and "Claudia" prefix so LLM sees clean text
+        if (text) text = text.replace(/@\d+/g, '').replace(/^claudia[,\s!?]*/i, '').trim();
       }
 
       // Mark as read (helps establish the session before replying)
@@ -301,7 +361,7 @@ async function connect() {
 
       try {
         if (onMessage) {
-          const reply = await onMessage(sender, text, imageInfo);
+          const reply = await onMessage(sender, text, imageInfo, { fromGroup: isGroup });
           if (reply && sock) {
             // Reply to the ORIGINAL jid — v7 attaches tctoken automatically (fixes 463)
             await sock.sendMessage(rawJid, { text: reply });
