@@ -312,11 +312,22 @@ async function connect() {
         const mentionedJids = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
         // sock.user?.id is "phone:device@s.whatsapp.net" — strip device suffix before extracting digits
         const botPhone = digits((sock.user?.id || '').split(':')[0]);
-        const isMentioned = mentionedJids.some(jid => digits(jid) === botPhone);
-        console.log(`[WA] Group msg from ${rawJid} | botId=${sock.user?.id} botPhone=${botPhone} | mentionedJids=${JSON.stringify(mentionedJids)} | isMentioned=${isMentioned} | text="${(text || '').slice(0, 80)}"`);
+
+        // Primary: check mentionedJids (may be phone or LID based in v7)
+        const isMentionedByJid = mentionedJids.some(jid => digits(jid) === botPhone);
+
+        // Fallback 1: bot phone number appears literally in the text (@1234567890)
+        const isMentionedInText = !!(text && text.includes(`@${botPhone}`));
+
+        // Fallback 2: text starts with "claudia" (in case mention tag wasn't captured)
+        const isMentionedByName = !!(text && text.trim().toLowerCase().startsWith('claudia'));
+
+        const isMentioned = isMentionedByJid || isMentionedInText || isMentionedByName;
+
+        console.log(`[WA] Group msg from ${rawJid} | botPhone=${botPhone} | mentionedJids=${JSON.stringify(mentionedJids)} | byJid=${isMentionedByJid} byText=${isMentionedInText} byName=${isMentionedByName} | text="${(text || '').slice(0, 80)}"`);
         if (!isMentioned) continue; // Ignore group messages where bot isn't @mentioned
-        // Strip the @mention tag from the text so the LLM sees clean input
-        if (text) text = text.replace(/@\d+/g, '').trim();
+        // Strip the @mention tag and "claudia" prefix so the LLM sees clean input
+        if (text) text = text.replace(/@\d+/g, '').replace(/^claudia[,\s]*/i, '').trim();
       }
 
       // For group messages the actual sender is msg.key.participant, not the group JID
@@ -333,7 +344,7 @@ async function connect() {
 
       try {
         if (onMessage) {
-          const reply = await onMessage(sender, text, imageInfo);
+          const reply = await onMessage(sender, text, imageInfo, { fromGroup: isGroup });
           if (reply && sock) {
             // Reply to the ORIGINAL jid — v7 attaches tctoken automatically (fixes 463)
             await sock.sendMessage(rawJid, { text: reply });

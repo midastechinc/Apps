@@ -358,7 +358,7 @@ function normalizeNumber(raw) {
   return String(raw ?? '').replace(/[^0-9]/g, '');
 }
 
-function routeMessage(senderJid, text) {
+function routeMessage(senderJid, text, fromGroup = false) {
   const config = getConfig();
   const senderNumber = jidToNumber(senderJid);
   const { mainNumber, familyNumbers } = config;
@@ -370,8 +370,13 @@ function routeMessage(senderJid, text) {
   console.log(`[MSG] from=${senderJid} number=${senderNumber} isMain=${isMain} isFamily=${isFamily} mainConfigured=${normalizedMain}`);
 
   if (!isMain && !isFamily) {
-    console.log(`[MSG] IGNORED — number not in whitelist`);
-    return null;
+    if (fromGroup) {
+      // Allow unknown/unresolved group participants (LID issue) — route to family agent
+      console.log(`[MSG] Unknown sender in group — routing to family agent as fallback`);
+    } else {
+      console.log(`[MSG] IGNORED — number not in whitelist`);
+      return null;
+    }
   }
 
   let agent, cleanText, agentType;
@@ -398,7 +403,7 @@ function routeMessage(senderJid, text) {
   return { agent, cleanText, config, agentType };
 }
 
-async function processMessage(senderJid, text, imageInfo = null) {
+async function processMessage(senderJid, text, imageInfo = null, { fromGroup = false } = {}) {
   const preview = text ? `"${text.slice(0, 60)}"` : '[image only]';
   console.log(`[MSG] received: ${preview} from ${senderJid}${imageInfo ? ' +image' : ''}`);
 
@@ -418,7 +423,7 @@ async function processMessage(senderJid, text, imageInfo = null) {
     }
   }
 
-  const routed = routeMessage(senderJid, text || '');
+  const routed = routeMessage(senderJid, text || '', fromGroup);
   if (!routed) return null;
 
   const { agent, cleanText, config, agentType } = routed;
