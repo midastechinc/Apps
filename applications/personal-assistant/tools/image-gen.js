@@ -8,12 +8,15 @@ async function generateImage({ prompt }) {
   if (!prompt) return { error: 'prompt required' };
 
   const config = getConfig();
-  const apiKey = config.llm?.apiKey;
-  if (!apiKey) return { error: 'API key not configured. Set it in the LLM Settings tab.' };
 
-  const baseUrl = config.llm?.baseUrl || 'https://api.openai.com/v1';
-  if (!baseUrl.includes('openai.com')) {
-    return { error: 'Image generation requires OpenAI. Current LLM provider is not OpenAI.' };
+  // Use a dedicated OPENAI_API_KEY env var if set; otherwise fall back to the
+  // configured LLM key only when it is already pointing at OpenAI.
+  const configuredBase = config.llm?.baseUrl || '';
+  const apiKey = process.env.OPENAI_API_KEY ||
+    (configuredBase.includes('openai.com') ? config.llm?.apiKey : null);
+
+  if (!apiKey) {
+    return { error: 'Image generation needs an OpenAI key. Add OPENAI_API_KEY to your Railway environment variables.' };
   }
 
   try {
