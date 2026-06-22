@@ -716,6 +716,26 @@ app.get('/api/create-recipe-book', requireAdminKey, async (_req, res) => {
   }
 });
 
+// ─── Manual trigger: social content generation ────────────────────────────────
+app.post('/api/run/social-content', requireAdminKey, async (_req, res) => {
+  try {
+    const { processSocialContent } = require('./agents');
+    const { popLatestImageBuffer } = require('./tools/image-gen');
+    const { sendProactiveImage } = require('./whatsapp');
+    const cfg = getConfig();
+    const reply = await processSocialContent();
+    if (!reply) return res.json({ ok: false, error: 'No reply from agent' });
+    const cleanText = reply.replace(/\[IMAGE_ID:[^\]]*\]/gi, '').trim();
+    const buf = popLatestImageBuffer();
+    if (buf && cfg.mainNumber) await sendProactiveImage(cfg.mainNumber, buf, '');
+    if (cleanText && cfg.mainNumber) await sendProactiveMessage(cfg.mainNumber, cleanText);
+    res.json({ ok: true, imageSent: !!buf, preview: cleanText.slice(0, 300) });
+  } catch (err) {
+    console.error('[API] run/social-content error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   const path = require('path');
