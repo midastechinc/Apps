@@ -971,15 +971,33 @@ async function processSocialContent() {
     }
   }
 
-  // Step 4 — Generate image directly
+  // Step 4 — Generate image with full post content for accurate infographic
   const { generateImage } = require('./tools/image-gen');
-  const imgResult = await generateImage({
-    headline,
-    caption: liPost.slice(0, 200),
-    topic: topic.label,
-    platform: 'linkedin',
-    cta: ctas.linkedin,
-  });
+
+  // Extract bullets and first stat from the LinkedIn post
+  const bullets = (liPost.match(/^[•·\-*]\s*.+/gm) || []).slice(0, 4).join('\n');
+  const statMatch = liPost.match(/(\d+%[^.!?\n]*[.!?]?)/);
+  const statLine = statMatch ? statMatch[1].trim() : '';
+
+  // Build a content-faithful infographic prompt from real post data
+  const imagePrompt = [
+    `Create a professional LinkedIn infographic for Midas Tech Inc., an IT MSP in Richmond Hill, Ontario.`,
+    ``,
+    `Style: Dark navy/charcoal background with cybersecurity imagery (phishing hook, email icon, shield). Red accent for danger. Clean corporate infographic layout. High contrast. 1080x1080px.`,
+    ``,
+    `Layout (top to bottom):`,
+    `1. Large bold headline at the top: "${headline}"`,
+    statLine ? `2. Key stat callout in red/orange: "${statLine}"` : '',
+    `3. Body paragraph (small text): "${liPost.slice(0, 180).replace(/\n/g, ' ').trim()}..."`,
+    bullets ? `4. Bullet point list with warning icons:\n${bullets}` : '',
+    `5. CTA box at the bottom of the content area: "Book a free IT assessment → midastech.ca"`,
+    ``,
+    `IMPORTANT: Leave the bottom 80 pixels of the image completely clear (no text, no graphics) — a branding strip will be added in post-processing.`,
+    ``,
+    `Render all text exactly as written above. Do not paraphrase, summarize, or invent different text.`,
+  ].filter(Boolean).join('\n');
+
+  const imgResult = await generateImage({ prompt: imagePrompt });
   if (imgResult?.error) {
     console.warn('[SOCIAL] Image generation failed:', imgResult.error);
   } else {
