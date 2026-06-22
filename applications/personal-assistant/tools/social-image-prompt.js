@@ -231,7 +231,7 @@ function buildImagePrompt(post, platform, imageType) {
     `A clear message about why ${topic} matters.`;
   const supportLine = truncWords(post.caption || '', platform === 'linkedin' ? 14 : 10);
   const cta = norm(post.cta || (platform === 'linkedin' ? "Let's review your setup" : 'Is Your Business Secure?'));
-  const footer = '📞 905-787-2038  |  🌐 midastech.ca  |  ✉️ info@midastech.ca';
+  const footer = 'midastech.ca  |  905-787-2038  |  Richmond Hill, Ontario';
 
   const lines = [
     config.intro, '',
