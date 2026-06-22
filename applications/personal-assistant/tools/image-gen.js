@@ -1,10 +1,130 @@
 'use strict';
 const path = require('path');
+const fs   = require('fs');
 const { getConfig } = require('../config-manager');
 const { buildImagePrompt, pickImageType } = require('./social-image-prompt');
 
 const LOGO_PATH   = path.join(__dirname, '../assets/midas-logo-white.png');
 const FOOTER_PATH = path.join(__dirname, '../assets/midas-footer.png');
+const FONT_BOLD_PATH    = path.join(__dirname, '../assets/DejaVuSans-Bold.ttf');
+const FONT_REGULAR_PATH = path.join(__dirname, '../assets/DejaVuSans.ttf');
+
+// Cache font base64 strings (loaded once)
+let _fontBoldB64 = null;
+let _fontRegB64  = null;
+function getFontB64(bold = true) {
+  if (bold) {
+    if (!_fontBoldB64 && fs.existsSync(FONT_BOLD_PATH))
+      _fontBoldB64 = fs.readFileSync(FONT_BOLD_PATH).toString('base64');
+    return _fontBoldB64 || '';
+  }
+  if (!_fontRegB64 && fs.existsSync(FONT_REGULAR_PATH))
+    _fontRegB64 = fs.readFileSync(FONT_REGULAR_PATH).toString('base64');
+  return _fontRegB64 || '';
+}
+
+// Approximate character width for a given font size (DejaVu proportional estimate)
+function approxTextWidth(text, fontSize) {
+  return text.length * fontSize * 0.56;
+}
+
+// Wrap text into lines that fit within maxWidth pixels at given fontSize
+function wrapText(text, fontSize, maxWidth) {
+  const words = text.split(' ');
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const test = line ? line + ' ' + word : word;
+    if (approxTextWidth(test, fontSize) <= maxWidth) {
+      line = test;
+    } else {
+      if (line) lines.push(line);
+      line = word;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+// Build the SVG text overlay for a social infographic
+function buildOverlaySvg({ headline, stat, bullets, cta, W = 1024, H = 1024, FOOTER_H = 80 }) {
+  const boldB64 = getFontB64(true);
+  const regB64  = getFontB64(false);
+  const fontDefs = `
+    <defs><style>
+      @font-face { font-family:'DVB'; src:url('data:font/truetype;base64,${boldB64}'); }
+      @font-face { font-family:'DVR'; src:url('data:font/truetype;base64,${regB64}'); }
+    </style></defs>`;
+
+  const PAD   = 52;
+  const TW    = W - PAD * 2;
+  const CONTENT_H = H - FOOTER_H;
+  let y = 46;
+  const els = [];
+
+  // Dark gradient overlay
+  els.push(`<defs>
+    <linearGradient id="ov" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#080c1e" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#080c1e" stop-opacity="0.72"/>
+    </linearGradient>
+  </defs>
+  <rect width="${W}" height="${CONTENT_H}" fill="url(#ov)"/>
+  <rect y="${CONTENT_H}" width="${W}" height="${FOOTER_H}" fill="#080c1e" opacity="1"/>`);
+
+  // Headline
+  const headLines = wrapText(headline.toUpperCase(), 58, TW);
+  for (const l of headLines) {
+    // shadow
+    els.push(`<text x="${PAD+2}" y="${y+2}" font-family="DVB" font-size="58" fill="black" opacity="0.55">${escXml(l)}</text>`);
+    els.push(`<text x="${PAD}"   y="${y}"   font-family="DVB" font-size="58" fill="white">${escXml(l)}</text>`);
+    y += 68;
+  }
+  y += 20;
+
+  // Stat callout
+  if (stat) {
+    const s = stat.length > 88 ? stat.slice(0, 85) + '…' : stat;
+    const sw = Math.min(TW, approxTextWidth(s, 20) + 44);
+    const sh = 44;
+    els.push(`<rect x="${PAD}" y="${y}" width="${sw}" height="${sh}" rx="6" fill="#c82828" opacity="0.88"/>`);
+    els.push(`<text x="${PAD+20}" y="${y+28}" font-family="DVB" font-size="20" fill="white">${escXml(s)}</text>`);
+    y += sh + 26;
+  }
+
+  // Bullets
+  if (bullets && bullets.length) {
+    const lh = 24;
+    const rpad = 8;
+    for (const b of bullets.slice(0, 4)) {
+      const txt = '▸  ' + b;
+      const rh = lh + rpad * 2;
+      els.push(`<rect x="${PAD-10}" y="${y-rpad}" width="${TW+20}" height="${rh}" rx="4" fill="white" opacity="0.11"/>`);
+      els.push(`<text x="${PAD}" y="${y+lh-4}" font-family="DVR" font-size="19" fill="white">${escXml(txt)}</text>`);
+      y += rh + 6;
+    }
+    y += 18;
+  }
+
+  // CTA
+  if (cta && y < CONTENT_H - 60) {
+    const cw = Math.min(TW, approxTextWidth(cta, 20) + 64);
+    const ch = 48;
+    if (y + ch > CONTENT_H - 14) y = CONTENT_H - ch - 14;
+    els.push(`<rect x="${PAD}" y="${y}" width="${cw}" height="${ch}" rx="8" fill="#006fa6" opacity="0.92"/>`);
+    els.push(`<text x="${PAD+32}" y="${y+32}" font-family="DVB" font-size="20" fill="white">${escXml(cta)}</text>`);
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${fontDefs}${els.join('')}</svg>`;
+}
+
+function escXml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 // id-keyed cache for scheduler (expires 15 min)
 const _imageCache = new Map();
@@ -176,34 +296,23 @@ async function generateSocialImage({ headline, stat, bullets, cta, topic }) {
     return { error: `Background generation failed: ${err.message}` };
   }
 
-  // Step 2: Python composer overlays all text accurately
+  // Step 2: Overlay all text via SVG with embedded fonts (pure Node.js, no Python)
   let composedBuffer;
   try {
-    const { spawnSync } = require('child_process');
-    const composerPath = path.join(__dirname, 'image-composer.py');
-    const payload = JSON.stringify({
-      bg_b64: bgBuffer.toString('base64'),
+    const sharp = require('sharp');
+    const svg = buildOverlaySvg({
       headline: headline || '',
       stat:     stat     || '',
       bullets:  bullets  || [],
       cta:      cta      || 'Book a free IT assessment → midastech.ca',
     });
-    const result = spawnSync('python3', [composerPath], {
-      input: payload,
-      encoding: 'buffer',
-      maxBuffer: 60 * 1024 * 1024,
-      timeout: 30000,
-    });
-    if (result.status !== 0) {
-      const stderr = result.stderr?.toString() || 'unknown error';
-      console.warn('[IMGGEN] Composer error:', stderr.slice(0, 300));
-      composedBuffer = bgBuffer; // fall back to raw background
-    } else {
-      composedBuffer = result.stdout;
-      console.log(`[IMGGEN] Text overlay applied — ${Math.round(composedBuffer.length / 1024)}KB`);
-    }
+    composedBuffer = await sharp(bgBuffer)
+      .composite([{ input: Buffer.from(svg), blend: 'over' }])
+      .png()
+      .toBuffer();
+    console.log(`[IMGGEN] Text overlay applied — ${Math.round(composedBuffer.length / 1024)}KB`);
   } catch (err) {
-    console.warn('[IMGGEN] Composer spawn failed:', err.message);
+    console.warn('[IMGGEN] Text overlay failed:', err.message);
     composedBuffer = bgBuffer;
   }
 
