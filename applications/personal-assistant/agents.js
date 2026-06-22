@@ -860,13 +860,13 @@ async function processSocialContent() {
   if (!config.mainNumber) return null;
 
   const topics = [
-    { label: 'ransomware & backups',          query: 'ransomware attack SMB Ontario Canada 2026' },
-    { label: 'phishing & email security',      query: 'phishing email attacks small business Ontario 2026' },
+    { label: 'ransomware & backups',              query: 'ransomware attack SMB Ontario Canada 2026' },
+    { label: 'phishing & email security',          query: 'phishing email attacks small business Ontario 2026' },
     { label: 'Huntress EDR & endpoint protection', query: 'endpoint detection response EDR SMB cybersecurity 2026' },
-    { label: 'managed IT vs break-fix',        query: 'managed IT services vs break fix cost SMB 2026' },
-    { label: 'Microsoft 365 security gaps',    query: 'Microsoft 365 security misconfiguration small business 2026' },
-    { label: 'cyber insurance requirements',   query: 'cyber insurance requirements Canadian small business 2026' },
-    { label: 'employee security awareness',    query: 'employee phishing security training SMB Ontario 2026' },
+    { label: 'managed IT vs break-fix',            query: 'managed IT services vs break fix cost SMB 2026' },
+    { label: 'Microsoft 365 security gaps',        query: 'Microsoft 365 security misconfiguration small business 2026' },
+    { label: 'cyber insurance requirements',       query: 'cyber insurance requirements Canadian small business 2026' },
+    { label: 'employee security awareness',        query: 'employee phishing security training SMB Ontario 2026' },
   ];
 
   const dayIndex = new Date().getDay();
@@ -884,37 +884,33 @@ async function processSocialContent() {
     `POST 1 — LinkedIn (professional, 150-200 words, hook → consequence → 3-4 bullet gaps → CTA):`,
     `  platform: "linkedin" | category: "cybersecurity" | headline: strong hook ≤12 words`,
     `  hashtags: "#ManagedIT #Cybersecurity #OntarioBusiness #MidasTech #MSP #RichmondHill"`,
-    `  cta: "Book a free IT assessment → midastech.ca" | image_prompt: (fill after Step 3)`,
+    `  cta: "Book a free IT assessment → midastech.ca"`,
     ``,
     `POST 2 — Instagram (80-120 words, emoji-forward, conversational):`,
     `  platform: "instagram" | category: "cybersecurity" | same headline`,
     `  hashtags: "#ITSupport #CyberSecurity #GTA #SmallBusiness #MidasTech #Huntress #MSP"`,
-    `  cta: "Link in bio — free assessment" | image_prompt: (same as LinkedIn)`,
+    `  cta: "Link in bio — free assessment"`,
     ``,
     `POST 3 — Google Business (60-80 words, local, no hashtags):`,
     `  platform: "google" | category: "cybersecurity" | same headline`,
-    `  hashtags: "" | cta: "Call us or visit midastech.ca" | image_prompt: (same as LinkedIn)`,
+    `  hashtags: "" | cta: "Call us or visit midastech.ca"`,
     ``,
     `For all 3 posts set source_topic: "${topic.label}"`,
     ``,
-    `Step 3: Generate ONE image using image_generate. Pass these fields from the LinkedIn post:`,
-    `  headline: (the LinkedIn headline) | caption: (the LinkedIn caption) | platform: "linkedin"`,
-    `  topic: "${topic.label}" | cta: (the LinkedIn CTA)`,
-    `  The server builds the structured prompt automatically — do not write a raw prompt string.`,
-    ``,
-    `Step 4: Reply with EXACTLY this format (replace placeholders with real content):`,
+    `Step 3: Reply with EXACTLY this format (replace placeholders with real content):`,
     ``,
     `✅ Social posts ready — ${topic.label}. Saved to LeadTracker.`,
-    `[IMAGE_ID:img_xxxxxx]`,
+    ``,
+    `HEADLINE: [the LinkedIn headline you used]`,
     ``,
     `*LinkedIn*`,
-    `[paste the full LinkedIn post text here]`,
+    `[full LinkedIn post text]`,
     ``,
     `*Instagram*`,
-    `[paste the full Instagram post text here]`,
+    `[full Instagram post text]`,
     ``,
     `*Google Business*`,
-    `[paste the full Google Business post text here]`,
+    `[full Google Business post text]`,
     ``,
     `Do NOT explain what you are doing. Execute the steps and reply with the format above only.`,
   ].join('\n');
@@ -922,6 +918,25 @@ async function processSocialContent() {
   const syntheticJid = `socialcontent_${Date.now()}`;
   const reply = await callLLM(syntheticJid, prompt, config.businessAgent, config.llm, 'business');
   delete conversationHistory[syntheticJid];
+
+  // Generate image directly here — don't rely on LLM tool call for this
+  if (reply) {
+    const headlineMatch = reply.match(/HEADLINE:\s*(.+)/i);
+    const headline = headlineMatch ? headlineMatch[1].trim() : topic.label;
+    const { generateImage } = require('./tools/image-gen');
+    const imgResult = await generateImage({
+      headline,
+      topic: topic.label,
+      platform: 'linkedin',
+      cta: 'Book a free IT assessment → midastech.ca',
+    });
+    if (imgResult?.error) {
+      console.warn('[SOCIAL] Image generation failed:', imgResult.error);
+    } else {
+      console.log('[SOCIAL] Image generated for social content:', imgResult.image_id);
+    }
+  }
+
   return reply;
 }
 
