@@ -28,8 +28,8 @@ async function generateImage({ prompt }) {
         prompt,
         n: 1,
         size: '1024x1024',
-        response_format: 'b64_json',
         quality: 'standard'
+        // No response_format — defaults to url (compatible with all API versions)
       })
     });
 
@@ -39,10 +39,20 @@ async function generateImage({ prompt }) {
     }
 
     const data = await resp.json();
-    const b64 = data.data?.[0]?.b64_json;
-    if (!b64) return { error: 'No image data returned from DALL-E' };
 
-    const buffer = Buffer.from(b64, 'base64');
+    // Handle both url (dall-e-3 default) and b64_json (gpt-image-1) responses
+    let buffer;
+    const b64 = data.data?.[0]?.b64_json;
+    const imageUrl = data.data?.[0]?.url;
+    if (b64) {
+      buffer = Buffer.from(b64, 'base64');
+    } else if (imageUrl) {
+      const imgResp = await fetch(imageUrl);
+      if (!imgResp.ok) return { error: `Image download failed: ${imgResp.status}` };
+      buffer = Buffer.from(await imgResp.arrayBuffer());
+    } else {
+      return { error: 'No image data returned from DALL-E' };
+    }
     const id = `img_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     _imageCache.set(id, buffer);
     setTimeout(() => _imageCache.delete(id), 15 * 60 * 1000);
