@@ -231,7 +231,8 @@ function buildImagePrompt(post, platform, imageType) {
     `A clear message about why ${topic} matters.`;
   const supportLine = truncWords(post.caption || '', platform === 'linkedin' ? 14 : 10);
   const cta = norm(post.cta || (platform === 'linkedin' ? "Let's review your setup" : 'Is Your Business Secure?'));
-  const footer = 'midastech.ca  |  905-787-2038  |  Richmond Hill, Ontario';
+  // Footer is composited by image-gen.js after generation — omit from AI prompt to avoid hallucination
+  const footer = '';
 
   const lines = [
     config.intro, '',
@@ -263,10 +264,7 @@ function buildImagePrompt(post, platform, imageType) {
   lines.push(
     '', 'Visual elements:', ...config.visual,
     '', 'Call to action (bottom):', quote(cta),
-    '', 'Footer (small text):', footer,
-    '', 'Branding:',
-    (platform === 'linkedin' || platform === 'google') ? '- logo bottom corner (clean, not dominant)' : '- add logo bottom corner (small, clean)',
-    (platform === 'linkedin' || platform === 'google') ? '- keep the layout professional and restrained' : '- keep the image sharp, simple, and on-brand',
+    '', 'Branding note: leave the bottom 80px of the image clear — branding footer will be added in post-processing.',
     '', config.mood,
     'Quality: sharp, high-resolution, clean spacing, highly readable',
     config.typography
