@@ -9,6 +9,7 @@ const whatsapp = require('../whatsapp');
 const geocode = require('./geocode');
 const googleDocs = require('./google-docs');
 const socialMedia = require('./social-media');
+const imageGen = require('./image-gen');
 
 const DEFINITIONS = {
   memory_save: {
@@ -917,6 +918,20 @@ const DEFINITIONS = {
         required: ['id']
       }
     }
+  },
+  image_generate: {
+    type: 'function',
+    function: {
+      name: 'image_generate',
+      description: 'Generate an image using DALL-E 3 (OpenAI). Returns an image_id you MUST include in your reply so it can be sent to WhatsApp. Always append "NO TEXT OR WORDS IN THE IMAGE. Professional corporate photography style, high resolution." to your prompt.',
+      parameters: {
+        type: 'object',
+        properties: {
+          prompt: { type: 'string', description: 'Detailed DALL-E 3 image description. Must end with: "NO TEXT OR WORDS IN THE IMAGE. Professional corporate photography style, high resolution."' }
+        },
+        required: ['prompt']
+      }
+    }
   }
 };
 
@@ -936,6 +951,7 @@ const AGENT_TOOLS = {
     'geocode_location',
     'google_create_doc', 'google_append_doc', 'google_read_doc', 'google_search_drive', 'google_update_doc',
     'social_save_post', 'social_list_posts', 'social_delete_post',
+    'image_generate',
     'web_search', 'fetch_webpage'
   ],
   family: [
@@ -1074,6 +1090,7 @@ async function executeTool(toolName, args, agentType = 'business') {
       case 'social_save_post':               return await socialMedia.saveSocialPost(args);
       case 'social_list_posts':              return await socialMedia.listSocialPosts(args);
       case 'social_delete_post':             return await socialMedia.deleteSocialPost(args);
+      case 'image_generate':                 return await imageGen.generateImage(args);
       case 'web_search':                     return await web.webSearch(args);
       case 'fetch_webpage':                  return await web.fetchWebpage(args);
       default:                               return { error: `Unknown tool: ${toolName}` };

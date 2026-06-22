@@ -426,4 +426,18 @@ async function sendProactiveMessage(toNumber, text) {
   }
 }
 
-module.exports = { start, getStatus, refreshNumberResolution, resetSession, sendProactiveMessage };
+async function sendProactiveImage(toNumber, imageBuffer, caption = '') {
+  if (!sock || !isConnected) {
+    console.log('[WA] sendProactiveImage: not connected, skipping');
+    return;
+  }
+  const jid = `${String(toNumber).replace(/[^0-9]/g, '')}@s.whatsapp.net`;
+  try {
+    await sock.sendMessage(jid, { image: imageBuffer, caption, mimetype: 'image/jpeg' });
+    console.log(`[WA] Image sent to ${jid} (${Math.round(imageBuffer.length / 1024)}KB)`);
+  } catch (err) {
+    console.error(`[WA] Image send failed:`, err.message);
+  }
+}
+
+module.exports = { start, getStatus, refreshNumberResolution, resetSession, sendProactiveMessage, sendProactiveImage };

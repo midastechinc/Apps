@@ -896,9 +896,15 @@ async function processSocialContent() {
     ``,
     `For all 3 posts set source_topic: "${topic.label}"`,
     ``,
-    `After saving all 3, reply ONLY with:`,
-    `"✅ Social posts ready — ${topic.label}. 3 drafts saved to LeadTracker Social Studio."`,
-    `Do not explain what you are about to do. Just call social_save_post 3 times then send the confirmation.`,
+    `Step 3: Generate ONE image for today's posts using image_generate. Write a vivid DALL-E 3 prompt that`,
+    `  visually represents the theme of "${topic.label}" for an IT security company. End the prompt with:`,
+    `  "NO TEXT OR WORDS IN THE IMAGE. Professional corporate photography style, high resolution."`,
+    ``,
+    `Step 4: Reply with EXACTLY this format (fill in the actual image_id from the tool result):`,
+    `✅ Social posts ready — ${topic.label}. 3 drafts saved to LeadTracker Social Studio.`,
+    `[IMAGE_ID:img_xxxxxx]`,
+    ``,
+    `Do NOT explain what you are doing. Execute the steps and reply with the format above.`,
   ].join('\n');
 
   const syntheticJid = `socialcontent_${Date.now()}`;
