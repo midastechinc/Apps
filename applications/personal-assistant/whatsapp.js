@@ -363,9 +363,26 @@ async function connect() {
         if (onMessage) {
           const reply = await onMessage(sender, text, imageInfo, { fromGroup: isGroup });
           if (reply && sock) {
-            // Reply to the ORIGINAL jid — v7 attaches tctoken automatically (fixes 463)
-            await sock.sendMessage(rawJid, { text: reply });
-            console.log(`[WA] Reply sent to ${rawJid}`);
+            // Check for image_id tag — send image first, then clean text
+            const imgMatch = reply.match(/\[IMAGE_ID:(img_[^\]]+)\]/i);
+            if (imgMatch) {
+              try {
+                const { getImageBuffer } = require('./tools/image-gen');
+                const buf = getImageBuffer(imgMatch[1].trim());
+                if (buf) {
+                  await sock.sendMessage(rawJid, { image: buf, caption: '', mimetype: 'image/jpeg' });
+                  console.log(`[WA] Image reply sent to ${rawJid}`);
+                }
+              } catch (imgErr) {
+                console.error('[WA] Image reply send failed:', imgErr.message);
+              }
+            }
+            const cleanReply = reply.replace(/\[IMAGE_ID:[^\]]*\]/gi, '').trim();
+            if (cleanReply) {
+              // Reply to the ORIGINAL jid — v7 attaches tctoken automatically (fixes 463)
+              await sock.sendMessage(rawJid, { text: cleanReply });
+              console.log(`[WA] Reply sent to ${rawJid}`);
+            }
           }
         }
       } catch (err) {
