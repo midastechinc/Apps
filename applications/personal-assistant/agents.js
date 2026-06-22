@@ -877,72 +877,118 @@ async function processSocialContent() {
   const dayIndex = new Date().getDay();
   const topic = topics[dayIndex % topics.length];
 
+  // Step 1 — LLM generates the content as structured text. No saving tools needed.
   const prompt = [
-    `Social media content task for Midas Tech Inc. — IT MSP in Richmond Hill, Ontario (GTA).`,
+    `You are a social media copywriter for Midas Tech Inc., an IT MSP in Richmond Hill, Ontario (GTA).`,
     ``,
-    `Today's topic: ${topic.label}`,
+    `TASK: Search for a current news stat on this topic, then write 3 social media posts.`,
+    `Topic: ${topic.label}`,
     ``,
-    `Step 1: Search for a current stat or news hook: web_search("${topic.query}")`,
+    `Step 1: Call web_search("${topic.query}") to find a real stat or news hook for 2026.`,
     ``,
-    `Step 2: Use what you find to generate 3 posts. Call social_save_post THREE times (one per platform).`,
+    `Step 2: Write 3 posts using what you found. Reply in EXACTLY this format — no extra commentary:`,
     ``,
-    `POST 1 — LinkedIn (professional, 150-200 words, hook → consequence → 3-4 bullet gaps → CTA):`,
-    `  platform: "linkedin" | category: "cybersecurity" | headline: strong hook ≤12 words`,
-    `  hashtags: "#ManagedIT #Cybersecurity #OntarioBusiness #MidasTech #MSP #RichmondHill"`,
-    `  cta: "Book a free IT assessment → midastech.ca"`,
+    `HEADLINE: [strong hook ≤10 words based on the stat you found]`,
     ``,
-    `POST 2 — Instagram (80-120 words, emoji-forward, conversational):`,
-    `  platform: "instagram" | category: "cybersecurity" | same headline`,
-    `  hashtags: "#ITSupport #CyberSecurity #GTA #SmallBusiness #MidasTech #Huntress #MSP"`,
-    `  cta: "Link in bio — free assessment"`,
+    `LINKEDIN:`,
+    `[150-200 words. Hook → 3-4 bullet gaps → CTA. Hashtags: #ManagedIT #Cybersecurity #OntarioBusiness #MidasTech #MSP #RichmondHill]`,
     ``,
-    `POST 3 — Google Business (60-80 words, local, no hashtags):`,
-    `  platform: "google" | category: "cybersecurity" | same headline`,
-    `  hashtags: "" | cta: "Call us or visit midastech.ca"`,
+    `INSTAGRAM:`,
+    `[80-120 words. Emoji-forward, conversational. Hashtags: #ITSupport #CyberSecurity #GTA #SmallBusiness #MidasTech #Huntress #MSP]`,
     ``,
-    `For all 3 posts set source_topic: "${topic.label}"`,
+    `GOOGLE:`,
+    `[60-80 words. Local, no hashtags. CTA: Call us or visit midastech.ca]`,
     ``,
-    `Step 3: Reply with EXACTLY this format (replace placeholders with real content):`,
-    ``,
-    `✅ Social posts ready — ${topic.label}. Saved to LeadTracker.`,
-    ``,
-    `HEADLINE: [the LinkedIn headline you used]`,
-    ``,
-    `*LinkedIn*`,
-    `[full LinkedIn post text]`,
-    ``,
-    `*Instagram*`,
-    `[full Instagram post text]`,
-    ``,
-    `*Google Business*`,
-    `[full Google Business post text]`,
-    ``,
-    `Do NOT explain what you are doing. Execute the steps and reply with the format above only.`,
+    `Output ONLY the above format. No preamble, no "Here are your posts", no markdown outside the labels.`,
   ].join('\n');
 
   const syntheticJid = `socialcontent_${Date.now()}`;
-  const reply = await callLLM(syntheticJid, prompt, config.businessAgent, config.llm, 'business');
+  // Use only web_search for this call — no social tools needed
+  const socialAgent = { name: 'Claudia', systemPrompt: '' };
+  const minimalLLMAgent = config.businessAgent;
+  const reply = await callLLM(syntheticJid, prompt, minimalLLMAgent, config.llm, 'business');
   delete conversationHistory[syntheticJid];
 
-  // Generate image directly here — don't rely on LLM tool call for this
-  if (reply) {
-    const headlineMatch = reply.match(/HEADLINE:\s*(.+)/i);
-    const headline = headlineMatch ? headlineMatch[1].trim() : topic.label;
-    const { generateImage } = require('./tools/image-gen');
-    const imgResult = await generateImage({
+  if (!reply) return null;
+
+  // Step 2 — Parse structured sections from the LLM reply
+  const headlineMatch = reply.match(/HEADLINE:\s*(.+)/i);
+  const headline = headlineMatch ? headlineMatch[1].trim().replace(/\*+/g, '') : topic.label;
+
+  const extractSection = (label, nextLabel) => {
+    const re = new RegExp(`${label}:\\s*\\n([\\s\\S]*?)(?=\\n(?:${nextLabel}:|$))`, 'i');
+    const m = reply.match(re);
+    return m ? m[1].trim() : '';
+  };
+
+  const liPost    = extractSection('LINKEDIN',   'INSTAGRAM');
+  const igPost    = extractSection('INSTAGRAM',  'GOOGLE');
+  const gbPost    = extractSection('GOOGLE',     '___END___');
+
+  // Step 3 — Save to LeadTracker directly (no LLM tool call)
+  const socialMedia = require('./tools/social-media');
+  const hashtags = {
+    linkedin:  '#ManagedIT #Cybersecurity #OntarioBusiness #MidasTech #MSP #RichmondHill',
+    instagram: '#ITSupport #CyberSecurity #GTA #SmallBusiness #MidasTech #Huntress #MSP',
+    google:    '',
+  };
+  const ctas = {
+    linkedin:  'Book a free IT assessment → midastech.ca',
+    instagram: 'Link in bio — free assessment',
+    google:    'Call us or visit midastech.ca',
+  };
+  const postsToSave = [
+    { platform: 'linkedin',  caption: liPost },
+    { platform: 'instagram', caption: igPost },
+    { platform: 'google',    caption: gbPost },
+  ];
+  for (const p of postsToSave) {
+    if (!p.caption) continue;
+    const result = await socialMedia.saveSocialPost({
+      platform: p.platform,
       headline,
-      topic: topic.label,
-      platform: 'linkedin',
-      cta: 'Book a free IT assessment → midastech.ca',
-    });
-    if (imgResult?.error) {
-      console.warn('[SOCIAL] Image generation failed:', imgResult.error);
+      category: 'cybersecurity',
+      caption: p.caption,
+      hashtags: hashtags[p.platform],
+      cta: ctas[p.platform],
+      source_topic: topic.label,
+    }).catch(err => ({ error: err.message }));
+    if (result?.error) {
+      console.warn(`[SOCIAL] Save failed for ${p.platform}:`, result.error);
     } else {
-      console.log('[SOCIAL] Image generated for social content:', imgResult.image_id);
+      console.log(`[SOCIAL] Saved ${p.platform} post to LeadTracker`);
     }
   }
 
-  return reply;
+  // Step 4 — Generate image directly
+  const { generateImage } = require('./tools/image-gen');
+  const imgResult = await generateImage({
+    headline,
+    caption: liPost.slice(0, 200),
+    topic: topic.label,
+    platform: 'linkedin',
+    cta: ctas.linkedin,
+  });
+  if (imgResult?.error) {
+    console.warn('[SOCIAL] Image generation failed:', imgResult.error);
+  } else {
+    console.log('[SOCIAL] Image generated:', imgResult.image_id);
+  }
+
+  // Step 5 — Format WhatsApp reply
+  const saved = postsToSave.filter(p => p.caption).length;
+  return [
+    `✅ ${saved} posts saved to LeadTracker — ${topic.label}`,
+    ``,
+    `*LinkedIn*`,
+    liPost || '(not generated)',
+    ``,
+    `*Instagram*`,
+    igPost || '(not generated)',
+    ``,
+    `*Google Business*`,
+    gbPost || '(not generated)',
+  ].join('\n');
 }
 
 module.exports = { processMessage, processBriefing, processLeadHunt, processSocialContent, clearHistory, listConversations };
