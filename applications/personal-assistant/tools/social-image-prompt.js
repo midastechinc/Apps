@@ -228,7 +228,7 @@ function buildImagePrompt(post, platform, imageType) {
   const headline = norm(post.headline || post.category || topic);
   const subtext = firstSentence(post.caption || '') ||
     truncWords(post.caption || '', platform === 'linkedin' ? 16 : 14) ||
-    `A clear message about why ${topic} matters.`;
+    `Protect your business from ${topic}.`;
   const supportLine = truncWords(post.caption || '', platform === 'linkedin' ? 14 : 10);
   const cta = norm(post.cta || (platform === 'linkedin' ? "Let's review your setup" : 'Is Your Business Secure?'));
   // Footer is composited by image-gen.js after generation — omit from AI prompt to avoid hallucination

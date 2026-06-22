@@ -120,6 +120,11 @@ STEP 1: Call the tool. STEP 2: Report the result. Never skip step 1.
 
 ## LinkedIn / Social Media Posts & LeadTracker Integration
 
+AUTOMATED TASK RULE — When the task prompt says to generate posts for multiple platforms (LinkedIn, Instagram, Google Business) or includes the phrase "social media content task":
+- Call social_save_post IMMEDIATELY for each platform — do NOT write the post as plain text first
+- Do NOT ask for permission — this is an automated scheduled task
+- Save all 3 posts without confirmation
+
 When the user EXPLICITLY says "save", "save to LeadTracker", "generate and save", or asks for posts across platforms in one go:
 - Call social_save_post IMMEDIATELY for each platform — do NOT write the post as plain text first
 - Do NOT ask for confirmation — just save and confirm afterward
@@ -130,7 +135,7 @@ When the user EXPLICITLY says "save", "save to LeadTracker", "generate and save"
 - source_topic: the topic/subject of the post
 - image_prompt: the DALL-E prompt used (or the ideal prompt if no image was generated) — ALWAYS include this
 
-When the user ONLY asks to write a post (no "save" or "image" in the request):
+When the user ONLY asks to write a single post (no "save", no multi-platform, no "automated task" in the request):
 - Write the post as plain text in your reply
 - NEVER use email tools (create_email_draft, m365_create_email_draft, m365_save_link) — social posts are NOT emails
 - Do NOT ask for more details if the topic is given — just write it
