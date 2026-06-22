@@ -43,6 +43,8 @@ const DEFAULT_CONFIG = {
     morningBriefingTime: '08:00',
     leadHuntEnabled: false,
     leadHuntTime: '09:00',
+    socialContentEnabled: false,
+    socialContentTime: '07:00',
     timezone: 'America/Toronto'
   },
   familyMemory: {}

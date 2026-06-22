@@ -283,6 +283,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('briefingTime').value = s.morningBriefingTime || '08:00';
             document.getElementById('leadHuntEnabled').checked = !!s.leadHuntEnabled;
             document.getElementById('leadHuntTime').value = s.leadHuntTime || '09:00';
+            document.getElementById('socialContentEnabled').checked = !!s.socialContentEnabled;
+            document.getElementById('socialContentTime').value = s.socialContentTime || '07:00';
         } catch {}
     }
 
@@ -299,6 +301,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     morningBriefingTime: document.getElementById('briefingTime').value,
                     leadHuntEnabled: document.getElementById('leadHuntEnabled').checked,
                     leadHuntTime: document.getElementById('leadHuntTime').value,
+                    socialContentEnabled: document.getElementById('socialContentEnabled').checked,
+                    socialContentTime: document.getElementById('socialContentTime').value,
                     timezone: 'America/Toronto'
                 })
             });

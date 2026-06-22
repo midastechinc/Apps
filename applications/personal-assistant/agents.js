@@ -854,4 +854,57 @@ function listConversations() {
   }));
 }
 
-module.exports = { processMessage, processBriefing, processLeadHunt, clearHistory, listConversations };
+async function processSocialContent() {
+  const config = getConfig();
+  if (!config.mainNumber) return null;
+
+  const topics = [
+    { label: 'ransomware & backups',          query: 'ransomware attack SMB Ontario Canada 2026' },
+    { label: 'phishing & email security',      query: 'phishing email attacks small business Ontario 2026' },
+    { label: 'Huntress EDR & endpoint protection', query: 'endpoint detection response EDR SMB cybersecurity 2026' },
+    { label: 'managed IT vs break-fix',        query: 'managed IT services vs break fix cost SMB 2026' },
+    { label: 'Microsoft 365 security gaps',    query: 'Microsoft 365 security misconfiguration small business 2026' },
+    { label: 'cyber insurance requirements',   query: 'cyber insurance requirements Canadian small business 2026' },
+    { label: 'employee security awareness',    query: 'employee phishing security training SMB Ontario 2026' },
+  ];
+
+  const dayIndex = new Date().getDay();
+  const topic = topics[dayIndex % topics.length];
+
+  const prompt = [
+    `Social media content task for Midas Tech Inc. — IT MSP in Richmond Hill, Ontario (GTA).`,
+    ``,
+    `Today's topic: ${topic.label}`,
+    ``,
+    `Step 1: Search for a current stat or news hook: web_search("${topic.query}")`,
+    ``,
+    `Step 2: Use what you find to generate 3 posts. Call social_save_post THREE times (one per platform).`,
+    ``,
+    `POST 1 — LinkedIn (professional, 150-200 words, hook → consequence → 3-4 bullet gaps → CTA):`,
+    `  platform: "linkedin" | category: "cybersecurity" | headline: strong hook ≤12 words`,
+    `  hashtags: "#ManagedIT #Cybersecurity #OntarioBusiness #MidasTech #MSP #RichmondHill"`,
+    `  cta: "Book a free IT assessment → midastech.ca"`,
+    ``,
+    `POST 2 — Instagram (80-120 words, emoji-forward, conversational):`,
+    `  platform: "instagram" | category: "cybersecurity" | same headline`,
+    `  hashtags: "#ITSupport #CyberSecurity #GTA #SmallBusiness #MidasTech #Huntress #MSP"`,
+    `  cta: "Link in bio — free assessment"`,
+    ``,
+    `POST 3 — Google Business (60-80 words, local, no hashtags):`,
+    `  platform: "google" | category: "cybersecurity" | same headline`,
+    `  hashtags: "" | cta: "Call us or visit midastech.ca"`,
+    ``,
+    `For all 3 posts set source_topic: "${topic.label}"`,
+    ``,
+    `After saving all 3, reply ONLY with:`,
+    `"✅ Social posts ready — ${topic.label}. 3 drafts saved to LeadTracker Social Studio."`,
+    `Do not explain what you are about to do. Just call social_save_post 3 times then send the confirmation.`,
+  ].join('\n');
+
+  const syntheticJid = `socialcontent_${Date.now()}`;
+  const reply = await callLLM(syntheticJid, prompt, config.businessAgent, config.llm, 'business');
+  delete conversationHistory[syntheticJid];
+  return reply;
+}
+
+module.exports = { processMessage, processBriefing, processLeadHunt, processSocialContent, clearHistory, listConversations };

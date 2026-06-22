@@ -1,11 +1,12 @@
 const { getConfig, updateConfig } = require('./config-manager');
-const { processBriefing, processLeadHunt } = require('./agents');
+const { processBriefing, processLeadHunt, processSocialContent } = require('./agents');
 const m365 = require('./tools/m365');
 
 const TZ = 'America/Toronto';
 
 let lastBriefingDate = null;
 let lastLeadHuntDate = null;
+let lastSocialContentDate = null;
 let lastTokenCheckDate = null;
 let sendFn = null;
 
@@ -67,6 +68,16 @@ async function tick() {
         await runLeadHunt(config);
       }
     }
+
+    // Daily social content generation
+    if (config.schedule?.socialContentEnabled) {
+      const socialTime = config.schedule.socialContentTime || '07:00';
+      if (hhmm === socialTime && lastSocialContentDate !== today) {
+        lastSocialContentDate = today;
+        console.log('[SCHEDULER] Generating daily social content for', today);
+        await runSocialContent(config);
+      }
+    }
   } catch (err) {
     console.error('[SCHEDULER] tick error:', err.message);
   }
@@ -116,6 +127,20 @@ async function runLeadHunt(config) {
     }
   } catch (err) {
     console.error('[SCHEDULER] Lead hunt failed:', err.message);
+  }
+}
+
+async function runSocialContent(config) {
+  const mainNumber = config.mainNumber;
+  if (!mainNumber || !sendFn) return;
+  try {
+    const summary = await processSocialContent();
+    if (summary) {
+      await sendFn(mainNumber, summary);
+      console.log('[SCHEDULER] Social content generated and sent to', mainNumber);
+    }
+  } catch (err) {
+    console.error('[SCHEDULER] Social content failed:', err.message);
   }
 }
 

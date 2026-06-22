@@ -128,6 +128,22 @@
                         </div>
                     </div>
 
+                    <div style="margin-top:1.25rem; padding-top:1.25rem; border-top:1px solid var(--border);">
+                        <h3 style="margin:0 0 0.25rem">Daily Social Content</h3>
+                        <p class="form-hint" style="margin-bottom:0.75rem">Every morning Claudia searches for cybersecurity news and auto-generates 3 posts (LinkedIn, Instagram, Google Business) — saved directly to LeadTracker Social Studio as drafts. Just pick, copy, and post. Requires Brave Search and Supabase configured.</p>
+                        <div class="form-row-inline">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="socialContentEnabled" name="socialContentEnabled">
+                                <span class="toggle-track"></span>
+                                Enable daily social content
+                            </label>
+                            <div class="form-group" style="min-width:130px">
+                                <label class="form-label" for="socialContentTime">Generate at (Toronto time)</label>
+                                <input class="form-input" type="time" id="socialContentTime" name="socialContentTime" value="07:00">
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-actions">
                         <button class="app-link" type="submit" id="saveScheduleBtn">Save Schedule</button>
                         <span class="save-feedback" id="scheduleFeedback" aria-live="polite"></span>
