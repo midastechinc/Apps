@@ -1,11 +1,20 @@
 'use strict';
 const { getConfig } = require('../config-manager');
+const { buildImagePrompt, pickImageType } = require('./social-image-prompt');
 
 // Buffer cache — image_id → Buffer, auto-expires after 15 minutes
 const _imageCache = new Map();
 
-async function generateImage({ prompt }) {
-  if (!prompt) return { error: 'prompt required' };
+async function generateImage({ headline = '', caption = '', platform = 'linkedin', topic = '', cta = '', image_type = '', prompt: rawPrompt = '' }) {
+  // Build the LeadTracker-style structured prompt from post fields.
+  // Fall back to a raw prompt string only if no post fields were provided.
+  const post = { headline, caption, platform, topic, cta };
+  const hasPostData = headline || caption || topic;
+  const prompt = hasPostData
+    ? buildImagePrompt(post, platform, image_type || pickImageType(post))
+    : rawPrompt;
+
+  if (!prompt) return { error: 'headline/caption/topic or prompt required' };
 
   const config = getConfig();
 

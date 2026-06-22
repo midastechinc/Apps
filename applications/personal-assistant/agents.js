@@ -143,8 +143,8 @@ When the user ONLY asks to write a post (no "save" or "image" in the request):
 - If user says yes/sure/save it → call social_save_post immediately
 
 When asked to "generate image" / "DALL-E image" / "create an image" (in ANY message):
-- Call image_generate with a vivid DALL-E 3 prompt for the topic
-- Always end your prompt with: "NO TEXT OR WORDS IN THE IMAGE. Professional corporate photography style, high resolution."
+- Call image_generate passing the post fields: headline, caption, platform, topic, cta
+- The server builds the structured prompt automatically — do NOT write a raw image description
 - After tool returns { success: true, image_id: "img_xxx" }, include exactly [IMAGE_ID:img_xxx] in your reply
 - Tell the user: "Your image is on its way to WhatsApp."
 - NEVER say you cannot generate images — you have image_generate and MUST call it
@@ -897,9 +897,10 @@ async function processSocialContent() {
     ``,
     `For all 3 posts set source_topic: "${topic.label}"`,
     ``,
-    `Step 3: Generate ONE image for today's posts using image_generate. Write a vivid DALL-E 3 prompt that`,
-    `  visually represents the theme of "${topic.label}" for an IT security company. End the prompt with:`,
-    `  "NO TEXT OR WORDS IN THE IMAGE. Professional corporate photography style, high resolution."`,
+    `Step 3: Generate ONE image using image_generate. Pass these fields from the LinkedIn post:`,
+    `  headline: (the LinkedIn headline) | caption: (the LinkedIn caption) | platform: "linkedin"`,
+    `  topic: "${topic.label}" | cta: (the LinkedIn CTA)`,
+    `  The server builds the structured prompt automatically — do not write a raw prompt string.`,
     ``,
     `Step 4: Reply with EXACTLY this format (fill in the actual image_id from the tool result):`,
     `✅ Social posts ready — ${topic.label}. 3 drafts saved to LeadTracker Social Studio.`,

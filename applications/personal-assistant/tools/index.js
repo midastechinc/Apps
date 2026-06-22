@@ -924,13 +924,18 @@ const DEFINITIONS = {
     type: 'function',
     function: {
       name: 'image_generate',
-      description: 'Generate an image using DALL-E 3 (OpenAI). Returns an image_id you MUST include in your reply so it can be sent to WhatsApp. Always append "NO TEXT OR WORDS IN THE IMAGE. Professional corporate photography style, high resolution." to your prompt.',
+      description: 'Generate a social media image using OpenAI. Pass the post fields — the server builds the same structured prompt that LeadTracker uses. Returns an image_id you MUST include in your reply as [IMAGE_ID:img_xxx] so the image is sent to WhatsApp.',
       parameters: {
         type: 'object',
         properties: {
-          prompt: { type: 'string', description: 'Detailed DALL-E 3 image description. Must end with: "NO TEXT OR WORDS IN THE IMAGE. Professional corporate photography style, high resolution."' }
+          headline:   { type: 'string', description: 'The post headline (short, punchy)' },
+          caption:    { type: 'string', description: 'The full post caption/body' },
+          platform:   { type: 'string', description: 'Platform: "linkedin", "instagram", or "google"' },
+          topic:      { type: 'string', description: 'The topic this post is about, e.g. "ransomware & backups"' },
+          cta:        { type: 'string', description: 'Call to action text' },
+          image_type: { type: 'string', description: 'Optional visual style. Leave blank to auto-select. Options: editorial_photo, infographic, checklist_card, workflow_diagram, stats_card, alert_warning, quote_card, comparison_card, carousel_slides' }
         },
-        required: ['prompt']
+        required: []
       }
     }
   }
