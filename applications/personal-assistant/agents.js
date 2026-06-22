@@ -128,6 +128,7 @@ When the user EXPLICITLY says "save", "save to LeadTracker", "generate and save"
 - category: e.g. "SECURITY TIP", "RANSOMWARE ALERT", "MSP UPDATE", "PHISHING WARNING"
 - hashtags: the hashtag block | cta: e.g. "BOOK A FREE SECURITY AUDIT" (max 40 chars)
 - source_topic: the topic/subject of the post
+- image_prompt: the DALL-E prompt used (or the ideal prompt if no image was generated) — ALWAYS include this
 
 When the user ONLY asks to write a post (no "save" or "image" in the request):
 - Write the post as plain text in your reply
@@ -883,16 +884,16 @@ async function processSocialContent() {
     `POST 1 — LinkedIn (professional, 150-200 words, hook → consequence → 3-4 bullet gaps → CTA):`,
     `  platform: "linkedin" | category: "cybersecurity" | headline: strong hook ≤12 words`,
     `  hashtags: "#ManagedIT #Cybersecurity #OntarioBusiness #MidasTech #MSP #RichmondHill"`,
-    `  cta: "Book a free IT assessment → midastech.ca"`,
+    `  cta: "Book a free IT assessment → midastech.ca" | image_prompt: (fill after Step 3)`,
     ``,
     `POST 2 — Instagram (80-120 words, emoji-forward, conversational):`,
     `  platform: "instagram" | category: "cybersecurity" | same headline`,
     `  hashtags: "#ITSupport #CyberSecurity #GTA #SmallBusiness #MidasTech #Huntress #MSP"`,
-    `  cta: "Link in bio — free assessment"`,
+    `  cta: "Link in bio — free assessment" | image_prompt: (same as LinkedIn)`,
     ``,
     `POST 3 — Google Business (60-80 words, local, no hashtags):`,
     `  platform: "google" | category: "cybersecurity" | same headline`,
-    `  hashtags: "" | cta: "Call us or visit midastech.ca"`,
+    `  hashtags: "" | cta: "Call us or visit midastech.ca" | image_prompt: (same as LinkedIn)`,
     ``,
     `For all 3 posts set source_topic: "${topic.label}"`,
     ``,

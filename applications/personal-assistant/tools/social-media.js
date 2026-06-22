@@ -38,7 +38,7 @@ async function sbFetch(path, options = {}) {
   }
 }
 
-async function saveSocialPost({ platform, headline = '', category = '', caption, hashtags = '', cta = '', source_topic = '', notes = '' }) {
+async function saveSocialPost({ platform, headline = '', category = '', caption, hashtags = '', cta = '', source_topic = '', notes = '', image_prompt = '' }) {
   if (!platform || !caption) return { error: 'platform and caption are required' };
 
   const payload = {
@@ -52,13 +52,13 @@ async function saveSocialPost({ platform, headline = '', category = '', caption,
     source_topic,
     status: 'draft',
     image_engine: 'post',
-    image_style: '',
+    image_style: image_prompt,
     image_url: '',
     attachment_image_url: '',
     attachment_image_name: '',
     target_audience: 'Business Owners & Decision Makers',
     brand_voice: 'premium trusted advisor',
-    post_payload: { generatedByClaudia: true, caption, hashtags, cta, headline, category }
+    post_payload: { generatedByClaudia: true, caption, hashtags, cta, headline, category, imagePrompt: image_prompt }
   };
 
   const result = await sbFetch(TABLE, {

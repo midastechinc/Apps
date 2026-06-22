@@ -883,8 +883,9 @@ const DEFINITIONS = {
           caption:      { type: 'string', description: 'The full post caption/body text' },
           hashtags:     { type: 'string', description: 'Hashtag string — e.g. "#CyberSecurity #MSP #Ontario #GTA"' },
           cta:          { type: 'string', description: 'Call to action (max 40 chars) — e.g. "BOOK A FREE SECURITY AUDIT"' },
-          source_topic: { type: 'string', description: 'The topic or news story this post is based on' },
-          notes:        { type: 'string', description: 'Internal notes about this post (optional)' }
+          source_topic:  { type: 'string', description: 'The topic or news story this post is based on' },
+          notes:         { type: 'string', description: 'Internal notes about this post (optional)' },
+          image_prompt:  { type: 'string', description: 'The DALL-E/image generation prompt used or recommended for this post. Always include this when an image was generated or suggested.' }
         },
         required: ['platform', 'caption']
       }
