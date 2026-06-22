@@ -1,7 +1,7 @@
 const { getConfig, updateConfig } = require('./config-manager');
 const { processBriefing, processLeadHunt, processSocialContent } = require('./agents');
 const m365 = require('./tools/m365');
-const { getImageBuffer } = require('./tools/image-gen');
+const { popLatestImageBuffer } = require('./tools/image-gen');
 const { sendProactiveImage } = require('./whatsapp');
 
 const TZ = 'America/Toronto';
@@ -139,19 +139,13 @@ async function runSocialContent(config) {
     const reply = await processSocialContent();
     if (!reply) return;
 
-    // Extract image_id from reply (format: [IMAGE_ID:img_xxx])
-    const imgMatch = reply.match(/\[IMAGE_ID:(img_[^\]]+)\]/i);
     const cleanText = reply.replace(/\[IMAGE_ID:[^\]]*\]/gi, '').trim();
 
     // Send image first so it arrives before the text summary
-    if (imgMatch) {
-      const buf = getImageBuffer(imgMatch[1].trim());
-      if (buf) {
-        await sendProactiveImage(mainNumber, buf, '');
-        console.log('[SCHEDULER] Social content image sent to', mainNumber);
-      } else {
-        console.warn('[SCHEDULER] Image buffer not found for id:', imgMatch[1]);
-      }
+    const buf = popLatestImageBuffer();
+    if (buf) {
+      await sendProactiveImage(mainNumber, buf, '');
+      console.log('[SCHEDULER] Social content image sent to', mainNumber);
     }
 
     if (cleanText) {

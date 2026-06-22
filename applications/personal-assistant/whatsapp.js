@@ -363,23 +363,22 @@ async function connect() {
         if (onMessage) {
           const reply = await onMessage(sender, text, imageInfo, { fromGroup: isGroup });
           if (reply && sock) {
-            // Check for image_id tag — send image first, then clean text
-            const imgMatch = reply.match(/\[IMAGE_ID:(img_[^\]]+)\]/i);
-            if (imgMatch) {
-              try {
-                const { getImageBuffer } = require('./tools/image-gen');
-                const buf = getImageBuffer(imgMatch[1].trim());
-                if (buf) {
-                  await sock.sendMessage(rawJid, { image: buf, caption: '', mimetype: 'image/jpeg' });
-                  console.log(`[WA] Image reply sent to ${rawJid}`);
-                }
-              } catch (imgErr) {
-                console.error('[WA] Image reply send failed:', imgErr.message);
+            // Always check for a freshly generated image — send it before the text reply.
+            // This works even if the LLM forgets to include the [IMAGE_ID:...] tag.
+            try {
+              const { popLatestImageBuffer } = require('./tools/image-gen');
+              const buf = popLatestImageBuffer();
+              if (buf) {
+                await sock.sendMessage(rawJid, { image: buf, caption: '', mimetype: 'image/png' });
+                console.log(`[WA] Image reply sent to ${rawJid} (${Math.round(buf.length / 1024)}KB)`);
               }
+            } catch (imgErr) {
+              console.error('[WA] Image reply send failed:', imgErr.message);
             }
+
+            // Strip any [IMAGE_ID:...] tag from the text before sending
             const cleanReply = reply.replace(/\[IMAGE_ID:[^\]]*\]/gi, '').trim();
             if (cleanReply) {
-              // Reply to the ORIGINAL jid — v7 attaches tctoken automatically (fixes 463)
               await sock.sendMessage(rawJid, { text: cleanReply });
               console.log(`[WA] Reply sent to ${rawJid}`);
             }
@@ -450,7 +449,7 @@ async function sendProactiveImage(toNumber, imageBuffer, caption = '') {
   }
   const jid = `${String(toNumber).replace(/[^0-9]/g, '')}@s.whatsapp.net`;
   try {
-    await sock.sendMessage(jid, { image: imageBuffer, caption, mimetype: 'image/jpeg' });
+    await sock.sendMessage(jid, { image: imageBuffer, caption, mimetype: 'image/png' });
     console.log(`[WA] Image sent to ${jid} (${Math.round(imageBuffer.length / 1024)}KB)`);
   } catch (err) {
     console.error(`[WA] Image send failed:`, err.message);
