@@ -911,19 +911,30 @@ async function processSocialContent() {
 
   if (!reply) return null;
 
-  // Step 2 — Parse structured sections from the LLM reply
-  const headlineMatch = reply.match(/HEADLINE:\s*(.+)/i);
-  const headline = headlineMatch ? headlineMatch[1].trim().replace(/\*+/g, '') : topic.label;
+  // Step 2 — Parse structured sections from the LLM reply (handles various formats)
+  const clean = (s) => s.replace(/\*+/g, '').trim();
 
-  const extractSection = (label, nextLabel) => {
-    const re = new RegExp(`${label}:\\s*\\n([\\s\\S]*?)(?=\\n(?:${nextLabel}:|$))`, 'i');
+  const headlineMatch = reply.match(/HEADLINE[:\s*]+(.+)/i);
+  const headline = headlineMatch ? clean(headlineMatch[1]) : topic.label;
+
+  // Flexible extractor: matches LINKEDIN/LinkedIn/*LinkedIn* etc., up to next section or end
+  const extractSection = (label) => {
+    const re = new RegExp(
+      `(?:^|\\n)\\*{0,2}${label}\\*{0,2}[:\\s]*\\n([\\s\\S]*?)(?=\\n\\*{0,2}(?:HEADLINE|LINKEDIN|INSTAGRAM|GOOGLE|GOOGLE BUSINESS)\\*{0,2}[:\\s]|$)`,
+      'i'
+    );
     const m = reply.match(re);
     return m ? m[1].trim() : '';
   };
 
-  const liPost    = extractSection('LINKEDIN',   'INSTAGRAM');
-  const igPost    = extractSection('INSTAGRAM',  'GOOGLE');
-  const gbPost    = extractSection('GOOGLE',     '___END___');
+  const liPost = extractSection('LINKEDIN');
+  const igPost = extractSection('INSTAGRAM');
+  const gbPost = extractSection('GOOGLE(?:\\s+BUSINESS)?');
+
+  console.log('[SOCIAL] Parsed — headline:', headline, '| li:', liPost.length, 'chars | ig:', igPost.length, 'chars | gb:', gbPost.length, 'chars');
+  if (!liPost && !igPost && !gbPost) {
+    console.warn('[SOCIAL] Parser got nothing. Raw reply snippet:', reply.slice(0, 500));
+  }
 
   // Step 3 — Save to LeadTracker directly (no LLM tool call)
   const socialMedia = require('./tools/social-media');
