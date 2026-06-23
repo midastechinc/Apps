@@ -6,23 +6,6 @@ const { buildImagePrompt, pickImageType } = require('./social-image-prompt');
 
 const LOGO_PATH   = path.join(__dirname, '../assets/midas-logo-white.png');
 const FOOTER_PATH = path.join(__dirname, '../assets/midas-footer.png');
-const FONT_BOLD_PATH    = path.join(__dirname, '../assets/DejaVuSans-Bold.ttf');
-const FONT_REGULAR_PATH = path.join(__dirname, '../assets/DejaVuSans.ttf');
-
-// Cache font base64 strings (loaded once)
-let _fontBoldB64 = null;
-let _fontRegB64  = null;
-function getFontB64(bold = true) {
-  if (bold) {
-    if (!_fontBoldB64 && fs.existsSync(FONT_BOLD_PATH))
-      _fontBoldB64 = fs.readFileSync(FONT_BOLD_PATH).toString('base64');
-    return _fontBoldB64 || '';
-  }
-  if (!_fontRegB64 && fs.existsSync(FONT_REGULAR_PATH))
-    _fontRegB64 = fs.readFileSync(FONT_REGULAR_PATH).toString('base64');
-  return _fontRegB64 || '';
-}
-
 // Approximate character width for a given font size (DejaVu proportional estimate)
 function approxTextWidth(text, fontSize) {
   return text.length * fontSize * 0.56;
@@ -48,13 +31,12 @@ function wrapText(text, fontSize, maxWidth) {
 
 // Build the SVG text overlay for a social infographic
 function buildOverlaySvg({ headline, stat, bullets, cta, W = 1024, H = 1024, FOOTER_H = 80 }) {
-  const boldB64 = getFontB64(true);
-  const regB64  = getFontB64(false);
-  const fontDefs = `
-    <defs><style>
-      @font-face { font-family:'DVB'; src:url('data:font/truetype;base64,${boldB64}'); }
-      @font-face { font-family:'DVR'; src:url('data:font/truetype;base64,${regB64}'); }
-    </style></defs>`;
+  // Use system DejaVu fonts (installed via nixpacks.toml on Railway,
+  // present on Ubuntu dev). Fallback chain covers both environments.
+  const fontDefs = `<defs><style>
+    .bold { font-family: 'DejaVu Sans Bold', 'DejaVu Sans', 'Liberation Sans', Arial, sans-serif; font-weight: bold; }
+    .reg  { font-family: 'DejaVu Sans', 'Liberation Sans', Arial, sans-serif; font-weight: normal; }
+  </style></defs>`;
 
   const PAD   = 52;
   const TW    = W - PAD * 2;
@@ -76,8 +58,8 @@ function buildOverlaySvg({ headline, stat, bullets, cta, W = 1024, H = 1024, FOO
   const headLines = wrapText(headline.toUpperCase(), 58, TW);
   for (const l of headLines) {
     // shadow
-    els.push(`<text x="${PAD+2}" y="${y+2}" font-family="DVB" font-size="58" fill="black" opacity="0.55">${escXml(l)}</text>`);
-    els.push(`<text x="${PAD}"   y="${y}"   font-family="DVB" font-size="58" fill="white">${escXml(l)}</text>`);
+    els.push(`<text x="${PAD+2}" y="${y+2}" class="bold" font-size="58" fill="black" opacity="0.55">${escXml(l)}</text>`);
+    els.push(`<text x="${PAD}"   y="${y}"   class="bold" font-size="58" fill="white">${escXml(l)}</text>`);
     y += 68;
   }
   y += 20;
@@ -88,7 +70,7 @@ function buildOverlaySvg({ headline, stat, bullets, cta, W = 1024, H = 1024, FOO
     const sw = Math.min(TW, approxTextWidth(s, 20) + 44);
     const sh = 44;
     els.push(`<rect x="${PAD}" y="${y}" width="${sw}" height="${sh}" rx="6" fill="#c82828" opacity="0.88"/>`);
-    els.push(`<text x="${PAD+20}" y="${y+28}" font-family="DVB" font-size="20" fill="white">${escXml(s)}</text>`);
+    els.push(`<text x="${PAD+20}" y="${y+28}" class="bold" font-size="20" fill="white">${escXml(s)}</text>`);
     y += sh + 26;
   }
 
@@ -100,7 +82,7 @@ function buildOverlaySvg({ headline, stat, bullets, cta, W = 1024, H = 1024, FOO
       const txt = '▸  ' + b;
       const rh = lh + rpad * 2;
       els.push(`<rect x="${PAD-10}" y="${y-rpad}" width="${TW+20}" height="${rh}" rx="4" fill="white" opacity="0.11"/>`);
-      els.push(`<text x="${PAD}" y="${y+lh-4}" font-family="DVR" font-size="19" fill="white">${escXml(txt)}</text>`);
+      els.push(`<text x="${PAD}" y="${y+lh-4}" class="reg" font-size="19" fill="white">${escXml(txt)}</text>`);
       y += rh + 6;
     }
     y += 18;
@@ -112,7 +94,7 @@ function buildOverlaySvg({ headline, stat, bullets, cta, W = 1024, H = 1024, FOO
     const ch = 48;
     if (y + ch > CONTENT_H - 14) y = CONTENT_H - ch - 14;
     els.push(`<rect x="${PAD}" y="${y}" width="${cw}" height="${ch}" rx="8" fill="#006fa6" opacity="0.92"/>`);
-    els.push(`<text x="${PAD+32}" y="${y+32}" font-family="DVB" font-size="20" fill="white">${escXml(cta)}</text>`);
+    els.push(`<text x="${PAD+32}" y="${y+32}" class="bold" font-size="20" fill="white">${escXml(cta)}</text>`);
   }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${fontDefs}${els.join('')}</svg>`;
