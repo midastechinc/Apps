@@ -62,6 +62,12 @@ let isResolvingNumbers = false;
 // LID (privacy id) → phone number cache, e.g. "117196906852449" -> "16477863361"
 const lidToPhone = {};
 
+// Per-sender pending PDF buffer (5-min TTL).
+// When a PDF arrives with no caption, we store the extracted text here
+// so the next message from the same sender automatically gets it prepended.
+const pendingPdf = {};  // { [senderKey]: { text: string, fileName: string, at: number } }
+const PDF_TTL_MS = 5 * 60 * 1000;
+
 const logger = pino({ level: 'warn' });
 
 function digits(v) {
@@ -271,13 +277,14 @@ async function connect() {
       const docMsg =
         msg.message?.documentMessage ||
         msg.message?.documentWithCaptionMessage?.message?.documentMessage;
-      if (docMsg && !text && !imageInfo) {
+      if (docMsg && !imageInfo) {
         const fileName = docMsg.fileName || 'document';
         const mimeType = docMsg.mimetype || '';
         const docCaption = docMsg.caption || '';
-        if (docCaption) text = docCaption;
+        if (docCaption && !text) text = docCaption;
 
         if (mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')) {
+          const senderKey = (msg.key.remoteJid || '') + (msg.key.participant || '');
           try {
             const pdfParse = require('pdf-parse');
             const buffer = await downloadMediaMessage(msg, 'buffer', {}, { logger, reuploadRequest: sock.updateMediaMessage });
@@ -287,17 +294,61 @@ async function connect() {
             if (pdfText) {
               const truncated = pdfText.length > 8000;
               const body = truncated ? pdfText.slice(0, 8000) + '\n...(truncated)' : pdfText;
-              text = (text ? text + '\n\n' : '') + `[PDF: ${fileName}]\n${body}`;
+              const pdfBlock = `[PDF: ${fileName}]\n${body}`;
               console.log(`[WA] PDF extracted ${pdfText.length} chars from ${fileName}`);
+              if (text) {
+                // Caption came with the PDF — process immediately
+                text = text + '\n\n' + pdfBlock;
+              } else {
+                // No caption: buffer for 5 min, send an invite and skip LLM this round
+                pendingPdf[senderKey] = { text: pdfBlock, fileName, at: Date.now() };
+                if (sock) {
+                  await sock.sendMessage(msg.key.remoteJid, {
+                    text: `📄 Got your PDF (*${fileName}*). What would you like to know? Ask me anything about it.`
+                  }).catch(() => {});
+                }
+                continue;
+              }
             } else {
-              text = (text || '') + `[PDF received: ${fileName} — no extractable text]`;
+              // PDF has no extractable text (scanned/encrypted)
+              if (sock) {
+                await sock.sendMessage(msg.key.remoteJid, {
+                  text: `📄 I received *${fileName}* but couldn't extract any text from it — it may be a scanned image or password-protected. Try sending it as a Word doc, or copy-paste the key sections as text.`
+                }).catch(() => {});
+              }
+              continue;
             }
           } catch (err) {
             console.error('[WA] PDF extraction failed:', err.message);
-            text = (text || '') + `[PDF received: ${fileName} — could not read content]`;
+            if (sock) {
+              await sock.sendMessage(msg.key.remoteJid, {
+                text: `📄 Couldn't read *${fileName}* (${err.message}). Try sending the text content directly.`
+              }).catch(() => {});
+            }
+            continue;
           }
         } else {
           text = (text || '') + `[Document received: ${fileName}]`;
+        }
+      }
+
+      // If no text yet, check if there's a recently buffered PDF from this sender
+      if (!text && !imageInfo) {
+        const senderKey = (msg.key.remoteJid || '') + (msg.key.participant || '');
+        const pending = pendingPdf[senderKey];
+        if (pending && Date.now() - pending.at < PDF_TTL_MS) {
+          // No incoming text at all — skip
+        }
+      }
+
+      // For text messages: prepend any buffered PDF from this sender (sent without caption)
+      if (text) {
+        const senderKey = (msg.key.remoteJid || '') + (msg.key.participant || '');
+        const pending = pendingPdf[senderKey];
+        if (pending && Date.now() - pending.at < PDF_TTL_MS) {
+          text = pending.text + '\n\n' + text;
+          delete pendingPdf[senderKey];
+          console.log(`[WA] Prepended buffered PDF (${pending.fileName}) to message`);
         }
       }
 
