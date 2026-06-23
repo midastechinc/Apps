@@ -7,6 +7,9 @@ const pino = require('pino');
 
 const AUTH_DIR = path.join(__dirname, 'auth_info');
 
+// Must match SOCIAL_MSG_SEP in agents.js
+const SOCIAL_MSG_SEP = '\x1ESOCIAL_MSG\x1E';
+
 async function transcribeAudio(buffer, llmConfig, mimetype) {
   if (!llmConfig?.apiKey) throw new Error('No API key configured');
   const baseUrl = (llmConfig.baseUrl || 'https://api.openai.com/v1').replace(/\/$/, '');
@@ -379,8 +382,7 @@ async function connect() {
             // Strip any [IMAGE_ID:...] tag from the text before sending
             const cleanReply = reply.replace(/\[IMAGE_ID:[^\]]*\]/gi, '').trim();
             if (cleanReply) {
-              // Split on social content separator so LinkedIn/Instagram/Google arrive as separate messages
-              const { SOCIAL_MSG_SEP } = require('./agents');
+              // Split social content into separate messages (LinkedIn / Instagram / Google Business)
               const parts = cleanReply.includes(SOCIAL_MSG_SEP)
                 ? cleanReply.split(SOCIAL_MSG_SEP).map(p => p.trim()).filter(Boolean)
                 : [cleanReply];

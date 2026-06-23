@@ -719,7 +719,8 @@ app.get('/api/create-recipe-book', requireAdminKey, async (_req, res) => {
 // ─── Manual trigger: social content generation ────────────────────────────────
 app.post('/api/run/social-content', requireAdminKey, async (_req, res) => {
   try {
-    const { processSocialContent, SOCIAL_MSG_SEP } = require('./agents');
+    const { processSocialContent } = require('./agents');
+    const SOCIAL_MSG_SEP = '\x1ESOCIAL_MSG\x1E';
     const { popLatestImageBuffer } = require('./tools/image-gen');
     const { sendProactiveImage } = require('./whatsapp');
     const cfg = getConfig();

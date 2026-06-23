@@ -1005,7 +1005,7 @@ async function processSocialContent() {
 
   // Step 5 — Return separate messages (caller splits on SOCIAL_MSG_SEP and sends each individually)
   const saved = postsToSave.filter(p => p.caption).length;
-  const SEP = '\x00SOCIAL_MSG\x00';
+  const SEP = '\x1ESOCIAL_MSG\x1E';
   return [
     `✅ ${saved} posts saved to LeadTracker — *${topic.label}*`,
     `*LinkedIn*\n${liPost || '(not generated)'}`,
@@ -1014,6 +1014,6 @@ async function processSocialContent() {
   ].join(SEP);
 }
 
-const SOCIAL_MSG_SEP = '\x00SOCIAL_MSG\x00';
+const SOCIAL_MSG_SEP = '\x1ESOCIAL_MSG\x1E';
 
 module.exports = { processMessage, processBriefing, processLeadHunt, processSocialContent, SOCIAL_MSG_SEP, clearHistory, listConversations };
