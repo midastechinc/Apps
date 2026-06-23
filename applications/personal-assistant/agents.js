@@ -537,7 +537,7 @@ function routeMessage(senderJid, text, fromGroup = false) {
   return { agent, cleanText, config, agentType };
 }
 
-async function processMessage(senderJid, text, imageInfo = null, { fromGroup = false } = {}) {
+async function processMessage(senderJid, text, imageInfo = null, { fromGroup = false, groupJid = null } = {}) {
   const preview = text ? `"${text.slice(0, 60)}"` : '[image only]';
   console.log(`[MSG] received: ${preview} from ${senderJid}${imageInfo ? ' +image' : ''}`);
 
@@ -576,12 +576,18 @@ async function processMessage(senderJid, text, imageInfo = null, { fromGroup = f
   // BUG 7: image-only messages must have non-empty text so LLM gets a valid user turn
   const messageText = cleanText || (imageInfo ? '[image]' : '');
 
-  // BUG 8: keep Ali's family (!fam) and business history separate to avoid context bleed
+  // Group messages share one history per group JID so any member's follow-up has full context.
+  // Direct messages are keyed per sender; Ali's !fam sessions get a ':fam' suffix to avoid bleed.
   const mainNum = normalizeNumber(config.mainNumber);
   const senderNum = jidToNumber(senderJid);
-  const historyKey = (mainNum && senderNum === mainNum && agentType === 'family')
-    ? senderJid + ':fam'
-    : senderJid;
+  let historyKey;
+  if (groupJid) {
+    historyKey = groupJid; // all group members share the same conversation context
+  } else if (mainNum && senderNum === mainNum && agentType === 'family') {
+    historyKey = senderJid + ':fam';
+  } else {
+    historyKey = senderJid;
+  }
 
   return callLLM(senderJid, messageText, agent, config.llm, agentType, imageInfo, historyKey);
 }

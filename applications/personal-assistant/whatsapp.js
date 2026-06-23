@@ -416,7 +416,7 @@ async function connect() {
 
       try {
         if (onMessage) {
-          const reply = await onMessage(sender, text, imageInfo, { fromGroup: isGroup });
+          const reply = await onMessage(sender, text, imageInfo, { fromGroup: isGroup, groupJid: isGroup ? rawJid : null });
           if (reply && sock) {
             // Always check for a freshly generated image — send it before the text reply.
             // This works even if the LLM forgets to include the [IMAGE_ID:...] tag.
