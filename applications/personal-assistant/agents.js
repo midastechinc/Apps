@@ -887,66 +887,94 @@ async function processSocialContent() {
   const dayIndex = new Date().getDay();
   const topic = topics[dayIndex % topics.length];
 
-  // Step 1 — LLM generates the content as structured text. No saving tools needed.
-  const prompt = [
-    `You are a social media copywriter for Midas Tech Inc., an IT MSP in Richmond Hill, Ontario (GTA).`,
-    ``,
-    `TASK: Search for a current news stat on this topic, then write 3 social media posts.`,
-    `Topic: ${topic.label}`,
-    ``,
-    `Step 1: Call web_search("${topic.query}") to find a real stat or news hook for 2026.`,
-    ``,
-    `Step 2: Write 3 posts using what you found. Reply in EXACTLY this format — no extra commentary:`,
-    ``,
-    `HEADLINE: [strong hook ≤10 words based on the stat you found]`,
-    ``,
-    `LINKEDIN:`,
-    `[150-200 words. Hook → 3-4 bullet gaps → CTA. Hashtags: #ManagedIT #Cybersecurity #OntarioBusiness #MidasTech #MSP #RichmondHill]`,
-    ``,
-    `INSTAGRAM:`,
-    `[80-120 words. Emoji-forward, conversational. Hashtags: #ITSupport #CyberSecurity #GTA #SmallBusiness #MidasTech #Huntress #MSP]`,
-    ``,
-    `GOOGLE:`,
-    `[60-80 words. Local, no hashtags. CTA: Call us or visit midastech.ca]`,
-    ``,
-    `Output ONLY the above format. No preamble, no "Here are your posts", no markdown outside the labels.`,
-  ].join('\n');
-
-  const syntheticJid = `socialcontent_${Date.now()}`;
-  // Use only web_search for this call — no social tools needed
-  const socialAgent = { name: 'Claudia', systemPrompt: '' };
-  const minimalLLMAgent = config.businessAgent;
-  const reply = await callLLM(syntheticJid, prompt, minimalLLMAgent, config.llm, 'business');
-  delete conversationHistory[syntheticJid];
-
-  if (!reply) return null;
-
-  // Step 2 — Parse structured sections from the LLM reply (handles various formats)
-  const clean = (s) => s.replace(/\*+/g, '').trim();
-
-  const headlineMatch = reply.match(/HEADLINE[:\s*]+(.+)/i);
-  const headline = headlineMatch ? clean(headlineMatch[1]) : topic.label;
-
-  // Flexible extractor: matches LINKEDIN/LinkedIn/*LinkedIn* etc., up to next section or end
-  const extractSection = (label) => {
-    const re = new RegExp(
-      `(?:^|\\n)\\*{0,2}${label}\\*{0,2}[:\\s]*\\n([\\s\\S]*?)(?=\\n\\*{0,2}(?:HEADLINE|LINKEDIN|INSTAGRAM|GOOGLE|GOOGLE BUSINESS)\\*{0,2}[:\\s]|$)`,
-      'i'
-    );
-    const m = reply.match(re);
-    return m ? m[1].trim() : '';
-  };
-
-  const liPost = extractSection('LINKEDIN');
-  const igPost = extractSection('INSTAGRAM');
-  const gbPost = extractSection('GOOGLE(?:\\s+BUSINESS)?');
-
-  console.log('[SOCIAL] Parsed — headline:', headline, '| li:', liPost.length, 'chars | ig:', igPost.length, 'chars | gb:', gbPost.length, 'chars');
-  if (!liPost && !igPost && !gbPost) {
-    console.warn('[SOCIAL] Parser got nothing. Raw reply snippet:', reply.slice(0, 500));
+  // Step 1 — Run web search ourselves so the LLM gets facts directly in its prompt
+  // (avoids tool-call failures aborting the whole pipeline)
+  let searchContext = '';
+  try {
+    const web = require('./tools/web');
+    const searchResult = await web.webSearch({ query: topic.query, count: 5 });
+    if (searchResult?.results?.length) {
+      const snippets = searchResult.results
+        .slice(0, 4)
+        .map((r, i) => `${i + 1}. ${r.title}: ${r.description || r.snippet || ''}`)
+        .join('\n');
+      searchContext = `\nHere are recent search results to ground your posts:\n${snippets}\n`;
+      console.log('[SOCIAL] Web search OK —', searchResult.results.length, 'results');
+    }
+  } catch (err) {
+    console.warn('[SOCIAL] Web search failed (continuing without):', err.message);
   }
 
-  // Step 3 — Save to LeadTracker directly (no LLM tool call)
+  // Step 2 — Call LLM with NO tools: pure text generation, no risk of tool-error abort
+  const prompt = [
+    `You are a social media copywriter for Midas Tech Inc., an IT MSP in Richmond Hill, Ontario (GTA).`,
+    `Topic for today: ${topic.label}`,
+    searchContext,
+    `Write 3 social media posts. Reply in EXACTLY this format with no other text:`,
+    ``,
+    `HEADLINE: [strong hook ≤10 words]`,
+    ``,
+    `LINKEDIN:`,
+    `[150-200 words. Hook → 3-4 bullet points with • → CTA. End with: #ManagedIT #Cybersecurity #OntarioBusiness #MidasTech #MSP #RichmondHill]`,
+    ``,
+    `INSTAGRAM:`,
+    `[80-120 words. Emoji-forward, conversational. End with: #ITSupport #CyberSecurity #GTA #SmallBusiness #MidasTech #Huntress #MSP]`,
+    ``,
+    `GOOGLE:`,
+    `[60-80 words. Local focus, no hashtags. End with: Call us or visit midastech.ca]`,
+  ].join('\n');
+
+  const llmConfig = config.llm;
+  if (!llmConfig?.apiKey) return null;
+
+  const llmResp = await fetch(`${llmConfig.baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${llmConfig.apiKey}` },
+    body: JSON.stringify({
+      model: llmConfig.model,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 1500,
+    })
+  });
+  if (!llmResp.ok) {
+    console.error('[SOCIAL] LLM call failed:', llmResp.status);
+    return null;
+  }
+  const llmData = await llmResp.json();
+  const reply = llmData.choices?.[0]?.message?.content?.trim();
+
+  if (!reply) return null;
+  console.log('[SOCIAL] LLM reply received, length:', reply.length);
+
+  // Step 3 — Parse structured sections (handles LINKEDIN:, **LINKEDIN:**, LinkedIn:, etc.)
+  const stripMd = (s) => s.replace(/\*+/g, '').trim();
+
+  const headlineMatch = reply.match(/^[*_]*HEADLINE[*_]*\s*:\s*(.+)/im);
+  const headline = headlineMatch ? stripMd(headlineMatch[1]) : topic.label;
+
+  // Splits the reply on section headers so each chunk is that section's body
+  const sectionBodies = {};
+  const sectionRe = /^[*_]*\s*(HEADLINE|LINKEDIN|INSTAGRAM|GOOGLE(?:\s+BUSINESS)?)\s*[*_]*\s*:/gim;
+  const headerMatches = [...reply.matchAll(sectionRe)];
+  for (let i = 0; i < headerMatches.length; i++) {
+    const key   = headerMatches[i][1].trim().toUpperCase().replace(/\s+BUSINESS/, '');
+    const start = headerMatches[i].index + headerMatches[i][0].length;
+    const end   = i + 1 < headerMatches.length ? headerMatches[i + 1].index : reply.length;
+    sectionBodies[key] = reply.slice(start, end).trim();
+  }
+
+  const liPost = sectionBodies['LINKEDIN']  || '';
+  const igPost = sectionBodies['INSTAGRAM'] || '';
+  const gbPost = sectionBodies['GOOGLE']    || '';
+
+  console.log('[SOCIAL] Parsed — headline:', headline,
+    '| li:', liPost.length, '| ig:', igPost.length, '| gb:', gbPost.length, 'chars');
+  if (!liPost && !igPost && !gbPost) {
+    console.warn('[SOCIAL] Parser got nothing. Headers found:', headerMatches.map(m => m[1]));
+    console.warn('[SOCIAL] Raw reply:', reply.slice(0, 600));
+  }
+
+  // Step 4 — Save to LeadTracker directly (no LLM tool call)
   const socialMedia = require('./tools/social-media');
   const hashtags = {
     linkedin:  '#ManagedIT #Cybersecurity #OntarioBusiness #MidasTech #MSP #RichmondHill',
@@ -981,7 +1009,7 @@ async function processSocialContent() {
     }
   }
 
-  // Step 4 — Generate image: AI background + PIL text overlay (100% accurate text)
+  // Step 5 — Generate image
   const { generateSocialImage } = require('./tools/image-gen');
 
   const rawBullets = (liPost.match(/^[•·\-*▸]\s*.+/gm) || [])
@@ -1003,7 +1031,7 @@ async function processSocialContent() {
     console.log('[SOCIAL] Image generated:', imgResult.image_id);
   }
 
-  // Step 5 — Return separate messages (caller splits on SOCIAL_MSG_SEP and sends each individually)
+  // Step 6 — Return separate messages (caller splits on SOCIAL_MSG_SEP and sends each individually)
   const saved = postsToSave.filter(p => p.caption).length;
   const SEP = '\x1ESOCIAL_MSG\x1E';
   return [
