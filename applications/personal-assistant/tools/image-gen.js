@@ -278,28 +278,8 @@ async function generateSocialImage({ headline, stat, bullets, cta, topic }) {
     return { error: `Background generation failed: ${err.message}` };
   }
 
-  // Step 2: Overlay all text via SVG with embedded fonts (pure Node.js, no Python)
-  let composedBuffer;
-  try {
-    const sharp = require('sharp');
-    const svg = buildOverlaySvg({
-      headline: headline || '',
-      stat:     stat     || '',
-      bullets:  bullets  || [],
-      cta:      cta      || 'Book a free IT assessment → midastech.ca',
-    });
-    composedBuffer = await sharp(bgBuffer)
-      .composite([{ input: Buffer.from(svg), blend: 'over' }])
-      .png()
-      .toBuffer();
-    console.log(`[IMGGEN] Text overlay applied — ${Math.round(composedBuffer.length / 1024)}KB`);
-  } catch (err) {
-    console.warn('[IMGGEN] Text overlay failed:', err.message);
-    composedBuffer = bgBuffer;
-  }
-
-  // Step 3: Add branding footer
-  let finalBuffer = await addBranding(composedBuffer);
+  // Step 2: Add branding footer (no text overlay — posts deliver text separately)
+  let finalBuffer = await addBranding(bgBuffer);
 
   const id = `img_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   _imageCache.set(id, finalBuffer);
