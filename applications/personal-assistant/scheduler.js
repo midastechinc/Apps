@@ -1,5 +1,5 @@
 const { getConfig, updateConfig } = require('./config-manager');
-const { processBriefing, processLeadHunt, processSocialContent } = require('./agents');
+const { processBriefing, processLeadHunt, processSocialContent, SOCIAL_MSG_SEP } = require('./agents');
 const m365 = require('./tools/m365');
 const { popLatestImageBuffer } = require('./tools/image-gen');
 const { sendProactiveImage } = require('./whatsapp');
@@ -139,19 +139,19 @@ async function runSocialContent(config) {
     const reply = await processSocialContent();
     if (!reply) return;
 
-    const cleanText = reply.replace(/\[IMAGE_ID:[^\]]*\]/gi, '').trim();
-
-    // Send image first so it arrives before the text summary
+    // Send image first
     const buf = popLatestImageBuffer();
     if (buf) {
       await sendProactiveImage(mainNumber, buf, '');
       console.log('[SCHEDULER] Social content image sent to', mainNumber);
     }
 
-    if (cleanText) {
-      await sendFn(mainNumber, cleanText);
-      console.log('[SCHEDULER] Social content summary sent to', mainNumber);
+    // Send each post as a separate WhatsApp message
+    const parts = reply.split(SOCIAL_MSG_SEP).map(p => p.trim()).filter(Boolean);
+    for (const part of parts) {
+      await sendFn(mainNumber, part);
     }
+    console.log('[SCHEDULER] Social content sent as', parts.length, 'messages');
   } catch (err) {
     console.error('[SCHEDULER] Social content failed:', err.message);
   }

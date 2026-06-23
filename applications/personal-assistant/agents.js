@@ -1003,20 +1003,17 @@ async function processSocialContent() {
     console.log('[SOCIAL] Image generated:', imgResult.image_id);
   }
 
-  // Step 5 — Format WhatsApp reply
+  // Step 5 — Return separate messages (caller splits on SOCIAL_MSG_SEP and sends each individually)
   const saved = postsToSave.filter(p => p.caption).length;
+  const SEP = '\x00SOCIAL_MSG\x00';
   return [
-    `✅ ${saved} posts saved to LeadTracker — ${topic.label}`,
-    ``,
-    `*LinkedIn*`,
-    liPost || '(not generated)',
-    ``,
-    `*Instagram*`,
-    igPost || '(not generated)',
-    ``,
-    `*Google Business*`,
-    gbPost || '(not generated)',
-  ].join('\n');
+    `✅ ${saved} posts saved to LeadTracker — *${topic.label}*`,
+    `*LinkedIn*\n${liPost || '(not generated)'}`,
+    `*Instagram*\n${igPost || '(not generated)'}`,
+    `*Google Business*\n${gbPost || '(not generated)'}`,
+  ].join(SEP);
 }
 
-module.exports = { processMessage, processBriefing, processLeadHunt, processSocialContent, clearHistory, listConversations };
+const SOCIAL_MSG_SEP = '\x00SOCIAL_MSG\x00';
+
+module.exports = { processMessage, processBriefing, processLeadHunt, processSocialContent, SOCIAL_MSG_SEP, clearHistory, listConversations };
