@@ -379,8 +379,15 @@ async function connect() {
             // Strip any [IMAGE_ID:...] tag from the text before sending
             const cleanReply = reply.replace(/\[IMAGE_ID:[^\]]*\]/gi, '').trim();
             if (cleanReply) {
-              await sock.sendMessage(rawJid, { text: cleanReply });
-              console.log(`[WA] Reply sent to ${rawJid}`);
+              // Split on social content separator so LinkedIn/Instagram/Google arrive as separate messages
+              const { SOCIAL_MSG_SEP } = require('./agents');
+              const parts = cleanReply.includes(SOCIAL_MSG_SEP)
+                ? cleanReply.split(SOCIAL_MSG_SEP).map(p => p.trim()).filter(Boolean)
+                : [cleanReply];
+              for (const part of parts) {
+                await sock.sendMessage(rawJid, { text: part });
+              }
+              console.log(`[WA] Reply sent to ${rawJid} (${parts.length} message${parts.length > 1 ? 's' : ''})`);
             }
           }
         }

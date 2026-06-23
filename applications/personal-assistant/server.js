@@ -719,7 +719,7 @@ app.get('/api/create-recipe-book', requireAdminKey, async (_req, res) => {
 // ─── Manual trigger: social content generation ────────────────────────────────
 app.post('/api/run/social-content', requireAdminKey, async (_req, res) => {
   try {
-    const { processSocialContent } = require('./agents');
+    const { processSocialContent, SOCIAL_MSG_SEP } = require('./agents');
     const { popLatestImageBuffer } = require('./tools/image-gen');
     const { sendProactiveImage } = require('./whatsapp');
     const cfg = getConfig();
@@ -728,7 +728,14 @@ app.post('/api/run/social-content', requireAdminKey, async (_req, res) => {
     const cleanText = reply.replace(/\[IMAGE_ID:[^\]]*\]/gi, '').trim();
     const buf = popLatestImageBuffer();
     if (buf && cfg.mainNumber) await sendProactiveImage(cfg.mainNumber, buf, '');
-    if (cleanText && cfg.mainNumber) await sendProactiveMessage(cfg.mainNumber, cleanText);
+    if (cleanText && cfg.mainNumber) {
+      const parts = cleanText.includes(SOCIAL_MSG_SEP)
+        ? cleanText.split(SOCIAL_MSG_SEP).map(p => p.trim()).filter(Boolean)
+        : [cleanText];
+      for (const part of parts) {
+        await sendProactiveMessage(cfg.mainNumber, part);
+      }
+    }
     res.json({ ok: true, imageSent: !!buf, preview: cleanText.slice(0, 300) });
   } catch (err) {
     console.error('[API] run/social-content error:', err);
