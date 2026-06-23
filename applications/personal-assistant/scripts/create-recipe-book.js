@@ -192,6 +192,15 @@ async function createRecipeBook() {
     return { error: `Recipe book file not found at ${DOCX_PATH}` };
   }
 
+  // Idempotency — return existing doc instead of creating a duplicate
+  const { searchDrive } = require('../tools/google-docs');
+  const existing = await searchDrive({ query: DOC_TITLE });
+  if (!existing.error && existing.files?.length) {
+    const doc = existing.files[0];
+    console.log(`[RECIPE] Already exists — returning existing doc: ${doc.url}`);
+    return { success: true, alreadyExisted: true, title: doc.name, url: doc.url, documentId: doc.documentId };
+  }
+
   console.log('[RECIPE] Parsing docx...');
   const lines = extractDocxText(DOCX_PATH);
   const sections = parseRecipes(lines);
