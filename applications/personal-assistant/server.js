@@ -704,6 +704,35 @@ app.get('/api/debug/onenote', requireAdminKey, async (req, res) => {
   res.json(results);
 });
 
+// ─── Deduplicate Recipe Book — keeps newest, trashes the rest ─────────────────
+app.post('/api/cleanup-recipe-books', requireAdminKey, async (_req, res) => {
+  try {
+    const { searchDrive, trashDoc } = require('./tools/google-docs');
+    const TITLE = 'Jaffar Family Recipe Book 🍛';
+    const found = await searchDrive({ query: TITLE });
+    if (found.error) return res.status(500).json(found);
+
+    const matches = (found.files || []).filter(f => f.name === TITLE);
+    if (matches.length <= 1) {
+      return res.json({ ok: true, message: `Only ${matches.length} copy found — nothing to delete.`, kept: matches[0] || null });
+    }
+
+    // Sort newest first (modifiedTime desc)
+    matches.sort((a, b) => new Date(b.modified) - new Date(a.modified));
+    const [keep, ...remove] = matches;
+
+    const deleted = [];
+    for (const doc of remove) {
+      const result = await trashDoc(doc.documentId);
+      deleted.push({ documentId: doc.documentId, name: doc.name, modified: doc.modified, trashed: !result.error, error: result.error });
+    }
+
+    res.json({ ok: true, kept: { documentId: keep.documentId, url: keep.url, modified: keep.modified }, deleted });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Create Recipe Book Google Doc (one-time) ─────────────────────────────────
 app.get('/api/create-recipe-book', requireAdminKey, async (_req, res) => {
   try {

@@ -303,4 +303,17 @@ async function searchDrive({ query = '', type = 'document' } = {}) {
   return { query: query || '(all)', count: files.length, files };
 }
 
-module.exports = { createDoc, appendToDoc, updateDoc, readDoc, searchDrive, isConfigured };
+async function trashDoc(documentId) {
+  if (!documentId) return { error: 'documentId required' };
+  const raw = loadCreds();
+  if (!raw) return { error: 'Google credentials not configured.' };
+  let creds;
+  try { creds = await ensureFreshToken(raw); } catch (err) { return { error: err.message }; }
+  return authedFetch(
+    `https://www.googleapis.com/drive/v3/files/${documentId}`,
+    { method: 'PATCH', body: JSON.stringify({ trashed: true }) },
+    creds
+  );
+}
+
+module.exports = { createDoc, appendToDoc, updateDoc, readDoc, searchDrive, trashDoc, isConfigured };
