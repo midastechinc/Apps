@@ -997,7 +997,10 @@ async function executeTool(toolName, args, agentType = 'business') {
     'browser':        'fetch_webpage',
     'browse':         'fetch_webpage',
     'lookup':         'web_search',
-    'internet_search':'web_search'
+    'internet_search':'web_search',
+    'run':            'web_search',
+    'google':         'web_search',
+    'bing':           'web_search',
   };
   const resolvedName = ALIASES[toolName] || toolName;
   if (resolvedName !== toolName) {

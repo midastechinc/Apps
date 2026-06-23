@@ -807,17 +807,8 @@ async function callLLM(senderJid, userText, agent, llmConfig, agentType = 'busin
       );
 
       messages.push(...results);
-
-      // If any tool returned an error, return the error directly — no LLM reformatting
-      const toolErrors = results
-        .map(r => { try { return JSON.parse(r.content); } catch { return {}; } })
-        .filter(r => r.error)
-        .map(r => r.error);
-      if (toolErrors.length > 0) {
-        finalReply = `Error: ${toolErrors.join(' | ')}`;
-        break;
-      }
-
+      // Pass tool results (including errors) back to LLM so it can recover gracefully
+      // rather than surfacing a raw "Error: ..." to the user
       continue;
     }
 
