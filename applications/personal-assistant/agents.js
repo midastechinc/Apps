@@ -539,6 +539,16 @@ async function processMessage(senderJid, text, imageInfo = null, { fromGroup = f
     }
   }
 
+  // On-demand social content generation — only Ali's main number can trigger
+  if (text && /\b(generate|create|run|make)\b.{0,25}\b(social|posts?|content)\b/i.test(text)) {
+    const cfg = getConfig();
+    const senderNum = jidToNumber(senderJid);
+    if (normalizeNumber(cfg.mainNumber) === senderNum) {
+      console.log('[MSG] On-demand social content triggered by Ali');
+      return await processSocialContent();
+    }
+  }
+
   const routed = routeMessage(senderJid, text || '', fromGroup);
   if (!routed) return null;
 
