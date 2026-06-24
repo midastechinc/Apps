@@ -163,16 +163,16 @@ ${ssEntries}
 // ─── Ensure Receipts.xlsx exists, create it if not ───────────────────────────
 async function ensureWorkbook() {
   // Check if file exists
-  const check = await graphGet(`/me/drive/root:/${RECEIPTS_FOLDER}/${WORKBOOK_NAME}`);
+  const check = await graphGet(`/users/ali@midastech.ca/drive/root:/${RECEIPTS_FOLDER}/${WORKBOOK_NAME}`);
   if (!check.error) {
     console.log('[RECEIPTS] Workbook already exists, id=', check.id);
     return { id: check.id, webUrl: check.webUrl };
   }
 
   // Create the folder if needed
-  const folderCheck = await graphGet(`/me/drive/root:/${RECEIPTS_FOLDER}`);
+  const folderCheck = await graphGet(`/users/ali@midastech.ca/drive/root:/${RECEIPTS_FOLDER}`);
   if (folderCheck.error) {
-    const folderCreate = await graphPost(`/me/drive/root/children`, {
+    const folderCreate = await graphPost(`/users/ali@midastech.ca/drive/root/children`, {
       name: RECEIPTS_FOLDER,
       folder: {},
       '@microsoft.graph.conflictBehavior': 'rename',
@@ -184,7 +184,7 @@ async function ensureWorkbook() {
   // Upload the blank workbook
   const xlsxBuffer = buildXlsx();
   const result = await graphUpload(
-    `/me/drive/root:/${RECEIPTS_FOLDER}/${WORKBOOK_NAME}:/content`,
+    `/users/ali@midastech.ca/drive/root:/${RECEIPTS_FOLDER}/${WORKBOOK_NAME}:/content`,
     xlsxBuffer,
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   );
@@ -202,7 +202,7 @@ async function uploadReceiptImage(imageBuffer, mimeType, date, vendor) {
   const path       = `/${RECEIPTS_FOLDER}/${month}/${filename}`;
 
   const result = await graphUpload(
-    `/me/drive/root:${path}:/content`,
+    `/users/ali@midastech.ca/drive/root:${path}:/content`,
     imageBuffer,
     mimeType || 'image/jpeg'
   );
@@ -225,7 +225,7 @@ async function addReceiptRow({ date, vendor, subtotal, tax, total, category, not
   ]];
 
   const result = await graphPost(
-    `/me/drive/root:/${RECEIPTS_FOLDER}/${WORKBOOK_NAME}:/workbook/tables/${TABLE_NAME}/rows/add`,
+    `/users/ali@midastech.ca/drive/root:/${RECEIPTS_FOLDER}/${WORKBOOK_NAME}:/workbook/tables/${TABLE_NAME}/rows/add`,
     { values }
   );
   if (result.error) return result;
