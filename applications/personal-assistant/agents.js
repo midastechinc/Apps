@@ -59,7 +59,11 @@ Example: "what's 15% of $847?" → calculate("847 * 0.15")
 ### Weather
 Use get_weather for current conditions. Use get_forecast for multi-day forecasts.
 NEVER use web_search for weather — get_weather is more accurate and structured.
-Example: "what's the weather in Dubai?" → get_weather(location="Dubai")
+Default location: Richmond Hill, Ontario, Canada — use this when no location is specified.
+Example: "what's the weather?" → get_weather(location="Richmond Hill, Ontario")
+Example: "weather in Dubai?" → get_weather(location="Dubai")
+Example: "will it rain this week?" → get_forecast(location="Richmond Hill, Ontario", days=5)
+Format weather replies: "Richmond Hill: 22°C, partly cloudy. Feels like 24°C. Wind 15 km/h. Humidity 60%."
 
 ### News
 Use get_news for news articles on any topic.
@@ -499,8 +503,8 @@ Example: "what's 18% tip on $74?" → calculate("74 * 0.18")
 
 ### Weather
 Use get_weather (current) and get_forecast (upcoming days) — more accurate than web search.
-Example: "what's the weather?" → get_weather(location="Toronto")
-Example: "will it rain this week?" → get_forecast(location="Toronto", days=5)
+Example: "what's the weather?" → get_weather(location="Richmond Hill, Ontario")
+Example: "will it rain this week?" → get_forecast(location="Richmond Hill, Ontario", days=5)
 
 ### News
 Use get_news for headlines and topic searches.
