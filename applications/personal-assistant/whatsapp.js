@@ -224,6 +224,10 @@ async function connect() {
             mimeType: imgMsg.mimetype || 'image/jpeg',
             buffer  // raw buffer — used by save_receipt tool to upload to OneDrive
           };
+          // Store in pending image store so save_receipt can access it even in follow-up messages
+          const { storePendingImage } = require('./tools/image-store');
+          const _imgSenderKey = isGroup ? (msg.key.participant || msg.key.remoteJid) : msg.key.remoteJid;
+          storePendingImage(_imgSenderKey, buffer, imgMsg.mimetype || 'image/jpeg');
           console.log(`[WA] Image downloaded ${Math.round(buffer.length / 1024)}KB, caption: "${text || ''}"`);
         } catch (err) {
           console.error('[WA] Image download failed:', err.message);
@@ -355,8 +359,8 @@ async function connect() {
       }
 
       if (!text && !imageInfo) continue;
-      // Image with no caption → describe only, no tool calls
-      if (!text && imageInfo) text = '[Image received with no caption — describe what you see. Do NOT add tasks, save links, or call any tools.]';
+      // Image with no caption — let the agent decide what to do (receipt images arrive without captions)
+      if (!text && imageInfo) text = '[Image received — analyse it. If it is a receipt, call save_receipt immediately. Otherwise describe what you see.]';
 
       const rawJid = msg.key.remoteJid;
       if (!rawJid) continue;

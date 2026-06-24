@@ -13,6 +13,7 @@
 
 const AdmZip = require('adm-zip');
 const { getAccessToken } = require('./m365');
+const { getPendingImage, clearPendingImage } = require('./image-store');
 
 const RECEIPTS_FOLDER = 'Receipts';
 const WORKBOOK_NAME   = 'Receipts.xlsx';
@@ -245,19 +246,22 @@ async function saveReceipt(args, context = {}) {
   const wb = await ensureWorkbook();
   if (wb.error) return { error: `Could not ensure workbook: ${wb.error}` };
 
-  // 2. Upload receipt image if the original photo is available in context
+  // 2. Upload receipt image — try current message buffer first, then pending store (follow-up messages)
   let receiptUrl = '';
-  if (context.imageBuffer) {
-    const imgResult = await uploadReceiptImage(context.imageBuffer, context.imageMimeType, date, vendor);
+  const imgBuffer = context.imageBuffer || getPendingImage(context.senderJid)?.buffer;
+  const imgMime   = context.imageMimeType || getPendingImage(context.senderJid)?.mimeType;
+  if (imgBuffer) {
+    const imgResult = await uploadReceiptImage(imgBuffer, imgMime, date, vendor);
     if (imgResult.error) {
       console.warn('[RECEIPTS] Image upload failed:', imgResult.error);
       results.imageWarning = `Image upload failed: ${imgResult.error}`;
     } else {
       receiptUrl = imgResult.webUrl || '';
       results.imageUrl = receiptUrl;
+      clearPendingImage(context.senderJid); // consumed — remove from store
     }
   } else {
-    console.log('[RECEIPTS] No image buffer in context — row will be saved without image link');
+    console.log('[RECEIPTS] No image buffer available — row saved without image link');
   }
 
   // 3. Append row to Excel
