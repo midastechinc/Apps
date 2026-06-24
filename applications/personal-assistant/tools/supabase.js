@@ -106,9 +106,35 @@ async function supabaseQuery({
 async function supabaseRunSql({ sql } = {}) {
   if (!sql) return { error: 'sql is required' };
 
+  const dbUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
+
+  // Self-hosted: use direct PostgreSQL connection via DATABASE_URL
+  if (dbUrl) {
+    try {
+      const { Client } = require('pg');
+      const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+      await client.connect();
+      try {
+        const res = await client.query(sql);
+        console.log(`[SB] SQL (pg) — ${sql.slice(0, 80).replace(/\n/g, ' ')}`);
+        return {
+          success: true,
+          rows: res.rows || [],
+          rowCount: res.rowCount,
+          command: res.command,
+        };
+      } finally {
+        await client.end();
+      }
+    } catch (err) {
+      return { error: `SQL error: ${err.message}` };
+    }
+  }
+
+  // Cloud-hosted fallback: Supabase Management API
   if (!SUPABASE_PROJECT_REF || !SUPABASE_ACCESS_TOKEN) {
     return {
-      error: 'SUPABASE_PROJECT_REF and SUPABASE_ACCESS_TOKEN env vars are required for SQL execution. Add them in Railway.',
+      error: 'No SQL execution method configured. Add DATABASE_URL (self-hosted) or SUPABASE_PROJECT_REF + SUPABASE_ACCESS_TOKEN (cloud) to Railway env vars.',
     };
   }
 
