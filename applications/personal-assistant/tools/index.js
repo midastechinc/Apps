@@ -439,6 +439,35 @@ const DEFINITIONS = {
       }
     }
   },
+  m365_list_email_attachments: {
+    type: 'function',
+    function: {
+      name: 'm365_list_email_attachments',
+      description: 'List all attachments in a specific email (name, type, size). Use this before reading a PDF to confirm it exists.',
+      parameters: {
+        type: 'object',
+        properties: {
+          email_id: { type: 'string', description: 'The email ID from m365_list_emails or m365_search_emails' }
+        },
+        required: ['email_id']
+      }
+    }
+  },
+  m365_read_email_pdf: {
+    type: 'function',
+    function: {
+      name: 'm365_read_email_pdf',
+      description: 'Extract and read the text content of a PDF attachment in an email. Use when the user asks to summarize or read a PDF attached to an email.',
+      parameters: {
+        type: 'object',
+        properties: {
+          email_id: { type: 'string', description: 'The email ID from m365_list_emails or m365_search_emails' },
+          attachment_name: { type: 'string', description: 'Partial filename of the PDF (optional — omit to auto-pick the first PDF)' }
+        },
+        required: ['email_id']
+      }
+    }
+  },
   m365_list_todos: {
     type: 'function',
     function: {
@@ -1143,7 +1172,7 @@ const AGENT_TOOLS = {
     'google_list_events', 'google_create_event', 'google_list_calendars',
     'm365_list_calendar_events', 'm365_create_calendar_event', 'm365_update_calendar_event', 'm365_delete_calendar_event', 'm365_find_meeting_times',
     'm365_get_out_of_office', 'm365_set_out_of_office',
-    'm365_list_emails', 'm365_search_emails', 'm365_read_email', 'm365_send_email', 'm365_reply_to_email', 'm365_create_email_draft', 'm365_send_draft',
+    'm365_list_emails', 'm365_search_emails', 'm365_read_email', 'm365_list_email_attachments', 'm365_read_email_pdf', 'm365_send_email', 'm365_reply_to_email', 'm365_create_email_draft', 'm365_send_draft',
     'm365_list_todos', 'm365_create_todo', 'm365_complete_todo', 'm365_update_todo',
     'm365_list_contacts', 'm365_create_contact',
     'm365_search_onenote', 'm365_save_link', 'm365_list_onenote_structure', 'm365_set_onenote_section', 'm365_create_onenote_page', 'm365_read_onenote_page',
@@ -1282,6 +1311,8 @@ async function executeTool(toolName, args, agentType = 'business', context = {})
       case 'm365_list_emails':            return await m365.listEmails(args);
       case 'm365_search_emails':          return await m365.searchEmails(args);
       case 'm365_read_email':             return await m365.readEmail(args);
+      case 'm365_list_email_attachments': return await m365.listEmailAttachments(args);
+      case 'm365_read_email_pdf':         return await m365.readEmailPdf(args);
       case 'm365_send_email':             return await m365.sendEmail(args);
       case 'm365_reply_to_email':         return await m365.replyToEmail(args);
       case 'm365_create_email_draft':     return await m365.createEmailDraft(args);

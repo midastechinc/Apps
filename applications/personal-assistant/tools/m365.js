@@ -661,6 +661,55 @@ async function readEmail({ email_id } = {}) {
   };
 }
 
+async function listEmailAttachments({ email_id } = {}) {
+  if (!email_id) return { error: 'email_id required' };
+  const data = await graphFetch(`/users/${USER_PRINCIPAL}/messages/${email_id}/attachments?$select=id,name,contentType,size`);
+  if (data.error) return data;
+  const attachments = (data.value || []).map(a => ({
+    id: a.id,
+    name: a.name,
+    type: a.contentType,
+    size_kb: Math.round((a.size || 0) / 1024),
+  }));
+  return { email_id, attachments };
+}
+
+async function readEmailPdf({ email_id, attachment_id, attachment_name } = {}) {
+  if (!email_id) return { error: 'email_id required' };
+
+  // Resolve attachment_id from name if needed
+  let resolvedId = attachment_id;
+  if (!resolvedId) {
+    const list = await listEmailAttachments({ email_id });
+    if (list.error) return list;
+    const match = attachment_name
+      ? list.attachments.find(a => a.name.toLowerCase().includes(attachment_name.toLowerCase()) && a.type?.includes('pdf'))
+      : list.attachments.find(a => a.type?.includes('pdf'));
+    if (!match) return { error: 'No PDF attachment found in this email' };
+    resolvedId = match.id;
+  }
+
+  const data = await graphFetch(`/users/${USER_PRINCIPAL}/messages/${email_id}/attachments/${resolvedId}`);
+  if (data.error) return data;
+
+  const base64 = data.contentBytes;
+  if (!base64) return { error: 'Attachment has no content' };
+
+  try {
+    const pdfParse = require('pdf-parse');
+    const buffer = Buffer.from(base64, 'base64');
+    const parsed = await pdfParse(buffer);
+    const text = parsed.text.replace(/\s{3,}/g, '\n\n').trim().slice(0, 6000);
+    return {
+      filename: data.name,
+      pages: parsed.numpages,
+      text: text + (parsed.text.length > 6000 ? '\n\n[truncated]' : ''),
+    };
+  } catch (err) {
+    return { error: `PDF parse failed: ${err.message}` };
+  }
+}
+
 async function listTodos({ list_name = '', top = 20 } = {}) {
   const listsData = await graphFetch('/users/ali@midastech.ca/todo/lists');
   if (listsData.error) return listsData;
@@ -1396,7 +1445,7 @@ module.exports = {
   getAccessToken,
   listCalendarEvents, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, findMeetingTimes,
   getOutOfOfficeStatus, setOutOfOffice,
-  listEmails, searchEmails, readEmail, sendEmail, replyToEmail, createEmailDraft, sendDraft,
+  listEmails, searchEmails, readEmail, listEmailAttachments, readEmailPdf, sendEmail, replyToEmail, createEmailDraft, sendDraft,
   listTodos, createTodo, completeTodo, updateTodo,
   listContacts, createContact,
   searchOneNote, saveLink, listOneNoteStructure, getPageIdsForLinkPages, diagnoseOneNote,
