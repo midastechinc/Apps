@@ -106,9 +106,31 @@ async function supabaseQuery({
 async function supabaseRunSql({ sql } = {}) {
   if (!sql) return { error: 'sql is required' };
 
-  const dbUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
+  // Primary: RPC function installed in Supabase (works for self-hosted, no extra env vars)
+  if (isConfigured()) {
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/rest/v1/rpc/claudia_exec_sql`, {
+        method: 'POST',
+        headers: {
+          ...sbHeaders(),
+          Prefer: 'return=representation',
+        },
+        body: JSON.stringify({ query: sql }),
+        signal: AbortSignal.timeout(20000),
+      });
+      const text = await resp.text();
+      if (!resp.ok) return { error: `SQL RPC ${resp.status}: ${text.slice(0, 400)}` };
+      const result = text ? JSON.parse(text) : { success: true };
+      console.log(`[SB] SQL (rpc) — ${sql.slice(0, 80).replace(/\n/g, ' ')}`);
+      if (result?.error) return { error: result.error };
+      return { success: true, rows: Array.isArray(result) ? result : (result ? [result] : []) };
+    } catch (err) {
+      return { error: err.message };
+    }
+  }
 
-  // Self-hosted: use direct PostgreSQL connection via DATABASE_URL
+  // Fallback: direct PostgreSQL connection via DATABASE_URL
+  const dbUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
   if (dbUrl) {
     try {
       const { Client } = require('pg');
@@ -117,12 +139,7 @@ async function supabaseRunSql({ sql } = {}) {
       try {
         const res = await client.query(sql);
         console.log(`[SB] SQL (pg) — ${sql.slice(0, 80).replace(/\n/g, ' ')}`);
-        return {
-          success: true,
-          rows: res.rows || [],
-          rowCount: res.rowCount,
-          command: res.command,
-        };
+        return { success: true, rows: res.rows || [], rowCount: res.rowCount, command: res.command };
       } finally {
         await client.end();
       }
@@ -131,35 +148,7 @@ async function supabaseRunSql({ sql } = {}) {
     }
   }
 
-  // Cloud-hosted fallback: Supabase Management API
-  if (!SUPABASE_PROJECT_REF || !SUPABASE_ACCESS_TOKEN) {
-    return {
-      error: 'No SQL execution method configured. Add DATABASE_URL (self-hosted) or SUPABASE_PROJECT_REF + SUPABASE_ACCESS_TOKEN (cloud) to Railway env vars.',
-    };
-  }
-
-  try {
-    const resp = await fetch(
-      `https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${SUPABASE_ACCESS_TOKEN}`,
-        },
-        body: JSON.stringify({ query: sql }),
-        signal: AbortSignal.timeout(20000),
-      }
-    );
-
-    const text = await resp.text();
-    if (!resp.ok) return { error: `Supabase Management API ${resp.status}: ${text.slice(0, 400)}` };
-    const result = text ? JSON.parse(text) : { success: true };
-    console.log(`[SB] SQL executed — ${sql.slice(0, 80).replace(/\n/g, ' ')}...`);
-    return { success: true, result };
-  } catch (err) {
-    return { error: err.message };
-  }
+  return { error: 'Supabase not configured. Add SUPABASE_URL and SUPABASE_SERVICE_KEY to Railway env vars.' };
 }
 
 module.exports = { supabaseQuery, supabaseRunSql, isConfigured };
