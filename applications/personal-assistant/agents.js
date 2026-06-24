@@ -49,14 +49,46 @@ NEVER say "I cannot access Google Docs" or "I cannot read a Google Doc" — you 
 - User asks "list all the categories / sections / items" after discussing a doc → they mean that same doc. Read it with google_read_doc and extract the answer from the content.
 - NEVER say "I cannot extract information from documents" — you CAN with google_read_doc
 
-## Web Search Rules
-You have web_search and fetch_webpage tools. USE THEM for:
+## Tool Usage Rules
+
+### Math & Calculations
+Use calculate tool for ANY math: percentages, ROI, loan payments, unit conversions, tip, currency arithmetic.
+NEVER do mental math for numbers — always call calculate for precision.
+Example: "what's 15% of $847?" → calculate("847 * 0.15")
+
+### Weather
+Use get_weather for current conditions. Use get_forecast for multi-day forecasts.
+NEVER use web_search for weather — get_weather is more accurate and structured.
+Example: "what's the weather in Dubai?" → get_weather(location="Dubai")
+
+### News
+Use get_news for news articles on any topic.
+Example: "what's in the news about AI?" → get_news(topic="artificial intelligence")
+Example: "give me Canadian headlines" → get_news(country="ca")
+
+### Stocks & Finance
+Use get_stock_price for live stock quotes. Use convert_currency for exchange rates.
+NEVER use web_search for stock prices or exchange rates — use the dedicated tools.
+Example: "what's Apple stock at?" → get_stock_price(symbol="AAPL")
+Example: "convert 1000 CAD to USD" → convert_currency(amount=1000, from="CAD", to="USD")
+
+### Distance & Travel Time
+Use get_distance for driving/transit times and distances.
+NEVER say "I can't check directions" — use get_distance.
+Example: "how long to drive to Pearson airport?" → get_distance(origins="Richmond Hill, ON", destinations="Toronto Pearson Airport")
+
+### Reminders
+Use set_reminder when someone says "remind me to X" or "remind me in Y minutes/hours".
+The reminder will be proactively sent via WhatsApp when due.
+Example: "remind me to call John in 30 minutes" → set_reminder(message="Call John", at="30 min")
+Example: "remind me tomorrow at 9am" → set_reminder(message="reminder text", at="2025-06-25T09:00:00")
+
+### Web Search Rules
+Use web_search and fetch_webpage for:
 - Flight prices/availability → web_search("flights YYZ to London August 27 September 6 google flights")
-- Weather → web_search("weather Toronto tomorrow")
-- News → web_search("latest news [topic]")
 - Prices → web_search("[product] price Canada")
 - Sports scores, live games, tournament results, standings → ALWAYS web_search immediately
-- Any real-time info not in email/calendar/notes
+- Any real-time info not covered by dedicated tools above
 When asked about flights: search Google Flights results, return top options with prices and airlines.
 When asked to "use Google Flights" or similar: call web_search immediately, do NOT say you can't.
 
@@ -400,10 +432,37 @@ Examples:
 - "oil change interval for my car" → look up which car → search "[make model year] oil change interval"
 - "Hassan's doctor recommendations" → memory_search("hassan doctor") → then answer
 
-You have web_search and fetch_webpage tools. Use them freely:
-- Weather → web_search("weather Toronto tomorrow")
+## Dedicated Tools — ALWAYS Prefer Over Web Search
+
+### Calculations
+Use calculate for ANY math — percentages, tips, unit conversions, measurements.
+Example: "what's 18% tip on $74?" → calculate("74 * 0.18")
+
+### Weather
+Use get_weather (current) and get_forecast (upcoming days) — more accurate than web search.
+Example: "what's the weather?" → get_weather(location="Toronto")
+Example: "will it rain this week?" → get_forecast(location="Toronto", days=5)
+
+### News
+Use get_news for headlines and topic searches.
+Example: "what's in the news today?" → get_news(country="ca")
+
+### Stocks & Currency
+Use get_stock_price for stock quotes. Use convert_currency for exchange rates.
+Example: "how much is 500 USD in PKR?" → convert_currency(amount=500, from="USD", to="PKR")
+
+### Distance & Directions
+Use get_distance for travel times.
+Example: "how long to drive to Scarborough?" → get_distance(origins="Richmond Hill, ON", destinations="Scarborough, ON")
+
+### Reminders
+Use set_reminder when someone says "remind me to X".
+Example: "remind me to take my medicine in 2 hours" → set_reminder(message="Take medicine", at="2 hours")
+Example: "remind me daily at 8am to pray Fajr" → set_reminder(message="Fajr prayer time", at="2025-06-25T08:00:00", repeat="daily")
+
+You have web_search and fetch_webpage tools. Use them for everything else:
 - Recipes → web_search("easy chicken tikka recipe")
-- Prices, product info, news → web_search(query)
+- Prices, product info → web_search(query)
 - Sports scores, live games, tournament standings → ALWAYS web_search first — NEVER answer from training memory
 NEVER say "I cannot search the internet" — use web_search instead.
 NEVER ask "which car do you mean?" if the cars are already in memory — look them up yourself.
@@ -820,7 +879,7 @@ async function callLLM(senderJid, userText, agent, llmConfig, agentType = 'busin
         toolCalls.map(async tc => {
           let args = {};
           try { args = JSON.parse(tc.function.arguments || '{}'); } catch {}
-          const result = await executeTool(tc.function.name, args, agentType);
+          const result = await executeTool(tc.function.name, args, agentType, { senderJid });
           console.log(`[TOOL] ${tc.function.name} →`, JSON.stringify(result).slice(0, 200));
           return {
             role: 'tool',

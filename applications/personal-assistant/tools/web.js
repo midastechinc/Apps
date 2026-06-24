@@ -1,11 +1,51 @@
 const { getConfig } = require('../config-manager');
 
+function getTavilyKey() {
+  const config = getConfig();
+  return config.integrations?.tavily?.apiKey || process.env.TAVILY_API_KEY;
+}
+
+async function tavilySearch({ query, count = 5, search_depth = 'basic' }) {
+  const key = getTavilyKey();
+  if (!key) return null; // silently skip — caller will fall back to Brave
+
+  try {
+    const resp = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key: key, query, max_results: Math.min(count, 10), search_depth }),
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!resp.ok) {
+      console.warn(`[WEB] Tavily ${resp.status}`);
+      return null;
+    }
+    const data = await resp.json();
+    const results = (data.results || []).slice(0, count).map(r => ({
+      title: r.title,
+      url: r.url,
+      snippet: r.content?.slice(0, 400) || '',
+    }));
+    console.log(`[WEB] Tavily returned ${results.length} results for: "${query}"`);
+    return results.length ? { query, results, source: 'tavily' } : null;
+  } catch (err) {
+    console.warn(`[WEB] Tavily error: ${err.message}`);
+    return null;
+  }
+}
+
 async function webSearch({ query, count = 5 }) {
   const config = getConfig();
+
+  // Try Tavily first (AI-native, better for current events)
+  const tavilyResult = await tavilySearch({ query, count });
+  if (tavilyResult) return tavilyResult;
+
+  // Fall back to Brave
   const apiKey = config.integrations?.brave?.apiKey || process.env.BRAVE_API_KEY;
   const envKeys = Object.keys(process.env).filter(k => k.toLowerCase().includes('brave'));
   console.log(`[WEB] webSearch called: "${query}" — apiKey=${apiKey ? 'set' : 'MISSING'} envKeys=${envKeys.join(',') || 'none'}`);
-  if (!apiKey) return { error: 'Brave Search API key not configured — please add BRAVE_API_KEY as a Railway environment variable' };
+  if (!apiKey) return { error: 'No search API configured — add TAVILY_API_KEY or BRAVE_API_KEY as a Railway environment variable' };
 
   const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=${Math.min(count, 10)}`;
   const response = await fetch(url, {
@@ -31,7 +71,7 @@ async function webSearch({ query, count = 5 }) {
 
   console.log(`[WEB] Brave Search returned ${results.length} results for: "${query}"`);
   if (results.length === 0) return { query, results: [], message: 'No results found' };
-  return { query, results };
+  return { query, results, source: 'brave' };
 }
 
 async function fetchWebpage({ url }) {
@@ -67,7 +107,7 @@ async function fetchWebpage({ url }) {
 }
 
 function isConfigured() {
-  return !!(getConfig().integrations?.brave?.apiKey || process.env.BRAVE_API_KEY);
+  return !!(getTavilyKey() || getConfig().integrations?.brave?.apiKey || process.env.BRAVE_API_KEY);
 }
 
-module.exports = { webSearch, fetchWebpage, isConfigured };
+module.exports = { webSearch, tavilySearch, fetchWebpage, isConfigured };

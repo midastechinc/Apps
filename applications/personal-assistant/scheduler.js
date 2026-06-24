@@ -3,6 +3,7 @@ const { processBriefing, processLeadHunt, processSocialContent, SOCIAL_MSG_SEP }
 const m365 = require('./tools/m365');
 const { popLatestImageBuffer } = require('./tools/image-gen');
 const { sendProactiveImage } = require('./whatsapp');
+const { popDueReminders } = require('./tools/reminders');
 
 const TZ = 'America/Toronto';
 
@@ -45,6 +46,9 @@ async function tick() {
     const hhmm = now.toLocaleTimeString('en-CA', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
     const today = now.toLocaleDateString('en-CA', { timeZone: tz });
 
+    // Fire any due reminders
+    await fireReminders(config);
+
     // Daily M365 token health check at 07:55 (5 min before briefing)
     if (hhmm === '07:55' && lastTokenCheckDate !== today) {
       lastTokenCheckDate = today;
@@ -82,6 +86,23 @@ async function tick() {
     }
   } catch (err) {
     console.error('[SCHEDULER] tick error:', err.message);
+  }
+}
+
+async function fireReminders(config) {
+  const mainNumber = config.mainNumber;
+  if (!mainNumber || !sendFn) return;
+  // Convert mainNumber (phone digits) to a WhatsApp JID for fallback
+  const defaultJid = mainNumber.includes('@') ? mainNumber : `${mainNumber}@s.whatsapp.net`;
+  const due = popDueReminders(defaultJid);
+  for (const r of due) {
+    const jid = r.jid || defaultJid;
+    try {
+      await sendFn(jid, `⏰ *Reminder:* ${r.message}`);
+      console.log(`[REMINDER] Fired #${r.id} → ${jid}: "${r.message}"`);
+    } catch (err) {
+      console.error(`[REMINDER] Failed to send #${r.id}:`, err.message);
+    }
   }
 }
 

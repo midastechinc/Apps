@@ -10,6 +10,12 @@ const geocode = require('./geocode');
 const googleDocs = require('./google-docs');
 const socialMedia = require('./social-media');
 const imageGen = require('./image-gen');
+const calculator = require('./calculator');
+const weather = require('./weather');
+const news = require('./news');
+const finance = require('./finance');
+const maps = require('./maps');
+const reminders = require('./reminders');
 
 const DEFINITIONS = {
   memory_save: {
@@ -938,6 +944,174 @@ const DEFINITIONS = {
         required: []
       }
     }
+  },
+
+  // ─── New enhanced tools ────────────────────────────────────────────────────
+  calculate: {
+    type: 'function',
+    function: {
+      name: 'calculate',
+      description: 'Evaluate a math expression precisely — arithmetic, percentages, square roots, exponents, trigonometry. Use for any calculation where accuracy matters: ROI, loan payments, unit conversions, tip calculations, etc. Supports operators + - * / % ** (or ^) and Math functions (sqrt, pow, abs, round, sin, cos, log, PI, E).',
+      parameters: {
+        type: 'object',
+        properties: {
+          expression: { type: 'string', description: 'Math expression to evaluate, e.g. "125 * 1.13" or "sqrt(144)" or "(5000 * 0.08) / 12"' }
+        },
+        required: ['expression']
+      }
+    }
+  },
+
+  get_weather: {
+    type: 'function',
+    function: {
+      name: 'get_weather',
+      description: 'Get real-time weather conditions for any city — temperature, humidity, wind, clouds. More accurate and detailed than web search for weather. Use whenever someone asks about current weather or conditions.',
+      parameters: {
+        type: 'object',
+        properties: {
+          location: { type: 'string', description: 'City name, e.g. "Toronto", "London, UK", "Dubai"' },
+          lat:   { type: 'number', description: 'Latitude (alternative to location name)' },
+          lon:   { type: 'number', description: 'Longitude (alternative to location name)' },
+          units: { type: 'string', description: '"metric" (Celsius, default) or "imperial" (Fahrenheit)' }
+        },
+        required: []
+      }
+    }
+  },
+
+  get_forecast: {
+    type: 'function',
+    function: {
+      name: 'get_forecast',
+      description: 'Get a multi-day weather forecast (up to 5 days) for any city. Use when someone asks about upcoming weather or plans that depend on weather.',
+      parameters: {
+        type: 'object',
+        properties: {
+          location: { type: 'string', description: 'City name, e.g. "Toronto", "London, UK"' },
+          lat:   { type: 'number', description: 'Latitude (alternative to location name)' },
+          lon:   { type: 'number', description: 'Longitude (alternative to location name)' },
+          days:  { type: 'integer', description: 'Number of days to forecast (1–5, default 3)' },
+          units: { type: 'string', description: '"metric" (Celsius, default) or "imperial" (Fahrenheit)' }
+        },
+        required: []
+      }
+    }
+  },
+
+  get_news: {
+    type: 'function',
+    function: {
+      name: 'get_news',
+      description: 'Fetch the latest news articles on any topic or category. Use when someone asks "what\'s in the news about X" or wants recent headlines.',
+      parameters: {
+        type: 'object',
+        properties: {
+          topic:    { type: 'string', description: 'News topic/keyword, e.g. "cybersecurity", "Toronto real estate", "AI"' },
+          category: { type: 'string', description: 'News category: "business", "technology", "sports", "entertainment", "health", "science" (for top headlines without a topic)' },
+          country:  { type: 'string', description: 'Country code for top headlines: "ca" (Canada, default), "us", "gb"' },
+          count:    { type: 'integer', description: 'Number of articles to return (default 5, max 10)' }
+        },
+        required: []
+      }
+    }
+  },
+
+  get_stock_price: {
+    type: 'function',
+    function: {
+      name: 'get_stock_price',
+      description: 'Look up the current stock price and daily change for any publicly traded company. Use for finance questions about specific stocks.',
+      parameters: {
+        type: 'object',
+        properties: {
+          symbol: { type: 'string', description: 'Stock ticker symbol, e.g. "AAPL", "MSFT", "SHOP.TO", "CNR.TO", "BTC-USD"' }
+        },
+        required: ['symbol']
+      }
+    }
+  },
+
+  convert_currency: {
+    type: 'function',
+    function: {
+      name: 'convert_currency',
+      description: 'Convert money between currencies using live exchange rates. Supports all major currencies (CAD, USD, GBP, EUR, AED, PKR, INR, etc.).',
+      parameters: {
+        type: 'object',
+        properties: {
+          amount: { type: 'number', description: 'Amount to convert (default: 1)' },
+          from:   { type: 'string', description: 'Source currency code, e.g. "CAD", "USD", "GBP"' },
+          to:     { type: 'string', description: 'Target currency code, e.g. "USD", "PKR", "AED"' }
+        },
+        required: ['from', 'to']
+      }
+    }
+  },
+
+  get_distance: {
+    type: 'function',
+    function: {
+      name: 'get_distance',
+      description: 'Get driving/transit/walking distance and estimated travel time between two locations. Returns real-time traffic-aware estimates for driving. Use when someone asks how long it takes to get somewhere or how far it is.',
+      parameters: {
+        type: 'object',
+        properties: {
+          origins:      { type: 'string', description: 'Starting location, e.g. "123 Main St, Toronto" or "Mississauga, ON"' },
+          destinations: { type: 'string', description: 'Destination, e.g. "Pearson Airport, Toronto" or "CN Tower"' },
+          mode:         { type: 'string', description: 'Travel mode: "driving" (default), "transit", "walking", "bicycling"' }
+        },
+        required: ['origins', 'destinations']
+      }
+    }
+  },
+
+  set_reminder: {
+    type: 'function',
+    function: {
+      name: 'set_reminder',
+      description: 'Set a reminder to be sent via WhatsApp at a specific time. The reminder message will be proactively sent when the time comes. Use for "remind me to X in Y minutes/hours/days" or "remind me tomorrow at 3pm".',
+      parameters: {
+        type: 'object',
+        properties: {
+          message:       { type: 'string', description: 'The reminder message to send, e.g. "Pick up Hassan from school" or "Call Dr. Ahmed about appointment"' },
+          at:            { type: 'string', description: 'When to send: ISO datetime "2025-06-24T14:00:00" or relative "30 min", "2 hours", "1 day", "1 week"' },
+          repeat:        { type: 'string', description: 'Optional repeat: "none" (default), "daily", or "weekly"' },
+          recipient_jid: { type: 'string', description: 'Optional: WhatsApp JID to send to. Leave blank to send to whoever set the reminder.' }
+        },
+        required: ['message', 'at']
+      }
+    }
+  },
+
+  list_reminders: {
+    type: 'function',
+    function: {
+      name: 'list_reminders',
+      description: 'List all active (upcoming) reminders.',
+      parameters: {
+        type: 'object',
+        properties: {
+          include_sent: { type: 'boolean', description: 'Include already-sent one-time reminders (default: false)' }
+        },
+        required: []
+      }
+    }
+  },
+
+  cancel_reminder: {
+    type: 'function',
+    function: {
+      name: 'cancel_reminder',
+      description: 'Cancel a scheduled reminder by its ID.',
+      parameters: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer', description: 'Reminder ID from list_reminders' }
+        },
+        required: ['id']
+      }
+    }
   }
 };
 
@@ -958,7 +1132,13 @@ const AGENT_TOOLS = {
     'google_create_doc', 'google_append_doc', 'google_read_doc', 'google_search_drive', 'google_update_doc',
     'social_save_post', 'social_list_posts', 'social_delete_post',
     'image_generate',
-    'web_search', 'fetch_webpage'
+    'web_search', 'fetch_webpage',
+    'calculate',
+    'get_weather', 'get_forecast',
+    'get_news',
+    'get_stock_price', 'convert_currency',
+    'get_distance',
+    'set_reminder', 'list_reminders', 'cancel_reminder',
   ],
   family: [
     'get_current_time', 'get_current_date',
@@ -970,7 +1150,13 @@ const AGENT_TOOLS = {
     'send_whatsapp_message', 'geocode_location',
     'm365_list_todos', 'm365_create_todo',
     'm365_save_link', 'm365_set_onenote_section',
-    'web_search', 'fetch_webpage'
+    'web_search', 'fetch_webpage',
+    'calculate',
+    'get_weather', 'get_forecast',
+    'get_news',
+    'get_stock_price', 'convert_currency',
+    'get_distance',
+    'set_reminder', 'list_reminders', 'cancel_reminder',
   ]
 };
 
@@ -989,7 +1175,7 @@ function getToolDefinitions(agentType) {
     .filter(Boolean);
 }
 
-async function executeTool(toolName, args, agentType = 'business') {
+async function executeTool(toolName, args, agentType = 'business', context = {}) {
   // Normalize alternative tool names the model sometimes uses
   const ALIASES = {
     'search':         'web_search',
@@ -1102,6 +1288,19 @@ async function executeTool(toolName, args, agentType = 'business') {
       case 'image_generate':                 return await imageGen.generateImage(args);
       case 'web_search':                     return await web.webSearch(args);
       case 'fetch_webpage':                  return await web.fetchWebpage(args);
+
+      // New enhanced tools
+      case 'calculate':                      return calculator.calculate(args);
+      case 'get_weather':                    return await weather.getWeather(args);
+      case 'get_forecast':                   return await weather.getForecast(args);
+      case 'get_news':                       return await news.getNews(args);
+      case 'get_stock_price':                return await finance.getStockPrice(args);
+      case 'convert_currency':               return await finance.convertCurrency(args);
+      case 'get_distance':                   return await maps.getDistanceMatrix(args);
+      case 'set_reminder':                   return await reminders.setReminder({ ...args, recipient_jid: args.recipient_jid || context.senderJid || null });
+      case 'list_reminders':                 return reminders.listReminders(args);
+      case 'cancel_reminder':                return reminders.cancelReminder(args);
+
       default:                               return { error: `Unknown tool: ${toolName}` };
     }
   } catch (err) {
@@ -1110,4 +1309,4 @@ async function executeTool(toolName, args, agentType = 'business') {
   }
 }
 
-module.exports = { getToolDefinitions, executeTool };
+module.exports = { getToolDefinitions, executeTool, AGENT_TOOLS };
