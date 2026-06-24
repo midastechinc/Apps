@@ -18,6 +18,7 @@ const finance = require('./finance');
 const maps = require('./maps');
 const reminders = require('./reminders');
 const dashboard = require('./dashboard');
+const supabase = require('./supabase');
 
 const DEFINITIONS = {
   memory_save: {
@@ -1230,6 +1231,42 @@ const DEFINITIONS = {
     }
   },
 
+  supabase_query: {
+    type: 'function',
+    function: {
+      name: 'supabase_query',
+      description: 'Read or write data in any Supabase table. Use for tracking personal data, custom lists, Hassan coupons, or anything that needs persistent storage. Operations: select, insert, update, delete, upsert.',
+      parameters: {
+        type: 'object',
+        properties: {
+          table:     { type: 'string', description: 'Table name (e.g. hassan_coupons, clients, devices)' },
+          operation: { type: 'string', enum: ['select', 'insert', 'update', 'delete', 'upsert'], description: 'Operation to perform (default: select)' },
+          columns:   { type: 'string', description: 'Columns to return for select (default: *)' },
+          filters:   { description: 'Filter rows. Object like {"status":"active"} or PostgREST string like "used_count=lt.3". Required for update/delete.', type: ['object', 'string'] },
+          data:      { type: 'object', description: 'Row data for insert/update/upsert' },
+          limit:     { type: 'integer', description: 'Max rows for select (default 100)' },
+          order:     { type: 'string', description: 'Order for select e.g. "created_at.desc" or "name.asc"' }
+        },
+        required: ['table']
+      }
+    }
+  },
+
+  supabase_run_sql: {
+    type: 'function',
+    function: {
+      name: 'supabase_run_sql',
+      description: 'Execute raw SQL on the Supabase database. Use to CREATE tables, ALTER schemas, or run queries that PostgREST cannot express. NEVER DROP tables or DELETE without a WHERE clause without explicit user confirmation.',
+      parameters: {
+        type: 'object',
+        properties: {
+          sql: { type: 'string', description: 'The SQL to execute' }
+        },
+        required: ['sql']
+      }
+    }
+  },
+
   save_receipt: {
     type: 'function',
     function: {
@@ -1278,6 +1315,7 @@ const AGENT_TOOLS = {
     'set_reminder', 'list_reminders', 'cancel_reminder',
     'save_receipt',
     'dashboard_list_clients', 'dashboard_get_client', 'dashboard_list_devices', 'dashboard_list_backup_jobs', 'dashboard_list_integrations',
+    'supabase_query', 'supabase_run_sql',
   ],
   family: [
     'get_current_time', 'get_current_date',
@@ -1296,6 +1334,7 @@ const AGENT_TOOLS = {
     'get_stock_price', 'convert_currency',
     'get_distance',
     'set_reminder', 'list_reminders', 'cancel_reminder',
+    'supabase_query', 'supabase_run_sql',
   ]
 };
 
@@ -1442,6 +1481,10 @@ async function executeTool(toolName, args, agentType = 'business', context = {})
       case 'list_reminders':                 return reminders.listReminders(args);
       case 'cancel_reminder':                return reminders.cancelReminder(args);
       case 'save_receipt':                   return await receipts.saveReceipt(args, context);
+
+      // Generic Supabase tools
+      case 'supabase_query':                 return await supabase.supabaseQuery(args);
+      case 'supabase_run_sql':               return await supabase.supabaseRunSql(args);
 
       // Dashboard (Supabase)
       case 'dashboard_list_clients':         return await dashboard.listClients(args);
