@@ -656,7 +656,9 @@ async function processMessage(senderJid, text, imageInfo = null, { fromGroup = f
   }
 
   // On-demand social content generation — only Ali's main number can trigger
-  if (text && /\b(generate|create|run|make)\b.{0,25}\b(social|posts?|content)\b/i.test(text)) {
+  // Requires "social" or "all posts"/"all platforms" — NOT single-platform requests like "generate a linkedin post"
+  if (text && /\b(generate|create|run|make)\b.{0,30}\b(social\s*(media\s*)?(content|posts?)?|all\s*(platforms?|posts?))\b/i.test(text)
+           && !/\b(linkedin|instagram|google)\b/i.test(text)) {
     const cfg = getConfig();
     const senderNum = jidToNumber(senderJid);
     if (normalizeNumber(cfg.mainNumber) === senderNum) {
@@ -1147,12 +1149,11 @@ async function processSocialContent() {
   // Step 6 — Return separate messages (caller splits on SOCIAL_MSG_SEP and sends each individually)
   const saved = postsToSave.filter(p => p.caption).length;
   const SEP = '\x1ESOCIAL_MSG\x1E';
-  return [
-    `✅ ${saved} posts saved to LeadTracker — *${topic.label}*`,
-    `*LinkedIn*\n${liPost || '(not generated)'}`,
-    `*Instagram*\n${igPost || '(not generated)'}`,
-    `*Google Business*\n${gbPost || '(not generated)'}`,
-  ].join(SEP);
+  const parts = [`✅ ${saved} posts saved to LeadTracker — ${topic.label}`];
+  if (liPost) parts.push(`LinkedIn:\n${liPost}`);
+  if (igPost) parts.push(`Instagram:\n${igPost}`);
+  if (gbPost) parts.push(`Google Business:\n${gbPost}`);
+  return parts.join(SEP);
 }
 
 const SOCIAL_MSG_SEP = '\x1ESOCIAL_MSG\x1E';
