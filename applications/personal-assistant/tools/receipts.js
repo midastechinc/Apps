@@ -59,114 +59,110 @@ async function graphPost(endpoint, body) {
 async function graphGet(endpoint) {
   const token = await getAccessToken();
   if (!token) return { error: 'M365 not configured or token unavailable.' };
-
   const resp = await fetch(`https://graph.microsoft.com/v1.0${endpoint}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!resp.ok) return { error: `Graph ${resp.status}` };
+  if (!resp.ok) return { error: `Graph ${resp.status}: ${(await resp.text()).slice(0, 200)}` };
   return resp.json();
 }
 
-// ─── Create minimal xlsx workbook with a named Table ─────────────────────────
+async function graphPatch(endpoint, body) {
+  const token = await getAccessToken();
+  if (!token) return { error: 'M365 not configured or token unavailable.' };
+  const resp = await fetch(`https://graph.microsoft.com/v1.0${endpoint}`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    return { error: `Graph PATCH ${resp.status}: ${text.slice(0, 300)}` };
+  }
+  if (resp.status === 204) return {};
+  return resp.json();
+}
+
+// ─── Create minimal valid xlsx (no table, inline strings — most compatible) ──
 function buildXlsx() {
   const zip = new AdmZip();
 
-  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  // Inline string cells for header row — no sharedStrings.xml dependency
+  const colLetters = ['A','B','C','D','E','F','G','H'];
+  const cells = COLUMNS.map((col, i) =>
+    `<c r="${colLetters[i]}1" t="inlineStr"><is><t>${col}</t></is></c>`
+  ).join('');
+
+  zip.addFile('[Content_Types].xml', Buffer.from(
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
   <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
-  <Override PartName="/xl/tables/table1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml"/>
   <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
-  <Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>
-</Types>`;
+</Types>`));
 
-  const rootRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  zip.addFile('_rels/.rels', Buffer.from(
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
-</Relationships>`;
+</Relationships>`));
 
-  const wbRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  zip.addFile('xl/workbook.xml', Buffer.from(
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <fileVersion appName="xl" lastEdited="7" lowestEdited="7"/>
+  <sheets><sheet name="Receipts" sheetId="1" r:id="rId1"/></sheets>
+</workbook>`));
+
+  zip.addFile('xl/_rels/workbook.xml.rels', Buffer.from(
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
   <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
-  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>
-</Relationships>`;
+</Relationships>`));
 
-  const sheetRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/table" Target="../tables/table1.xml"/>
-</Relationships>`;
-
-  const workbook = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-  <sheets>
-    <sheet name="Receipts" sheetId="1" r:id="rId1"/>
-  </sheets>
-</workbook>`;
-
-  const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  zip.addFile('xl/styles.xml', Buffer.from(
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
   <fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>
-  <fills count="2">
-    <fill><patternFill patternType="none"/></fill>
-    <fill><patternFill patternType="gray125"/></fill>
-  </fills>
+  <fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>
   <borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
   <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
   <cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs>
-</styleSheet>`;
+  <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>`));
 
-  // Build shared strings from column headers
-  const ssEntries = COLUMNS.map(c => `<si><t>${c}</t></si>`).join('');
-  const sharedStrings = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${COLUMNS.length}" uniqueCount="${COLUMNS.length}">
-${ssEntries}
-</sst>`;
-
-  // Header row — cells reference shared strings by index
-  const colLetters = ['A','B','C','D','E','F','G','H'];
-  const cells = COLUMNS.map((_, i) => `<c r="${colLetters[i]}1" t="s"><v>${i}</v></c>`).join('');
-  const lastCol = colLetters[COLUMNS.length - 1];
-
-  const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-  <sheetData>
-    <row r="1">${cells}</row>
-  </sheetData>
-  <tableParts count="1"><tablePart r:id="rId1"/></tableParts>
-</worksheet>`;
-
-  const tableColumns = COLUMNS.map((c, i) => `<tableColumn id="${i+1}" name="${c}"/>`).join('');
-  const table = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<table xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
-  id="1" name="${TABLE_NAME}" displayName="${TABLE_NAME}" ref="A1:${lastCol}1" totalsRowShown="0">
-  <autoFilter ref="A1:${lastCol}1"/>
-  <tableColumns count="${COLUMNS.length}">${tableColumns}</tableColumns>
-  <tableStyleInfo name="TableStyleMedium9" showFirstColumn="0" showLastColumn="0" showRowStripes="1" showColumnStripes="0"/>
-</table>`;
-
-  zip.addFile('[Content_Types].xml',          Buffer.from(contentTypes));
-  zip.addFile('_rels/.rels',                  Buffer.from(rootRels));
-  zip.addFile('xl/workbook.xml',              Buffer.from(workbook));
-  zip.addFile('xl/_rels/workbook.xml.rels',   Buffer.from(wbRels));
-  zip.addFile('xl/styles.xml',                Buffer.from(styles));
-  zip.addFile('xl/sharedStrings.xml',         Buffer.from(sharedStrings));
-  zip.addFile('xl/worksheets/sheet1.xml',     Buffer.from(sheet));
-  zip.addFile('xl/worksheets/_rels/sheet1.xml.rels', Buffer.from(sheetRels));
-  zip.addFile('xl/tables/table1.xml',         Buffer.from(table));
+  zip.addFile('xl/worksheets/sheet1.xml', Buffer.from(
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <sheetData><row r="1">${cells}</row></sheetData>
+</worksheet>`));
 
   return zip.toBuffer();
 }
 
-// ─── Ensure Receipts.xlsx exists, create it if not ───────────────────────────
+// ─── Ensure Receipts.xlsx exists and is openable by the Excel API ────────────
 async function ensureWorkbook() {
+  const filePath = `/users/ali@midastech.ca/drive/root:/${RECEIPTS_FOLDER}/${WORKBOOK_NAME}`;
+
   // Check if file exists
-  const check = await graphGet(`/users/ali@midastech.ca/drive/root:/${RECEIPTS_FOLDER}/${WORKBOOK_NAME}`);
+  const check = await graphGet(filePath);
   if (!check.error) {
-    console.log('[RECEIPTS] Workbook already exists, id=', check.id);
-    return { id: check.id, webUrl: check.webUrl };
+    // Verify the Excel API can actually open it (catches corrupt/minimal files)
+    const verify = await graphGet(`${filePath}:/workbook/worksheets`);
+    if (!verify.error) {
+      console.log('[RECEIPTS] Workbook verified OK, id=', check.id);
+      return { id: check.id, webUrl: check.webUrl };
+    }
+    // File exists but Excel API can't open it — delete and recreate
+    console.warn('[RECEIPTS] Workbook exists but Excel API rejected it — recreating');
+    await graphPost(`/users/ali@midastech.ca/drive/items/${check.id}`, null);
+    // Use trash endpoint
+    await fetch(`https://graph.microsoft.com/v1.0/users/ali@midastech.ca/drive/items/${check.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${await getAccessToken()}` },
+    }).catch(() => {});
   }
 
   // Create the folder if needed
@@ -211,8 +207,14 @@ async function uploadReceiptImage(imageBuffer, mimeType, date, vendor) {
   return { path, webUrl: result.webUrl, id: result.id };
 }
 
-// ─── Append a row to the Receipts table ──────────────────────────────────────
+// ─── Append a row using worksheet range (no table dependency) ────────────────
 async function addReceiptRow({ date, vendor, subtotal, tax, total, category, notes, receiptUrl }) {
+  const base = `/users/ali@midastech.ca/drive/root:/${RECEIPTS_FOLDER}/${WORKBOOK_NAME}:/workbook/worksheets('Receipts')`;
+
+  // Find the current used range to determine next empty row
+  const used = await graphGet(`${base}/usedRange?$select=rowCount`);
+  const nextRow = (used.error || !used.rowCount) ? 2 : used.rowCount + 1;
+
   const values = [[
     date || '',
     vendor || '',
@@ -224,12 +226,10 @@ async function addReceiptRow({ date, vendor, subtotal, tax, total, category, not
     receiptUrl || '',
   ]];
 
-  const result = await graphPost(
-    `/users/ali@midastech.ca/drive/root:/${RECEIPTS_FOLDER}/${WORKBOOK_NAME}:/workbook/tables/${TABLE_NAME}/rows/add`,
-    { values }
-  );
+  const address = `A${nextRow}:H${nextRow}`;
+  const result = await graphPatch(`${base}/range(address='${address}')`, { values });
   if (result.error) return result;
-  console.log(`[RECEIPTS] Row added: ${date} | ${vendor} | $${total}`);
+  console.log(`[RECEIPTS] Row ${nextRow} written: ${date} | ${vendor} | $${total}`);
   return { success: true };
 }
 
