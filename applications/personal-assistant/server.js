@@ -709,10 +709,14 @@ app.post('/api/cleanup-recipe-books', requireAdminKey, async (_req, res) => {
   try {
     const { searchDrive, trashDoc } = require('./tools/google-docs');
     const TITLE = 'Jaffar Family Recipe Book 🍛';
-    const found = await searchDrive({ query: TITLE });
+    // Search without emoji — Drive API can miss emoji in name contains queries
+    const found = await searchDrive({ query: 'Jaffar Family Recipe Book' });
     if (found.error) return res.status(500).json(found);
 
-    const matches = (found.files || []).filter(f => f.name === TITLE);
+    // Accept both with and without emoji (name contains is broad, filter to exact variants)
+    const matches = (found.files || []).filter(f =>
+      f.name === TITLE || f.name === 'Jaffar Family Recipe Book'
+    );
     if (matches.length <= 1) {
       return res.json({ ok: true, message: `Only ${matches.length} copy found — nothing to delete.`, kept: matches[0] || null });
     }
