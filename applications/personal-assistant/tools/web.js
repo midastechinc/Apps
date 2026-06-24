@@ -12,8 +12,8 @@ async function tavilySearch({ query, count = 5, search_depth = 'basic' }) {
   try {
     const resp = await fetch('https://api.tavily.com/search', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ api_key: key, query, max_results: Math.min(count, 10), search_depth }),
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify({ query, max_results: Math.min(count, 10), search_depth }),
       signal: AbortSignal.timeout(12000),
     });
     if (!resp.ok) {

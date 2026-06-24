@@ -12,9 +12,9 @@ async function getNews({ topic = '', category = '', country = 'ca', count = 5 })
 
   let url;
   if (topic) {
-    // Search across all English sources for a topic
-    const params = new URLSearchParams({ q: topic, language: 'en', sortBy: 'publishedAt', pageSize: count, apiKey: key });
-    url = `https://newsapi.org/v2/everything?${params}`;
+    // top-headlines supports q= on free plans; /v2/everything is paid-only
+    const params = new URLSearchParams({ q: topic, language: 'en', pageSize: count, apiKey: key });
+    url = `https://newsapi.org/v2/top-headlines?${params}`;
   } else {
     // Top headlines for a country/category
     const params = new URLSearchParams({ country, pageSize: count, apiKey: key });
