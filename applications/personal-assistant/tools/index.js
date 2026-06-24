@@ -17,6 +17,7 @@ const receipts = require('./receipts');
 const finance = require('./finance');
 const maps = require('./maps');
 const reminders = require('./reminders');
+const dashboard = require('./dashboard');
 
 const DEFINITIONS = {
   memory_save: {
@@ -1144,6 +1145,91 @@ const DEFINITIONS = {
     }
   },
 
+  dashboard_list_clients: {
+    type: 'function',
+    function: {
+      name: 'dashboard_list_clients',
+      description: 'List clients from the Midas Tech support dashboard. Use for "list my clients", "show all clients", "how many clients do we have".',
+      parameters: {
+        type: 'object',
+        properties: {
+          search: { type: 'string', description: 'Filter by client name (partial match)' },
+          status: { type: 'string', description: 'Filter by status (e.g. active, inactive)' },
+          limit: { type: 'integer', description: 'Max results (default 25)' }
+        },
+        required: []
+      }
+    }
+  },
+
+  dashboard_get_client: {
+    type: 'function',
+    function: {
+      name: 'dashboard_get_client',
+      description: 'Get full details for a specific client including their devices and integrations.',
+      parameters: {
+        type: 'object',
+        properties: {
+          client_id: { type: 'string', description: 'Client UUID' },
+          name: { type: 'string', description: 'Client name (partial match)' }
+        },
+        required: []
+      }
+    }
+  },
+
+  dashboard_list_devices: {
+    type: 'function',
+    function: {
+      name: 'dashboard_list_devices',
+      description: 'List monitored devices from the dashboard. Can filter by client name or status.',
+      parameters: {
+        type: 'object',
+        properties: {
+          client_name: { type: 'string', description: 'Filter devices by client name' },
+          client_id: { type: 'string', description: 'Filter devices by client UUID' },
+          status: { type: 'string', description: 'Filter by device status (e.g. online, offline)' },
+          limit: { type: 'integer', description: 'Max results (default 30)' }
+        },
+        required: []
+      }
+    }
+  },
+
+  dashboard_list_backup_jobs: {
+    type: 'function',
+    function: {
+      name: 'dashboard_list_backup_jobs',
+      description: 'List backup jobs from the dashboard. Can filter by client or status.',
+      parameters: {
+        type: 'object',
+        properties: {
+          client_name: { type: 'string', description: 'Filter by client name' },
+          client_id: { type: 'string', description: 'Filter by client UUID' },
+          status: { type: 'string', description: 'Filter by job status (e.g. success, failed, running)' },
+          limit: { type: 'integer', description: 'Max results (default 20)' }
+        },
+        required: []
+      }
+    }
+  },
+
+  dashboard_list_integrations: {
+    type: 'function',
+    function: {
+      name: 'dashboard_list_integrations',
+      description: 'List integrations configured for a specific client (e.g. Datto, RMM, PSA connections).',
+      parameters: {
+        type: 'object',
+        properties: {
+          client_name: { type: 'string', description: 'Client name (partial match)' },
+          client_id: { type: 'string', description: 'Client UUID' }
+        },
+        required: []
+      }
+    }
+  },
+
   save_receipt: {
     type: 'function',
     function: {
@@ -1191,6 +1277,7 @@ const AGENT_TOOLS = {
     'get_distance',
     'set_reminder', 'list_reminders', 'cancel_reminder',
     'save_receipt',
+    'dashboard_list_clients', 'dashboard_get_client', 'dashboard_list_devices', 'dashboard_list_backup_jobs', 'dashboard_list_integrations',
   ],
   family: [
     'get_current_time', 'get_current_date',
@@ -1355,6 +1442,13 @@ async function executeTool(toolName, args, agentType = 'business', context = {})
       case 'list_reminders':                 return reminders.listReminders(args);
       case 'cancel_reminder':                return reminders.cancelReminder(args);
       case 'save_receipt':                   return await receipts.saveReceipt(args, context);
+
+      // Dashboard (Supabase)
+      case 'dashboard_list_clients':         return await dashboard.listClients(args);
+      case 'dashboard_get_client':           return await dashboard.getClient(args);
+      case 'dashboard_list_devices':         return await dashboard.listDevices(args);
+      case 'dashboard_list_backup_jobs':     return await dashboard.listBackupJobs(args);
+      case 'dashboard_list_integrations':    return await dashboard.listClientIntegrations(args);
 
       default:                               return { error: `Unknown tool: ${toolName}` };
     }
