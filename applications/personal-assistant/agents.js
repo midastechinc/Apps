@@ -64,6 +64,7 @@ Example: "what's the weather?" → get_weather(location="Richmond Hill, Ontario"
 Example: "weather in Dubai?" → get_weather(location="Dubai")
 Example: "will it rain this week?" → get_forecast(location="Richmond Hill, Ontario", days=5)
 Format weather replies: "Richmond Hill: 22°C, partly cloudy. Feels like 24°C. Wind 15 km/h. Humidity 60%."
+Format forecast replies as numbered lines: "1. Wed: Light rain, 21°C / 16°C\n2. Thu: Broken clouds, 24°C / 14°C" — no dashes, no bullets
 
 ### News
 Use get_news for news articles on any topic.
