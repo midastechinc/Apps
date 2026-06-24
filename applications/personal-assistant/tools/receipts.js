@@ -248,20 +248,24 @@ async function saveReceipt(args, context = {}) {
 
   // 2. Upload receipt image — try current message buffer first, then pending store (follow-up messages)
   let receiptUrl = '';
-  const imgBuffer = context.imageBuffer || getPendingImage(context.senderJid)?.buffer;
-  const imgMime   = context.imageMimeType || getPendingImage(context.senderJid)?.mimeType;
+  const pendingImg = !context.imageBuffer ? getPendingImage(context.senderJid) : null;
+  const imgBuffer = context.imageBuffer || pendingImg?.buffer;
+  const imgMime   = context.imageMimeType || pendingImg?.mimeType;
   if (imgBuffer) {
     const imgResult = await uploadReceiptImage(imgBuffer, imgMime, date, vendor);
     if (imgResult.error) {
       console.warn('[RECEIPTS] Image upload failed:', imgResult.error);
-      results.imageWarning = `Image upload failed: ${imgResult.error}`;
+      results.imageWarning = imgResult.error;
     } else {
-      receiptUrl = imgResult.webUrl || '';
+      receiptUrl = imgResult.webUrl || imgResult.sharingUrl || '';
       results.imageUrl = receiptUrl;
-      clearPendingImage(context.senderJid); // consumed — remove from store
+      results.imagePath = imgResult.path;
+      if (context.senderJid) clearPendingImage(context.senderJid);
+      console.log('[RECEIPTS] Image URL:', receiptUrl || '(no webUrl returned)');
     }
   } else {
-    console.log('[RECEIPTS] No image buffer available — row saved without image link');
+    results.imageNote = 'No image buffer available — data logged without photo';
+    console.log('[RECEIPTS] No image buffer in context or pending store for', context.senderJid);
   }
 
   // 3. Append row to Excel
