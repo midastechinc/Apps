@@ -591,7 +591,8 @@ async function listEmails({ top = 10, unread_only = false, folder = 'inbox' } = 
   const params = new URLSearchParams({
     $top: String(top),
     $orderby: 'receivedDateTime desc',
-    $select: 'id,subject,from,receivedDateTime,bodyPreview,isRead,importance'
+    $select: 'id,subject,from,receivedDateTime,bodyPreview,isRead,importance,hasAttachments',
+    $expand: 'attachments($select=id,name,contentType)'
   });
   if (unread_only) params.append('$filter', 'isRead eq false');
 
@@ -599,15 +600,20 @@ async function listEmails({ top = 10, unread_only = false, folder = 'inbox' } = 
   if (data.error) return data;
 
   return {
-    emails: (data.value || []).map(e => ({
-      id: e.id,
-      subject: e.subject,
-      from: e.from?.emailAddress?.name || e.from?.emailAddress?.address,
-      received: e.receivedDateTime,
-      preview: e.bodyPreview?.slice(0, 500) || '',
-      is_read: e.isRead,
-      importance: e.importance
-    }))
+    emails: (data.value || []).map(e => {
+      const attachments = (e.attachments || []).map(a => ({ name: a.name, type: a.contentType }));
+      return {
+        id: e.id,
+        subject: e.subject,
+        from: e.from?.emailAddress?.name || e.from?.emailAddress?.address,
+        received: e.receivedDateTime,
+        preview: e.bodyPreview?.slice(0, 500) || '',
+        is_read: e.isRead,
+        importance: e.importance,
+        attachment_count: attachments.length,
+        attachments,
+      };
+    })
   };
 }
 
