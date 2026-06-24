@@ -1239,13 +1239,14 @@ const DEFINITIONS = {
       parameters: {
         type: 'object',
         properties: {
-          table:     { type: 'string', description: 'Table name (e.g. hassan_coupons, clients, devices)' },
-          operation: { type: 'string', enum: ['select', 'insert', 'update', 'delete', 'upsert'], description: 'Operation to perform (default: select)' },
-          columns:   { type: 'string', description: 'Columns to return for select (default: *)' },
-          filters:   { description: 'Filter rows. Object like {"status":"active"} or PostgREST string like "used_count=lt.3". Required for update/delete.', type: ['object', 'string'] },
-          data:      { type: 'object', description: 'Row data for insert/update/upsert' },
-          limit:     { type: 'integer', description: 'Max rows for select (default 100)' },
-          order:     { type: 'string', description: 'Order for select e.g. "created_at.desc" or "name.asc"' }
+          table:      { type: 'string', description: 'Table name (e.g. hassan_coupons, clients, devices)' },
+          operation:  { type: 'string', enum: ['select', 'insert', 'update', 'delete', 'upsert'], description: 'Operation to perform (default: select)' },
+          columns:    { type: 'string', description: 'Columns to return for select (default: *)' },
+          filters:    { description: 'Filter rows. Object like {"status":"active"} or PostgREST string like "used_count=lt.3". Required for update/delete unless delete_all is true.', type: ['object', 'string'] },
+          data:       { type: 'object', description: 'Row data for insert/update/upsert' },
+          limit:      { type: 'integer', description: 'Max rows for select (default 100)' },
+          order:      { type: 'string', description: 'Order for select e.g. "created_at.desc" or "name.asc"' },
+          delete_all: { type: 'boolean', description: 'Set true to delete ALL rows in the table (no filter needed). Only use after user confirms.' }
         },
         required: ['table']
       }

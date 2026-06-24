@@ -77,8 +77,9 @@ async function supabaseQuery({
       body = JSON.stringify(data);
       headers = sbHeaders({ Prefer: 'return=representation' });
     } else if (op === 'delete') {
-      if (!filterStr) return { error: 'filters required for delete (safety: must target specific rows)' };
-      url = `${SUPABASE_URL}/rest/v1/${table}?${filterStr}`;
+      // Allow delete_all to bypass filter requirement when user explicitly confirms
+      if (!filterStr && !args?.delete_all) return { error: 'filters required for delete. To delete all rows, pass delete_all: true' };
+      url = `${SUPABASE_URL}/rest/v1/${table}${filterStr ? '?' + filterStr : ''}`;
       method = 'DELETE';
       headers = sbHeaders({ Prefer: 'return=representation' });
     } else {
