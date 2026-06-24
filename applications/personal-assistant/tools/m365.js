@@ -1393,6 +1393,7 @@ function isConfigured() {
 }
 
 module.exports = {
+  getAccessToken,
   listCalendarEvents, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, findMeetingTimes,
   getOutOfOfficeStatus, setOutOfOffice,
   listEmails, searchEmails, readEmail, sendEmail, replyToEmail, createEmailDraft, sendDraft,

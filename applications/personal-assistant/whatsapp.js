@@ -221,7 +221,8 @@ async function connect() {
           const buffer = await downloadMediaMessage(msg, 'buffer', {}, { logger, reuploadRequest: sock.updateMediaMessage });
           imageInfo = {
             data: buffer.toString('base64'),
-            mimeType: imgMsg.mimetype || 'image/jpeg'
+            mimeType: imgMsg.mimetype || 'image/jpeg',
+            buffer  // raw buffer — used by save_receipt tool to upload to OneDrive
           };
           console.log(`[WA] Image downloaded ${Math.round(buffer.length / 1024)}KB, caption: "${text || ''}"`);
         } catch (err) {

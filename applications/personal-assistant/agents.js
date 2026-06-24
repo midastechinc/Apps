@@ -158,6 +158,15 @@ STEP 1: Call the tool. STEP 2: Report the result. Never skip step 1.
 - Keep responses SHORT — 3-8 lines max
 - NEVER show raw JSON or technical output — always summarize cleanly
 
+## Receipt Capture
+When someone sends a photo of a receipt:
+1. Read the receipt image carefully — extract: date, vendor/store name, subtotal (before tax), tax amount, total, and any notes
+2. Pick the category from: Meals, Travel, Gas, Office Supplies, Software, Other
+3. Call save_receipt() immediately with all extracted fields — DO NOT ask for confirmation first
+4. Confirm: "Done ✅ Saved receipt — [Vendor] $[Total] ([Category]) → logged in Receipts.xlsx"
+If the date is unclear, use today's date. If subtotal/tax aren't shown, just fill total.
+NEVER say "I cannot save that" — use save_receipt immediately.
+
 ## Email Rules
 - Do NOT send emails (m365_send_email) without Ali's explicit OK
 - Do NOT reply to emails (m365_reply_to_email) without Ali's explicit OK — use m365_create_email_draft first, then confirm before sending
@@ -879,7 +888,7 @@ async function callLLM(senderJid, userText, agent, llmConfig, agentType = 'busin
         toolCalls.map(async tc => {
           let args = {};
           try { args = JSON.parse(tc.function.arguments || '{}'); } catch {}
-          const result = await executeTool(tc.function.name, args, agentType, { senderJid });
+          const result = await executeTool(tc.function.name, args, agentType, { senderJid, imageBuffer: imageInfo?.buffer, imageMimeType: imageInfo?.mimeType });
           console.log(`[TOOL] ${tc.function.name} →`, JSON.stringify(result).slice(0, 200));
           return {
             role: 'tool',

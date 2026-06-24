@@ -13,6 +13,7 @@ const imageGen = require('./image-gen');
 const calculator = require('./calculator');
 const weather = require('./weather');
 const news = require('./news');
+const receipts = require('./receipts');
 const finance = require('./finance');
 const maps = require('./maps');
 const reminders = require('./reminders');
@@ -1112,6 +1113,27 @@ const DEFINITIONS = {
         required: ['id']
       }
     }
+  },
+
+  save_receipt: {
+    type: 'function',
+    function: {
+      name: 'save_receipt',
+      description: 'Save a receipt to OneDrive and log it in the Receipts Excel tracker. Call this when someone sends a receipt photo. Extract all fields from the image first, then call this tool. The image is automatically uploaded to /Receipts/YYYY-MM/ and a row is added to Receipts.xlsx.',
+      parameters: {
+        type: 'object',
+        properties: {
+          date:     { type: 'string', description: 'Receipt date in YYYY-MM-DD format' },
+          vendor:   { type: 'string', description: 'Business or store name on the receipt' },
+          subtotal: { type: 'number', description: 'Subtotal before tax (omit if not shown)' },
+          tax:      { type: 'number', description: 'Tax amount (omit if not shown)' },
+          total:    { type: 'number', description: 'Total amount paid (required)' },
+          category: { type: 'string', description: 'Expense category: Meals, Travel, Gas, Office Supplies, Software, or Other' },
+          notes:    { type: 'string', description: 'Any relevant notes, e.g. "team lunch", "client meeting"' }
+        },
+        required: ['date', 'vendor', 'total', 'category']
+      }
+    }
   }
 };
 
@@ -1139,6 +1161,7 @@ const AGENT_TOOLS = {
     'get_stock_price', 'convert_currency',
     'get_distance',
     'set_reminder', 'list_reminders', 'cancel_reminder',
+    'save_receipt',
   ],
   family: [
     'get_current_time', 'get_current_date',
@@ -1300,6 +1323,7 @@ async function executeTool(toolName, args, agentType = 'business', context = {})
       case 'set_reminder':                   return await reminders.setReminder({ ...args, recipient_jid: args.recipient_jid || context.senderJid || null });
       case 'list_reminders':                 return reminders.listReminders(args);
       case 'cancel_reminder':                return reminders.cancelReminder(args);
+      case 'save_receipt':                   return await receipts.saveReceipt(args, context);
 
       default:                               return { error: `Unknown tool: ${toolName}` };
     }
