@@ -30,6 +30,13 @@ async function sbFetch(path) {
   }
 }
 
+// Resolve a client name to its row — returns the first matching client object or null
+async function resolveClient(client_name) {
+  const data = await sbFetch(`clients?select=*&name=ilike.*${encodeURIComponent(client_name)}*&limit=5`);
+  if (!Array.isArray(data) || !data.length) return null;
+  return data[0];
+}
+
 async function listClients({ search = '', status = '', limit = 25 } = {}) {
   let query = `clients?select=*&limit=${limit}&order=name.asc`;
   if (status) query += `&status=eq.${encodeURIComponent(status)}`;
@@ -41,20 +48,19 @@ async function listClients({ search = '', status = '', limit = 25 } = {}) {
 
 async function getClient({ client_id, name } = {}) {
   if (!client_id && !name) return { error: 'client_id or name required' };
-  let query;
+  let data;
   if (client_id) {
-    query = `clients?select=*&id=eq.${encodeURIComponent(client_id)}`;
+    data = await sbFetch(`clients?select=*&id=eq.${encodeURIComponent(client_id)}`);
   } else {
-    query = `clients?select=*&name=ilike.*${encodeURIComponent(name)}*&limit=5`;
+    data = await sbFetch(`clients?select=*&name=ilike.*${encodeURIComponent(name)}*&limit=5`);
   }
-  const data = await sbFetch(query);
   if (!Array.isArray(data)) return data;
   if (!data.length) return { error: 'Client not found' };
-  // Also fetch their integrations and device count
+
   const client = data[0];
   const [integrations, devices] = await Promise.all([
     sbFetch(`clients_integrations?select=*&client_id=eq.${client.id}`),
-    sbFetch(`devices?select=id,name,status&client_id=eq.${client.id}&limit=100`),
+    sbFetch(`devices?select=*&client_id=eq.${client.id}&limit=100`),
   ]);
   return {
     ...client,
@@ -65,30 +71,36 @@ async function getClient({ client_id, name } = {}) {
 }
 
 async function listDevices({ client_id = '', client_name = '', status = '', limit = 30 } = {}) {
-  let query = `devices?select=*&limit=${limit}&order=name.asc`;
-  if (client_id) query += `&client_id=eq.${encodeURIComponent(client_id)}`;
-  if (status) query += `&status=eq.${encodeURIComponent(status)}`;
-  if (client_name && !client_id) {
-    // Resolve client name to ID first
-    const clients = await sbFetch(`clients?select=id,name&name=ilike.*${encodeURIComponent(client_name)}*&limit=5`);
-    if (!Array.isArray(clients) || !clients.length) return { error: `No client found matching "${client_name}"` };
-    query += `&client_id=eq.${clients[0].id}`;
+  let resolvedClientId = client_id;
+  if (!resolvedClientId && client_name) {
+    const client = await resolveClient(client_name);
+    if (!client) return { error: `No client found matching "${client_name}"` };
+    resolvedClientId = client.id;
   }
-  const data = await sbFetch(query);
+
+  // Build query — no assumed column ordering since schema is unknown
+  const params = [`select=*`, `limit=${limit}`];
+  if (resolvedClientId) params.push(`client_id=eq.${encodeURIComponent(resolvedClientId)}`);
+  if (status) params.push(`status=eq.${encodeURIComponent(status)}`);
+
+  const data = await sbFetch(`devices?${params.join('&')}`);
   if (!Array.isArray(data)) return data;
   return { total: data.length, devices: data };
 }
 
 async function listBackupJobs({ client_id = '', client_name = '', status = '', limit = 20 } = {}) {
-  let query = `backup_jobs?select=*&limit=${limit}&order=created_at.desc`;
-  if (client_id) query += `&client_id=eq.${encodeURIComponent(client_id)}`;
-  if (status) query += `&status=eq.${encodeURIComponent(status)}`;
-  if (client_name && !client_id) {
-    const clients = await sbFetch(`clients?select=id,name&name=ilike.*${encodeURIComponent(client_name)}*&limit=5`);
-    if (!Array.isArray(clients) || !clients.length) return { error: `No client found matching "${client_name}"` };
-    query += `&client_id=eq.${clients[0].id}`;
+  let resolvedClientId = client_id;
+  if (!resolvedClientId && client_name) {
+    const client = await resolveClient(client_name);
+    if (!client) return { error: `No client found matching "${client_name}"` };
+    resolvedClientId = client.id;
   }
-  const data = await sbFetch(query);
+
+  const params = [`select=*`, `limit=${limit}`, `order=created_at.desc`];
+  if (resolvedClientId) params.push(`client_id=eq.${encodeURIComponent(resolvedClientId)}`);
+  if (status) params.push(`status=eq.${encodeURIComponent(status)}`);
+
+  const data = await sbFetch(`backup_jobs?${params.join('&')}`);
   if (!Array.isArray(data)) return data;
   return { total: data.length, backup_jobs: data };
 }
@@ -96,12 +108,13 @@ async function listBackupJobs({ client_id = '', client_name = '', status = '', l
 async function listClientIntegrations({ client_id = '', client_name = '' } = {}) {
   let resolvedClientId = client_id;
   if (!resolvedClientId && client_name) {
-    const clients = await sbFetch(`clients?select=id,name&name=ilike.*${encodeURIComponent(client_name)}*&limit=5`);
-    if (!Array.isArray(clients) || !clients.length) return { error: `No client found matching "${client_name}"` };
-    resolvedClientId = clients[0].id;
+    const client = await resolveClient(client_name);
+    if (!client) return { error: `No client found matching "${client_name}"` };
+    resolvedClientId = client.id;
   }
   if (!resolvedClientId) return { error: 'client_id or client_name required' };
-  const data = await sbFetch(`clients_integrations?select=*&client_id=eq.${resolvedClientId}`);
+
+  const data = await sbFetch(`clients_integrations?select=*&client_id=eq.${encodeURIComponent(resolvedClientId)}`);
   if (!Array.isArray(data)) return data;
   return { client_id: resolvedClientId, integrations: data };
 }
