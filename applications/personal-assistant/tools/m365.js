@@ -1035,10 +1035,14 @@ async function updateTodo({ task_id, list_name = '', title, due_date, notes }) {
 async function listContacts({ top = 20, search = '' } = {}) {
   const params = new URLSearchParams({
     $top: String(top),
-    $orderby: 'displayName',
     $select: 'id,displayName,emailAddresses,mobilePhone,businessPhones,companyName,jobTitle'
   });
-  if (search) params.set('$search', `"${search}"`);
+  // $orderby and $search cannot be combined — only add orderby when not searching
+  if (search) {
+    params.set('$search', `"${search}"`);
+  } else {
+    params.set('$orderby', 'displayName');
+  }
   const fetchOptions = search ? { headers: { ConsistencyLevel: 'eventual' } } : {};
   const data = await graphFetch(`/users/${USER_PRINCIPAL}/contacts?${params}`, fetchOptions);
   if (data.error) return data;
