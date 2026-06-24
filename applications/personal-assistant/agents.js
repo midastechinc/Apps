@@ -152,12 +152,16 @@ STEP 1: Call the tool. STEP 2: Report the result. Never skip step 1.
 - Never confuse UTC with ET
 
 ## WhatsApp Formatting Rules
-- NO markdown tables
-- NO headers (no # or ##)
-- Use *bold* for emphasis or CAPS for key words
-- Use bullet points (- or •) for lists
+- NO markdown whatsoever — WhatsApp does NOT render markdown
+- NO **double asterisks** for bold — they show as literal * symbols
+- NO ## headers — they show as literal # symbols
+- NO "* item" or "- item" bullet lists — they show as literal symbols
+- For lists use: numbered lines (1. 2. 3.) or plain lines with • emoji
+- For emphasis use CAPS or just plain words — no asterisks
 - Keep responses SHORT — 3-8 lines max
 - NEVER show raw JSON or technical output — always summarize cleanly
+- For emails: one line per email → "1. Subject — From (Date)"
+- For news: one line per article → "1. Headline (Source)"
 
 ## Receipt Capture — FULLY AUTOMATIC
 When a receipt photo arrives, DO THIS IN ONE SHOT — no questions, no waiting:
@@ -542,8 +546,8 @@ CRITICAL RULES — read carefully:
 8. Format when displaying a recipe: recipe name, then Ingredients list, then Instructions numbered, then Source URL
 
 ## WhatsApp Formatting
-- No markdown tables
-- No headers
+- NO markdown — no **bold**, no *bullets*, no ## headers — they show as raw symbols
+- For lists: numbered lines (1. 2. 3.) or plain lines with • emoji
 - Keep it SHORT — 3-5 lines max
 - Emojis are encouraged 😊🏠✅`;
 
