@@ -1292,11 +1292,12 @@ const DEFINITIONS = {
     type: 'function',
     function: {
       name: 'image_to_pdf',
-      description: 'Convert the image(s) the user just sent into a PDF document and send it back. Use when the user says "convert to PDF", "make this a PDF", "turn into PDF". Combines any pages added via add_page_to_pdf.',
+      description: 'Convert the image(s) the user just sent into a PDF document and send it back. Use when the user says "convert to PDF", "make this a PDF", "turn into PDF". Combines any pages added via add_page_to_pdf. If the user also wants it saved to OneDrive, pass onedrive_folder in THIS SAME call — do not call onedrive_save separately.',
       parameters: {
         type: 'object',
         properties: {
-          filename: { type: 'string', description: 'Optional name for the PDF (e.g. "invoice", "contract")' }
+          filename: { type: 'string', description: 'Optional name for the PDF (e.g. "invoice", "contract")' },
+          onedrive_folder: { type: 'string', description: 'If set, also save the built PDF to this OneDrive folder, e.g. "/Scans/inbox". Use this for "convert and save" requests.' }
         },
         required: []
       }
@@ -1585,7 +1586,22 @@ async function executeTool(toolName, args, agentType = 'business', context = {})
       case 'decode_vin':                     return await vin.decodeVin(args);
 
       // Image → PDF
-      case 'image_to_pdf':                   return await pdf.imageToPdf(args, context);
+      case 'image_to_pdf': {
+        const built = await pdf.imageToPdf(args, context);
+        if (built.error || !args.onedrive_folder) return built;
+        // Atomic build+save: upload the freshly built PDF so tool ordering can't break it
+        const latest = pdf.peekLatestPdf();
+        if (!latest) return { ...built, save_warning: 'PDF built but buffer unavailable to save' };
+        const saved = await m365.uploadToOneDrive({
+          folder_path: args.onedrive_folder,
+          filename: latest.filename,
+          buffer: latest.buffer,
+          contentType: 'application/pdf',
+        });
+        return saved.error
+          ? { ...built, save_error: saved.error }
+          : { ...built, saved_to_onedrive: saved.saved_in, onedrive_url: saved.url };
+      }
       case 'add_page_to_pdf':                return await pdf.addPageToPdf(args, context);
 
       // Generic Supabase tools
