@@ -1341,15 +1341,17 @@ async function uploadToOneDrive({ folder_path = '/', filename, buffer, contentTy
   const token = await getAccessToken();
   if (!token) return { error: 'M365 not configured or token unavailable.' };
 
-  // Normalize: "/Scans/inbox" + "file.pdf" → "/Scans/inbox/file.pdf"
-  const clean = ('/' + String(folder_path).replace(/^\/+|\/+$/g, '')).replace(/\/+/g, '/');
-  const fullPath = (clean === '/' ? '' : clean) + '/' + filename;
-  const endpoint = `/users/${USER_PRINCIPAL}/drive/root:${fullPath}:/content`;
-
   // Files >4MB need an upload session; PDFs from images are usually small, but guard anyway
   if (buffer.length > 4 * 1024 * 1024) {
     return { error: 'File larger than 4MB — chunked upload not supported yet.' };
   }
+
+  // Normalize the folder, then URL-encode each path segment (handles spaces, etc.)
+  const cleanFolder = String(folder_path).replace(/^\/+|\/+$/g, '').replace(/\/+/g, '/');
+  const segments = [...(cleanFolder ? cleanFolder.split('/') : []), filename];
+  const encodedPath = segments.map(s => encodeURIComponent(s)).join('/');
+  const endpoint = `/users/${USER_PRINCIPAL}/drive/root:/${encodedPath}:/content`;
+  const humanPath = '/' + [...(cleanFolder ? cleanFolder.split('/') : []), filename].join('/');
 
   const resp = await fetch(`https://graph.microsoft.com/v1.0${endpoint}`, {
     method: 'PUT',
@@ -1361,8 +1363,9 @@ async function uploadToOneDrive({ folder_path = '/', filename, buffer, contentTy
     return { error: `OneDrive upload ${resp.status}: ${body.slice(0, 300)}` };
   }
   const data = await resp.json();
-  console.log(`[ONEDRIVE] Uploaded → ${fullPath}`);
-  return { success: true, path: fullPath, name: data.name, url: data.webUrl, id: data.id };
+  const actualLocation = (data.parentReference?.path || '').replace('/drive/root:', '') || '(root)';
+  console.log(`[ONEDRIVE] Uploaded "${data.name}" → ${actualLocation}`);
+  return { success: true, requested_path: humanPath, saved_in: actualLocation, name: data.name, url: data.webUrl, id: data.id };
 }
 
 // Move an existing OneDrive file into another folder (by item id or by source path)
