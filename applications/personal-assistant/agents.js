@@ -680,6 +680,21 @@ async function processMessage(senderJid, text, imageInfo = null, { fromGroup = f
     }
   }
 
+  // Backfill semantic embeddings for existing memories. Trigger: "backfill memory".
+  if (text && /^\s*backfill\s+memory\s*$/i.test(text)) {
+    const cfg = getConfig();
+    const senderNum = jidToNumber(senderJid);
+    if (normalizeNumber(cfg.mainNumber) === senderNum) {
+      try {
+        const result = await sbMemory.backfillEmbeddings();
+        if (result?.error) return `Backfill failed: ${result.error}`;
+        return `🧠 Memory backfill done — ${result.embedded} embedded, ${result.failed} failed (of ${result.total}).`;
+      } catch (err) {
+        return `Backfill failed: ${err.message}`;
+      }
+    }
+  }
+
   // On-demand social content generation — only Ali's main number can trigger
   // Requires "social" or "all posts"/"all platforms" — NOT single-platform requests like "generate a linkedin post"
   if (text && /\b(generate|create|run|make)\b.{0,30}\b(social\s*(media\s*)?(content|posts?)?|all\s*(platforms?|posts?))\b/i.test(text)
