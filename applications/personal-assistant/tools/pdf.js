@@ -28,21 +28,31 @@ function resolveImage(context = {}) {
   return pending ? { buffer: pending.buffer, mimeType: pending.mimeType } : null;
 }
 
-function isJpeg(buf) { return buf && buf.length > 3 && buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF; }
 function isPng(buf) { return buf && buf.length > 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47; }
 
-// Embed an image buffer into the PDF. Prefers direct embed (no sharp); falls back to
-// sharp only for unusual formats, and only if sharp is actually available.
+// Embed an image into the PDF. WhatsApp JPEGs are often progressive/CMYK, which
+// pdf-lib's embedJpg accepts but renders BLANK. So we normalize everything to a
+// clean baseline PNG via jimp (pure JS — loads reliably where sharp doesn't).
 async function embedImage(pdfDoc, buffer) {
-  if (isJpeg(buffer)) return pdfDoc.embedJpg(buffer);
-  if (isPng(buffer))  return pdfDoc.embedPng(buffer);
-  // Unknown format (webp, heic, etc.) — try sharp to convert to JPEG
+  // Already a clean PNG — embed directly
+  if (isPng(buffer)) {
+    try { return await pdfDoc.embedPng(buffer); } catch { /* fall through to jimp */ }
+  }
+  // Normalize via jimp → baseline JPEG (handles progressive/CMYK JPEG, orientation,
+  // webp). jimp emits BASELINE jpeg, which pdf-lib renders correctly — unlike the
+  // progressive jpegs WhatsApp sends. Downscale large photos to keep files small.
   try {
-    const sharp = require('sharp');
-    const jpeg = await sharp(buffer).rotate().jpeg({ quality: 85 }).toBuffer();
-    return pdfDoc.embedJpg(jpeg);
+    const { Jimp } = require('jimp');
+    const img = await Jimp.read(buffer);
+    const MAX = 2000;
+    if (img.bitmap.width > MAX || img.bitmap.height > MAX) {
+      if (img.bitmap.width >= img.bitmap.height) img.resize({ w: MAX });
+      else img.resize({ h: MAX });
+    }
+    const jpeg = await img.getBuffer('image/jpeg', { quality: 82 });
+    return await pdfDoc.embedJpg(jpeg);
   } catch (err) {
-    throw new Error(`Unsupported image format (and sharp unavailable: ${err.message})`);
+    throw new Error(`Could not embed image: ${err.message}`);
   }
 }
 
