@@ -1335,6 +1335,34 @@ async function getOneDriveShareLink({ item_id, link_type = 'view' }) {
   return { success: true, item_id, link: data.link?.webUrl, type: data.link?.type };
 }
 
+// Live diagnostic — tests OneDrive read + write and returns exact Graph responses
+async function diagnoseOneDrive() {
+  const lines = [];
+  const token = await getAccessToken();
+  lines.push(`token: ${token ? 'OK' : 'MISSING'}`);
+  if (!token) return lines.join('\n');
+
+  // 1. Can we read the drive root?
+  const root = await graphFetch(`/users/${USER_PRINCIPAL}/drive/root/children?$top=5&$select=name,folder`);
+  if (root.error) lines.push(`1) read root: ERROR ${String(root.error).slice(0, 150)}`);
+  else lines.push(`1) read root OK — top items: ${(root.value || []).map(i => i.name).join(', ') || '(empty)'}`);
+
+  // 2. Does /Scans exist?
+  const scans = await graphFetch(`/users/${USER_PRINCIPAL}/drive/root:/Scans`);
+  lines.push(scans.error ? `2) /Scans: NOT FOUND (${String(scans.error).slice(0, 100)})` : `2) /Scans: exists (id ${scans.id?.slice(0, 12)})`);
+
+  // 3. Does /Scans/inbox exist?
+  const inbox = await graphFetch(`/users/${USER_PRINCIPAL}/drive/root:/Scans/inbox`);
+  lines.push(inbox.error ? `3) /Scans/inbox: NOT FOUND (${String(inbox.error).slice(0, 100)})` : `3) /Scans/inbox: exists`);
+
+  // 4. Try a tiny test upload
+  const testBuf = Buffer.from('claudia onedrive write test', 'utf8');
+  const up = await uploadToOneDrive({ folder_path: '/Scans/inbox', filename: 'claudia_write_test.txt', buffer: testBuf, contentType: 'text/plain' });
+  lines.push(up.error ? `4) write test: ERROR ${String(up.error).slice(0, 200)}` : `4) write test OK → saved_in: ${up.saved_in}`);
+
+  return lines.join('\n');
+}
+
 // Upload a raw buffer to a OneDrive path (creates parent folders implicitly on the path)
 async function uploadToOneDrive({ folder_path = '/', filename, buffer, contentType = 'application/octet-stream' }) {
   if (!filename || !buffer) return { error: 'filename and buffer are required' };
@@ -1524,7 +1552,7 @@ module.exports = {
   listContacts, createContact,
   searchOneNote, saveLink, listOneNoteStructure, getPageIdsForLinkPages, diagnoseOneNote,
   createOneNotePage, readOneNotePage, setOneNoteSection,
-  searchOneDrive, listOneDriveFolder, getOneDriveShareLink, uploadToOneDrive, moveOneDriveItem,
+  searchOneDrive, listOneDriveFolder, getOneDriveShareLink, uploadToOneDrive, moveOneDriveItem, diagnoseOneDrive,
   listSharePointSites, searchSharePoint, listSharePointFiles,
   isConfigured,
 

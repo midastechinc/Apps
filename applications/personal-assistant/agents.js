@@ -697,6 +697,21 @@ async function processMessage(senderJid, text, imageInfo = null, { fromGroup = f
     }
   }
 
+  // Raw diagnostic for OneDrive read/write. Trigger: "debug onedrive".
+  if (text && /^\s*debug\s+onedrive\s*$/i.test(text)) {
+    const cfg = getConfig();
+    const senderNum = jidToNumber(senderJid);
+    if (normalizeNumber(cfg.mainNumber) === senderNum) {
+      try {
+        const m365 = require('./tools/m365');
+        const report = await m365.diagnoseOneDrive();
+        return `🔎 OneDrive diagnostic:\n${report}`;
+      } catch (err) {
+        return `Diagnostic failed: ${err.message}`;
+      }
+    }
+  }
+
   // Backfill semantic embeddings for existing memories. Trigger: "backfill memory".
   if (text && /^\s*backfill\s+memory\s*$/i.test(text)) {
     const cfg = getConfig();
