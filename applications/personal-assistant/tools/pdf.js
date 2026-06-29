@@ -5,8 +5,13 @@ const { getPendingImage, clearPendingImage } = require('./image-store');
 // Per-sender accumulator for multi-page PDFs
 const _pages = {}; // { [senderJid]: [{ buffer, mimeType }] }
 
-// Latest built PDF, popped by whatsapp.js to send as a document
+// Send queue — popped once by whatsapp.js to deliver the document, then cleared
 let _latestPdf = null; // { buffer, filename }
+
+// Persistent copy of the most recent build — survives the send so a follow-up
+// "save it to OneDrive" still works. Kept for PDF_TTL_MS.
+let _lastBuiltPdf = null; // { buffer, filename, ts }
+const PDF_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 function popLatestPdf() {
   const p = _latestPdf;
@@ -14,9 +19,10 @@ function popLatestPdf() {
   return p;
 }
 
-// Read the last-built PDF without consuming it (so it can also be sent to WhatsApp)
+// Read the most recent built PDF (within TTL) for saving — does NOT consume it
 function peekLatestPdf() {
-  return _latestPdf;
+  if (_lastBuiltPdf && Date.now() - _lastBuiltPdf.ts < PDF_TTL_MS) return _lastBuiltPdf;
+  return null;
 }
 
 // Resolve the image the user just sent — current message buffer first, then pending store
@@ -98,7 +104,9 @@ async function imageToPdf(args = {}, context = {}) {
     let name = (args.filename || 'document').replace(/[^a-zA-Z0-9 _-]/g, '').trim() || 'document';
     if (!name.toLowerCase().endsWith('.pdf')) name += '.pdf';
 
-    _latestPdf = { buffer: Buffer.from(bytes), filename: name };
+    const buf = Buffer.from(bytes);
+    _latestPdf = { buffer: buf, filename: name };           // send queue (popped once)
+    _lastBuiltPdf = { buffer: buf, filename: name, ts: Date.now() }; // persists for follow-up save
     delete _pages[key];
     if (context.senderJid) clearPendingImage(context.senderJid);
 
