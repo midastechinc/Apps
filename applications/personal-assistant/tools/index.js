@@ -19,6 +19,7 @@ const maps = require('./maps');
 const reminders = require('./reminders');
 const dashboard = require('./dashboard');
 const supabase = require('./supabase');
+const vin = require('./vin');
 
 const DEFINITIONS = {
   memory_save: {
@@ -1253,6 +1254,21 @@ const DEFINITIONS = {
     }
   },
 
+  decode_vin: {
+    type: 'function',
+    function: {
+      name: 'decode_vin',
+      description: 'Decode a 17-character Vehicle Identification Number (VIN) to get year, make, model, trim, engine, and more. Use this whenever someone gives a VIN — NEVER refuse.',
+      parameters: {
+        type: 'object',
+        properties: {
+          vin: { type: 'string', description: 'The 17-character VIN' }
+        },
+        required: ['vin']
+      }
+    }
+  },
+
   supabase_run_sql: {
     type: 'function',
     function: {
@@ -1317,6 +1333,7 @@ const AGENT_TOOLS = {
     'save_receipt',
     'dashboard_list_clients', 'dashboard_get_client', 'dashboard_list_devices', 'dashboard_list_backup_jobs', 'dashboard_list_integrations',
     'supabase_query', 'supabase_run_sql',
+    'decode_vin',
   ],
   family: [
     'get_current_time', 'get_current_date',
@@ -1336,6 +1353,7 @@ const AGENT_TOOLS = {
     'get_distance',
     'set_reminder', 'list_reminders', 'cancel_reminder',
     'supabase_query', 'supabase_run_sql',
+    'decode_vin',
   ]
 };
 
@@ -1482,6 +1500,9 @@ async function executeTool(toolName, args, agentType = 'business', context = {})
       case 'list_reminders':                 return reminders.listReminders(args);
       case 'cancel_reminder':                return reminders.cancelReminder(args);
       case 'save_receipt':                   return await receipts.saveReceipt(args, context);
+
+      // VIN decoder
+      case 'decode_vin':                     return await vin.decodeVin(args);
 
       // Generic Supabase tools
       case 'supabase_query':                 return await supabase.supabaseQuery(args);
