@@ -20,6 +20,7 @@ const reminders = require('./reminders');
 const dashboard = require('./dashboard');
 const supabase = require('./supabase');
 const vin = require('./vin');
+const pdf = require('./pdf');
 
 const DEFINITIONS = {
   memory_save: {
@@ -1254,6 +1255,30 @@ const DEFINITIONS = {
     }
   },
 
+  image_to_pdf: {
+    type: 'function',
+    function: {
+      name: 'image_to_pdf',
+      description: 'Convert the image(s) the user just sent into a PDF document and send it back. Use when the user says "convert to PDF", "make this a PDF", "turn into PDF". Combines any pages added via add_page_to_pdf.',
+      parameters: {
+        type: 'object',
+        properties: {
+          filename: { type: 'string', description: 'Optional name for the PDF (e.g. "invoice", "contract")' }
+        },
+        required: []
+      }
+    }
+  },
+
+  add_page_to_pdf: {
+    type: 'function',
+    function: {
+      name: 'add_page_to_pdf',
+      description: 'Add the current image as a page to a multi-page PDF being collected, without building it yet. Use when the user wants to combine several images into one PDF ("add this page", "another page"). Call image_to_pdf when they are done to build and send it.',
+      parameters: { type: 'object', properties: {}, required: [] }
+    }
+  },
+
   decode_vin: {
     type: 'function',
     function: {
@@ -1334,6 +1359,7 @@ const AGENT_TOOLS = {
     'dashboard_list_clients', 'dashboard_get_client', 'dashboard_list_devices', 'dashboard_list_backup_jobs', 'dashboard_list_integrations',
     'supabase_query', 'supabase_run_sql',
     'decode_vin',
+    'image_to_pdf', 'add_page_to_pdf',
   ],
   family: [
     'get_current_time', 'get_current_date',
@@ -1354,6 +1380,7 @@ const AGENT_TOOLS = {
     'set_reminder', 'list_reminders', 'cancel_reminder',
     'supabase_query', 'supabase_run_sql',
     'decode_vin',
+    'image_to_pdf', 'add_page_to_pdf',
   ]
 };
 
@@ -1503,6 +1530,10 @@ async function executeTool(toolName, args, agentType = 'business', context = {})
 
       // VIN decoder
       case 'decode_vin':                     return await vin.decodeVin(args);
+
+      // Image → PDF
+      case 'image_to_pdf':                   return await pdf.imageToPdf(args, context);
+      case 'add_page_to_pdf':                return await pdf.addPageToPdf(args, context);
 
       // Generic Supabase tools
       case 'supabase_query':                 return await supabase.supabaseQuery(args);

@@ -436,6 +436,22 @@ async function connect() {
               console.error('[WA] Image reply send failed:', imgErr.message);
             }
 
+            // Send a freshly built PDF as a document, if one is waiting
+            try {
+              const { popLatestPdf } = require('./tools/pdf');
+              const pdf = popLatestPdf();
+              if (pdf) {
+                await sock.sendMessage(rawJid, {
+                  document: pdf.buffer,
+                  fileName: pdf.filename,
+                  mimetype: 'application/pdf',
+                });
+                console.log(`[WA] PDF sent to ${rawJid} (${pdf.filename}, ${Math.round(pdf.buffer.length / 1024)}KB)`);
+              }
+            } catch (pdfErr) {
+              console.error('[WA] PDF send failed:', pdfErr.message);
+            }
+
             // Strip any [IMAGE_ID:...] tag from the text before sending
             const cleanReply = reply.replace(/\[IMAGE_ID:[^\]]*\]/gi, '').trim();
             if (cleanReply) {
