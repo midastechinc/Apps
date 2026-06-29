@@ -8,9 +8,11 @@ const _pages = {}; // { [senderJid]: [{ buffer, mimeType }] }
 // Send queue — popped once by whatsapp.js to deliver the document, then cleared
 let _latestPdf = null; // { buffer, filename }
 
-// Persistent copy of the most recent build — survives the send so a follow-up
-// "save it to OneDrive" still works. Kept for PDF_TTL_MS.
-let _lastBuiltPdf = null; // { buffer, filename, ts }
+// Persistent copies of recent PDFs — survive sends so a follow-up "save it to
+// OneDrive" works. _lastBuiltPdf = built from images; _lastUploadedPdf = a PDF
+// the user uploaded via WhatsApp. Both kept for PDF_TTL_MS.
+let _lastBuiltPdf = null;    // { buffer, filename, ts }
+let _lastUploadedPdf = null; // { buffer, filename, ts }
 const PDF_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 function popLatestPdf() {
@@ -19,10 +21,18 @@ function popLatestPdf() {
   return p;
 }
 
-// Read the most recent built PDF (within TTL) for saving — does NOT consume it
+// Called by whatsapp.js when the user uploads a PDF document
+function setUploadedPdf(buffer, filename) {
+  _lastUploadedPdf = { buffer, filename: filename || 'document.pdf', ts: Date.now() };
+}
+
+// Return the most recent savable PDF (built or uploaded) within TTL. Does NOT consume.
 function peekLatestPdf() {
-  if (_lastBuiltPdf && Date.now() - _lastBuiltPdf.ts < PDF_TTL_MS) return _lastBuiltPdf;
-  return null;
+  const now = Date.now();
+  const built = (_lastBuiltPdf && now - _lastBuiltPdf.ts < PDF_TTL_MS) ? _lastBuiltPdf : null;
+  const uploaded = (_lastUploadedPdf && now - _lastUploadedPdf.ts < PDF_TTL_MS) ? _lastUploadedPdf : null;
+  if (built && uploaded) return built.ts >= uploaded.ts ? built : uploaded;
+  return built || uploaded;
 }
 
 // Resolve the image the user just sent — current message buffer first, then pending store
@@ -117,4 +127,4 @@ async function imageToPdf(args = {}, context = {}) {
   }
 }
 
-module.exports = { imageToPdf, addPageToPdf, popLatestPdf, peekLatestPdf };
+module.exports = { imageToPdf, addPageToPdf, popLatestPdf, peekLatestPdf, setUploadedPdf };

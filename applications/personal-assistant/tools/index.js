@@ -1545,7 +1545,7 @@ async function executeTool(toolName, args, agentType = 'business', context = {})
         let buffer, filename, contentType;
         if (args.source === 'pdf') {
           const built = pdf.peekLatestPdf();
-          if (!built) return { error: 'No PDF available. Build one with image_to_pdf first.' };
+          if (!built) return { error: 'No PDF available — upload a PDF or build one from an image first (within the last 30 min).' };
           buffer = built.buffer; filename = args.filename || built.filename; contentType = 'application/pdf';
         } else if (args.source === 'image') {
           const img = context.imageBuffer

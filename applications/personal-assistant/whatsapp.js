@@ -294,6 +294,8 @@ async function connect() {
             const { PDFParse } = require('pdf-parse');
             const buffer = await downloadMediaMessage(msg, 'buffer', {}, { logger, reuploadRequest: sock.updateMediaMessage });
             console.log(`[WA] PDF downloaded ${Math.round(buffer.length / 1024)}KB: ${fileName}`);
+            // Retain the raw PDF so "save to OneDrive" can store the original file
+            try { require('./tools/pdf').setUploadedPdf(buffer, fileName); } catch {}
             const parser = new PDFParse({ data: buffer });
             const result = await parser.getText();
             const pdfText = result.text?.trim() || '';
