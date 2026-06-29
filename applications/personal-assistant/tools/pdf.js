@@ -28,10 +28,22 @@ function resolveImage(context = {}) {
   return pending ? { buffer: pending.buffer, mimeType: pending.mimeType } : null;
 }
 
-// Normalize any image buffer to a JPEG (pdf-lib only embeds JPEG/PNG natively)
-async function toJpeg(buffer) {
-  const sharp = require('sharp');
-  return sharp(buffer).rotate().jpeg({ quality: 85 }).toBuffer();
+function isJpeg(buf) { return buf && buf.length > 3 && buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF; }
+function isPng(buf) { return buf && buf.length > 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47; }
+
+// Embed an image buffer into the PDF. Prefers direct embed (no sharp); falls back to
+// sharp only for unusual formats, and only if sharp is actually available.
+async function embedImage(pdfDoc, buffer) {
+  if (isJpeg(buffer)) return pdfDoc.embedJpg(buffer);
+  if (isPng(buffer))  return pdfDoc.embedPng(buffer);
+  // Unknown format (webp, heic, etc.) — try sharp to convert to JPEG
+  try {
+    const sharp = require('sharp');
+    const jpeg = await sharp(buffer).rotate().jpeg({ quality: 85 }).toBuffer();
+    return pdfDoc.embedJpg(jpeg);
+  } catch (err) {
+    throw new Error(`Unsupported image format (and sharp unavailable: ${err.message})`);
+  }
 }
 
 // Add the current image as a page without building yet
@@ -62,8 +74,7 @@ async function imageToPdf(args = {}, context = {}) {
     const pdfDoc = await PDFDocument.create();
 
     for (const page of pages) {
-      const jpeg = await toJpeg(page.buffer);
-      const img = await pdfDoc.embedJpg(jpeg);
+      const img = await embedImage(pdfDoc, page.buffer);
       // Fit to a US Letter page (612x792 pt) preserving aspect ratio
       const maxW = 612, maxH = 792;
       const scale = Math.min(maxW / img.width, maxH / img.height, 1);
