@@ -1335,6 +1335,67 @@ async function getOneDriveShareLink({ item_id, link_type = 'view' }) {
   return { success: true, item_id, link: data.link?.webUrl, type: data.link?.type };
 }
 
+// Upload a raw buffer to a OneDrive path (creates parent folders implicitly on the path)
+async function uploadToOneDrive({ folder_path = '/', filename, buffer, contentType = 'application/octet-stream' }) {
+  if (!filename || !buffer) return { error: 'filename and buffer are required' };
+  const token = await getAccessToken();
+  if (!token) return { error: 'M365 not configured or token unavailable.' };
+
+  // Normalize: "/Scans/inbox" + "file.pdf" → "/Scans/inbox/file.pdf"
+  const clean = ('/' + String(folder_path).replace(/^\/+|\/+$/g, '')).replace(/\/+/g, '/');
+  const fullPath = (clean === '/' ? '' : clean) + '/' + filename;
+  const endpoint = `/users/${USER_PRINCIPAL}/drive/root:${fullPath}:/content`;
+
+  // Files >4MB need an upload session; PDFs from images are usually small, but guard anyway
+  if (buffer.length > 4 * 1024 * 1024) {
+    return { error: 'File larger than 4MB — chunked upload not supported yet.' };
+  }
+
+  const resp = await fetch(`https://graph.microsoft.com/v1.0${endpoint}`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': contentType },
+    body: buffer,
+  });
+  if (!resp.ok) {
+    const body = await resp.text();
+    return { error: `OneDrive upload ${resp.status}: ${body.slice(0, 300)}` };
+  }
+  const data = await resp.json();
+  console.log(`[ONEDRIVE] Uploaded → ${fullPath}`);
+  return { success: true, path: fullPath, name: data.name, url: data.webUrl, id: data.id };
+}
+
+// Move an existing OneDrive file into another folder (by item id or by source path)
+async function moveOneDriveItem({ item_id, source_path, dest_folder_path, new_name } = {}) {
+  // Resolve item_id from a source path if needed
+  let id = item_id;
+  if (!id && source_path) {
+    const p = ('/' + String(source_path).replace(/^\/+|\/+$/g, '')).replace(/\/+/g, '/');
+    const meta = await graphFetch(`/users/${USER_PRINCIPAL}/drive/root:${p}`);
+    if (meta.error) return meta;
+    id = meta.id;
+  }
+  if (!id) return { error: 'item_id or source_path required' };
+  if (!dest_folder_path) return { error: 'dest_folder_path required' };
+
+  // Resolve destination folder id
+  const dp = ('/' + String(dest_folder_path).replace(/^\/+|\/+$/g, '')).replace(/\/+/g, '/');
+  const destMeta = dp === '/'
+    ? await graphFetch(`/users/${USER_PRINCIPAL}/drive/root`)
+    : await graphFetch(`/users/${USER_PRINCIPAL}/drive/root:${dp}`);
+  if (destMeta.error) return { error: `Destination folder not found: ${destMeta.error}` };
+
+  const body = { parentReference: { id: destMeta.id } };
+  if (new_name) body.name = new_name;
+  const data = await graphFetch(`/users/${USER_PRINCIPAL}/drive/items/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+  if (data.error) return data;
+  console.log(`[ONEDRIVE] Moved item ${id} → ${dp}`);
+  return { success: true, name: data.name, path: dp, url: data.webUrl };
+}
+
 // ─── SharePoint ───────────────────────────────────────────────────────────────
 
 async function listSharePointSites({ search = '' } = {}) {
@@ -1460,7 +1521,7 @@ module.exports = {
   listContacts, createContact,
   searchOneNote, saveLink, listOneNoteStructure, getPageIdsForLinkPages, diagnoseOneNote,
   createOneNotePage, readOneNotePage, setOneNoteSection,
-  searchOneDrive, listOneDriveFolder, getOneDriveShareLink,
+  searchOneDrive, listOneDriveFolder, getOneDriveShareLink, uploadToOneDrive, moveOneDriveItem,
   listSharePointSites, searchSharePoint, listSharePointFiles,
   isConfigured,
 

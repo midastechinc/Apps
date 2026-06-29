@@ -835,6 +835,39 @@ const DEFINITIONS = {
       }
     }
   },
+  onedrive_save: {
+    type: 'function',
+    function: {
+      name: 'onedrive_save',
+      description: 'Save a file to a OneDrive folder. Use to save the last PDF you built (source="pdf") or the image the user just sent (source="image") into a specific folder like /Scans/inbox. NEVER say you cannot save to OneDrive — use this.',
+      parameters: {
+        type: 'object',
+        properties: {
+          source: { type: 'string', enum: ['pdf', 'image'], description: '"pdf" = the last PDF built with image_to_pdf; "image" = the image the user just sent' },
+          folder_path: { type: 'string', description: 'Destination folder, e.g. "/Scans/inbox"' },
+          filename: { type: 'string', description: 'Optional filename (defaults to the PDF/image name)' }
+        },
+        required: ['source', 'folder_path']
+      }
+    }
+  },
+  onedrive_move: {
+    type: 'function',
+    function: {
+      name: 'onedrive_move',
+      description: 'Move an existing OneDrive file into another folder. Provide either item_id (from search/list) or source_path.',
+      parameters: {
+        type: 'object',
+        properties: {
+          item_id: { type: 'string', description: 'OneDrive item ID of the file to move' },
+          source_path: { type: 'string', description: 'Full path of the file to move, e.g. "/Scans/PC Refresh Coupon.pdf"' },
+          dest_folder_path: { type: 'string', description: 'Destination folder, e.g. "/Scans/inbox"' },
+          new_name: { type: 'string', description: 'Optional new filename' }
+        },
+        required: ['dest_folder_path']
+      }
+    }
+  },
   sharepoint_list_sites: {
     type: 'function',
     function: {
@@ -1341,7 +1374,7 @@ const AGENT_TOOLS = {
     'm365_list_todos', 'm365_create_todo', 'm365_complete_todo', 'm365_update_todo',
     'm365_list_contacts', 'm365_create_contact',
     'm365_search_onenote', 'm365_save_link', 'm365_list_onenote_structure', 'm365_set_onenote_section', 'm365_create_onenote_page', 'm365_read_onenote_page',
-    'onedrive_search', 'onedrive_list_folder', 'onedrive_get_link',
+    'onedrive_search', 'onedrive_list_folder', 'onedrive_get_link', 'onedrive_save', 'onedrive_move',
     'sharepoint_list_sites', 'sharepoint_search', 'sharepoint_list_files',
     'memory_save', 'memory_recall', 'memory_search', 'memory_list', 'memory_delete', 'memory_status',
     'geocode_location',
@@ -1505,6 +1538,26 @@ async function executeTool(toolName, args, agentType = 'business', context = {})
       case 'onedrive_search':                return await m365.searchOneDrive(args);
       case 'onedrive_list_folder':           return await m365.listOneDriveFolder(args);
       case 'onedrive_get_link':              return await m365.getOneDriveShareLink(args);
+      case 'onedrive_move':                  return await m365.moveOneDriveItem(args);
+      case 'onedrive_save': {
+        // Resolve the buffer locally — never pass file bytes through the LLM
+        let buffer, filename, contentType;
+        if (args.source === 'pdf') {
+          const built = pdf.peekLatestPdf();
+          if (!built) return { error: 'No PDF available. Build one with image_to_pdf first.' };
+          buffer = built.buffer; filename = args.filename || built.filename; contentType = 'application/pdf';
+        } else if (args.source === 'image') {
+          const img = context.imageBuffer
+            ? { buffer: context.imageBuffer, mimeType: context.imageMimeType }
+            : require('./image-store').getPendingImage(context.senderJid);
+          if (!img) return { error: 'No image found to save.' };
+          const ext = (img.mimeType || '').includes('png') ? 'png' : 'jpg';
+          buffer = img.buffer; filename = args.filename || `image_${Date.now()}.${ext}`; contentType = img.mimeType || 'image/jpeg';
+        } else {
+          return { error: 'source must be "pdf" or "image"' };
+        }
+        return await m365.uploadToOneDrive({ folder_path: args.folder_path, filename, buffer, contentType });
+      }
       case 'sharepoint_list_sites':          return await m365.listSharePointSites(args);
       case 'sharepoint_search':              return await m365.searchSharePoint(args);
       case 'sharepoint_list_files':          return await m365.listSharePointFiles(args);

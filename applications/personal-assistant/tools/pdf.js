@@ -14,6 +14,11 @@ function popLatestPdf() {
   return p;
 }
 
+// Read the last-built PDF without consuming it (so it can also be sent to WhatsApp)
+function peekLatestPdf() {
+  return _latestPdf;
+}
+
 // Resolve the image the user just sent — current message buffer first, then pending store
 function resolveImage(context = {}) {
   if (context.imageBuffer) {
@@ -83,4 +88,4 @@ async function imageToPdf(args = {}, context = {}) {
   }
 }
 
-module.exports = { imageToPdf, addPageToPdf, popLatestPdf };
+module.exports = { imageToPdf, addPageToPdf, popLatestPdf, peekLatestPdf };
