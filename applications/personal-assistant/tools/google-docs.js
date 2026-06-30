@@ -303,6 +303,61 @@ async function searchDrive({ query = '', type = 'document' } = {}) {
   return { query: query || '(all)', count: files.length, files };
 }
 
+// List folders in Google Drive (optionally filtered by name)
+async function listFolders({ query = '' } = {}) {
+  const raw = loadCreds();
+  if (!raw) return { error: 'Google credentials not configured.' };
+  let creds;
+  try { creds = await ensureFreshToken(raw); } catch (err) { return { error: err.message }; }
+
+  let filter = `mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  if (query.trim()) filter += ` and name contains '${query.trim().replace(/'/g, "\\'")}'`;
+  const q = encodeURIComponent(filter);
+  const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,webViewLink)&orderBy=name&pageSize=50`;
+
+  const result = await authedFetch(url, { method: 'GET' }, creds);
+  if (result.error) return result;
+  const folders = (result.files || []).map(f => ({ folderId: f.id, name: f.name, url: f.webViewLink }));
+  return { count: folders.length, folders };
+}
+
+// List the contents (all file types + subfolders) of a folder, resolved by name or id
+async function listFolderContents({ folder_name = '', folder_id = '' } = {}) {
+  const raw = loadCreds();
+  if (!raw) return { error: 'Google credentials not configured.' };
+  let creds;
+  try { creds = await ensureFreshToken(raw); } catch (err) { return { error: err.message }; }
+
+  let folderId = folder_id;
+  let resolvedName = folder_name;
+  if (!folderId) {
+    if (!folder_name.trim()) return { error: 'Provide folder_name or folder_id' };
+    const fq = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and name contains '${folder_name.trim().replace(/'/g, "\\'")}' and trashed=false`);
+    const found = await authedFetch(`https://www.googleapis.com/drive/v3/files?q=${fq}&fields=files(id,name)&pageSize=5`, { method: 'GET' }, creds);
+    if (found.error) return found;
+    if (!found.files?.length) return { error: `No folder found matching "${folder_name}"` };
+    folderId = found.files[0].id;
+    resolvedName = found.files[0].name;
+  }
+
+  const q = encodeURIComponent(`'${folderId}' in parents and trashed=false`);
+  const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,mimeType,modifiedTime,webViewLink)&orderBy=folder,name&pageSize=100`;
+  const result = await authedFetch(url, { method: 'GET' }, creds);
+  if (result.error) return result;
+
+  const items = (result.files || []).map(f => ({
+    id: f.id,
+    name: f.name,
+    type: f.mimeType === 'application/vnd.google-apps.folder' ? 'folder'
+        : f.mimeType === 'application/vnd.google-apps.document' ? 'document'
+        : f.mimeType === 'application/vnd.google-apps.spreadsheet' ? 'spreadsheet'
+        : 'file',
+    modified: f.modifiedTime,
+    url: f.webViewLink,
+  }));
+  return { folder: resolvedName, folderId, count: items.length, items };
+}
+
 async function trashDoc(documentId) {
   if (!documentId) return { error: 'documentId required' };
   const raw = loadCreds();
@@ -316,4 +371,4 @@ async function trashDoc(documentId) {
   );
 }
 
-module.exports = { createDoc, appendToDoc, updateDoc, readDoc, searchDrive, trashDoc, isConfigured };
+module.exports = { createDoc, appendToDoc, updateDoc, readDoc, searchDrive, listFolders, listFolderContents, trashDoc, isConfigured };

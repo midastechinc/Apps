@@ -337,6 +337,35 @@ const DEFINITIONS = {
       }
     }
   },
+  google_list_folders: {
+    type: 'function',
+    function: {
+      name: 'google_list_folders',
+      description: 'List folders in Google Drive. Use when the user asks "what folders do I have" or to find a folder by name. NEVER say you can only list documents — you CAN list folders.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Optional — part of a folder name to filter by' }
+        },
+        required: []
+      }
+    }
+  },
+  google_list_folder_contents: {
+    type: 'function',
+    function: {
+      name: 'google_list_folder_contents',
+      description: 'List everything (documents, spreadsheets, sub-folders, files) inside a Google Drive folder, resolved by name or id. Use when the user says "what is in my Claudia Docs folder" or "show files in [folder]".',
+      parameters: {
+        type: 'object',
+        properties: {
+          folder_name: { type: 'string', description: 'The folder name to open, e.g. "Claudia Docs"' },
+          folder_id: { type: 'string', description: 'The folder ID (from google_list_folders), if known' }
+        },
+        required: []
+      }
+    }
+  },
   google_update_doc: {
     type: 'function',
     function: {
@@ -1379,7 +1408,7 @@ const AGENT_TOOLS = {
     'sharepoint_list_sites', 'sharepoint_search', 'sharepoint_list_files',
     'memory_save', 'memory_recall', 'memory_search', 'memory_list', 'memory_delete', 'memory_status',
     'geocode_location',
-    'google_create_doc', 'google_append_doc', 'google_read_doc', 'google_search_drive', 'google_update_doc',
+    'google_create_doc', 'google_append_doc', 'google_read_doc', 'google_search_drive', 'google_update_doc', 'google_list_folders', 'google_list_folder_contents',
     'social_save_post', 'social_list_posts', 'social_delete_post',
     'image_generate',
     'web_search', 'fetch_webpage',
@@ -1399,7 +1428,7 @@ const AGENT_TOOLS = {
     'get_current_time', 'get_current_date',
     'google_list_events', 'google_create_event', 'google_list_calendars',
     'google_list_tasks', 'google_create_task', 'google_complete_task',
-    'google_create_doc', 'google_append_doc', 'google_read_doc', 'google_search_drive', 'google_update_doc',
+    'google_create_doc', 'google_append_doc', 'google_read_doc', 'google_search_drive', 'google_update_doc', 'google_list_folders', 'google_list_folder_contents',
     'family_save_memory', 'family_recall_memory', 'family_list_memory',
     'memory_save', 'memory_recall', 'memory_search', 'memory_list', 'memory_delete', 'memory_status',
     'send_whatsapp_message', 'geocode_location',
@@ -1506,6 +1535,8 @@ async function executeTool(toolName, args, agentType = 'business', context = {})
       case 'google_append_doc':           return await googleDocs.appendToDoc(args);
       case 'google_read_doc':             return await googleDocs.readDoc(args);
       case 'google_search_drive':         return await googleDocs.searchDrive(args);
+      case 'google_list_folders':         return await googleDocs.listFolders(args);
+      case 'google_list_folder_contents': return await googleDocs.listFolderContents(args);
       case 'google_update_doc':           return await googleDocs.updateDoc(args);
       case 'm365_list_calendar_events':   return await m365.listCalendarEvents(args);
       case 'm365_create_calendar_event':  return await m365.createCalendarEvent(args);
