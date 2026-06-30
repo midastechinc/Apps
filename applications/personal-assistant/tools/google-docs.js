@@ -408,4 +408,41 @@ async function trashDoc(documentId) {
   );
 }
 
-module.exports = { createDoc, appendToDoc, updateDoc, readDoc, searchDrive, listFolders, listFolderContents, trashDoc, isConfigured };
+// Diagnostic — runs the full create→resolve folder→move sequence, returns raw results
+async function diagnoseGoogleDocs() {
+  const lines = [];
+  const raw = loadCreds();
+  if (!raw) return 'No Google credentials configured.';
+  let creds;
+  try { creds = await ensureFreshToken(raw); } catch (err) { return `Token refresh failed: ${err.message}`; }
+
+  // Report granted scopes if present
+  lines.push(`scope: ${raw.scope ? raw.scope.replace(/https:\/\/www.googleapis.com\/auth\//g, '') : '(unknown)'}`);
+
+  // 1. Resolve or create folder
+  const folderId = await resolveOrCreateFolder('CLAUDIA DOCS', creds);
+  lines.push(`1) folder CLAUDIA DOCS: ${folderId ? 'id ' + folderId.slice(0, 14) : 'FAILED to resolve/create'}`);
+  if (!folderId) return lines.join('\n');
+
+  // 2. Create a test doc
+  const doc = await authedFetch(DOCS_API, { method: 'POST', body: JSON.stringify({ title: 'Claudia Move Test' }) }, creds);
+  if (doc.error) { lines.push(`2) create doc: ERROR ${String(doc.error).slice(0,150)}`); return lines.join('\n'); }
+  const docId = doc.documentId;
+  lines.push(`2) created doc id ${docId.slice(0, 14)}`);
+
+  // 3. Parents before
+  const before = await authedFetch(`https://www.googleapis.com/drive/v3/files/${docId}?fields=parents`, { method: 'GET' }, creds);
+  lines.push(`3) parents before: ${before.error ? 'ERR ' + String(before.error).slice(0,100) : JSON.stringify(before.parents)}`);
+
+  // 4. Move
+  const removeParents = (!before.error && before.parents?.length) ? before.parents.join(',') : 'root';
+  const moved = await authedFetch(
+    `https://www.googleapis.com/drive/v3/files/${docId}?addParents=${folderId}&removeParents=${encodeURIComponent(removeParents)}&fields=id,parents`,
+    { method: 'PATCH', body: JSON.stringify({}) }, creds
+  );
+  lines.push(`4) move result: ${moved.error ? 'ERROR ' + String(moved.error).slice(0,200) : 'parents now ' + JSON.stringify(moved.parents)}`);
+
+  return lines.join('\n');
+}
+
+module.exports = { createDoc, appendToDoc, updateDoc, readDoc, searchDrive, listFolders, listFolderContents, trashDoc, diagnoseGoogleDocs, isConfigured };

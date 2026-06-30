@@ -701,6 +701,21 @@ async function processMessage(senderJid, text, imageInfo = null, { fromGroup = f
     }
   }
 
+  // Raw diagnostic for Google Docs folder move. Trigger: "debug gdocs".
+  if (text && /^\s*debug\s+gdocs\s*$/i.test(text)) {
+    const cfg = getConfig();
+    const senderNum = jidToNumber(senderJid);
+    if (normalizeNumber(cfg.mainNumber) === senderNum) {
+      try {
+        const gd = require('./tools/google-docs');
+        const report = await gd.diagnoseGoogleDocs();
+        return `🔎 Google Docs diagnostic:\n${report}`;
+      } catch (err) {
+        return `Diagnostic failed: ${err.message}`;
+      }
+    }
+  }
+
   // Raw diagnostic for OneDrive read/write. Trigger: "debug onedrive".
   if (text && /^\s*debug\s+onedrive\s*$/i.test(text)) {
     const cfg = getConfig();
