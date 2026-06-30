@@ -227,7 +227,7 @@ app.get('/api/auth/google', (req, res) => {
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: 'code',
-    scope: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive.readonly',
+    scope: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive',
     access_type: 'offline',
     prompt: 'consent'   // force refresh_token to be returned even if previously granted
   });
@@ -273,6 +273,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
       client_secret: clientSecret,
       access_token: data.access_token,
       refresh_token: data.refresh_token,
+      scope: data.scope || '',
       expiry: new Date(Date.now() + (data.expires_in || 3600) * 1000).toISOString()
     };
     if (!fs.existsSync(AUTH_DIR)) fs.mkdirSync(AUTH_DIR, { recursive: true });
