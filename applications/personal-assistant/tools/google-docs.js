@@ -118,17 +118,20 @@ async function createDoc({ title, content = '', folder_name = DEFAULT_DOC_FOLDER
   if (folder_name) {
     const folderId = await resolveOrCreateFolder(folder_name, creds);
     if (folderId) {
+      // Fetch the doc's current parent(s) so we remove the right one (not the "root" alias)
+      const meta = await authedFetch(`https://www.googleapis.com/drive/v3/files/${docId}?fields=parents`, { method: 'GET' }, creds);
+      const removeParents = (!meta.error && meta.parents?.length) ? meta.parents.join(',') : 'root';
       const moved = await authedFetch(
-        `https://www.googleapis.com/drive/v3/files/${docId}?addParents=${folderId}&removeParents=root&fields=id,parents`,
+        `https://www.googleapis.com/drive/v3/files/${docId}?addParents=${folderId}&removeParents=${encodeURIComponent(removeParents)}&fields=id,parents`,
         { method: 'PATCH', body: JSON.stringify({}) },
         creds
       );
-      if (!moved.error) savedFolder = folder_name;
-      else console.warn(`[GDOCS] Move to "${folder_name}" failed: ${moved.error}`);
+      if (!moved.error && moved.parents?.includes(folderId)) savedFolder = folder_name;
+      else console.warn(`[GDOCS] Move to "${folder_name}" failed: ${moved.error || 'parent not updated'}`);
     }
   }
 
-  console.log(`[GDOCS] Created: "${title}" → ${url}${savedFolder ? ` (in ${savedFolder})` : ''}`);
+  console.log(`[GDOCS] Created: "${title}" → ${url}${savedFolder ? ` (in ${savedFolder})` : ' (ROOT — move failed)'}`);
   return { success: true, documentId: docId, url, title, folder: savedFolder };
 }
 
