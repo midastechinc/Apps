@@ -282,12 +282,13 @@ const DEFINITIONS = {
     type: 'function',
     function: {
       name: 'google_create_doc',
-      description: 'Create a new Google Doc with a title and optional content. Returns the document URL. Use for meeting notes, drafts, proposals, reports, or any document the user asks to create.',
+      description: 'Create a new Google Doc with a title and optional content. Returns the document URL. New docs are automatically filed in the "CLAUDIA DOCS" folder unless another folder_name is given.',
       parameters: {
         type: 'object',
         properties: {
           title:   { type: 'string', description: 'The document title' },
-          content: { type: 'string', description: 'Optional initial content/body of the document (plain text)' }
+          content: { type: 'string', description: 'Optional initial content/body of the document (plain text)' },
+          folder_name: { type: 'string', description: 'Folder to save into (default: "CLAUDIA DOCS"). Pass a different name to override, or "" to leave in My Drive root.' }
         },
         required: ['title']
       }

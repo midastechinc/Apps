@@ -63,7 +63,27 @@ function buildInsertRequests(content) {
   }];
 }
 
-async function createDoc({ title, content = '' }) {
+// Default folder for all new docs. New Google Docs land in My Drive root by
+// default; we move them here automatically so everything stays organized.
+const DEFAULT_DOC_FOLDER = 'CLAUDIA DOCS';
+
+// Find a folder by name, creating it if it doesn't exist. Returns folderId or null.
+async function resolveOrCreateFolder(name, creds) {
+  if (!name) return null;
+  const fq = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and name='${name.replace(/'/g, "\\'")}' and trashed=false`);
+  const found = await authedFetch(`https://www.googleapis.com/drive/v3/files?q=${fq}&fields=files(id,name)&pageSize=1`, { method: 'GET' }, creds);
+  if (!found.error && found.files?.length) return found.files[0].id;
+
+  const created = await authedFetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    body: JSON.stringify({ name, mimeType: 'application/vnd.google-apps.folder' }),
+  }, creds);
+  if (created.error) { console.warn(`[GDOCS] Folder create failed: ${created.error}`); return null; }
+  console.log(`[GDOCS] Created folder "${name}" → ${created.id}`);
+  return created.id;
+}
+
+async function createDoc({ title, content = '', folder_name = DEFAULT_DOC_FOLDER }) {
   if (!title) return { error: 'title is required' };
   const raw = loadCreds();
   if (!raw) return { error: 'Google credentials not configured. Set up Google Calendar integration first.' };
@@ -89,13 +109,27 @@ async function createDoc({ title, content = '' }) {
       body: JSON.stringify({ requests })
     }, creds);
     if (updateResult.error) {
-      // Doc was created but content failed — still return the URL
       return { success: true, documentId: docId, url, title, warning: `Doc created but content write failed: ${updateResult.error}` };
     }
   }
 
-  console.log(`[GDOCS] Created: "${title}" → ${url}`);
-  return { success: true, documentId: docId, url, title };
+  // 3. Move into the target folder (default: CLAUDIA DOCS)
+  let savedFolder = null;
+  if (folder_name) {
+    const folderId = await resolveOrCreateFolder(folder_name, creds);
+    if (folderId) {
+      const moved = await authedFetch(
+        `https://www.googleapis.com/drive/v3/files/${docId}?addParents=${folderId}&removeParents=root&fields=id,parents`,
+        { method: 'PATCH', body: JSON.stringify({}) },
+        creds
+      );
+      if (!moved.error) savedFolder = folder_name;
+      else console.warn(`[GDOCS] Move to "${folder_name}" failed: ${moved.error}`);
+    }
+  }
+
+  console.log(`[GDOCS] Created: "${title}" → ${url}${savedFolder ? ` (in ${savedFolder})` : ''}`);
+  return { success: true, documentId: docId, url, title, folder: savedFolder };
 }
 
 async function resolveDocId(raw, creds, input) {
